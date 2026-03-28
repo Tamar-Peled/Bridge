@@ -1,0 +1,28 @@
+[
+  {
+    "id": 1,
+    "name": "יואב לוי",
+    "grade": "כיתה ז'",
+    "status": "בתהליך טיפול",
+    "engagement_level": "medium",
+    "reflection": "אני לא נהנה מפעילויות קבוצתיות ולפעמים מרגיש לא בנוח להצטרף לאחרים.",
+    "recent_tasks": [
+      { "day": "Monday", "completed": true, "mood": "okay" },
+      { "day": "Tuesday", "completed": false, "mood": "frustrated" },
+      { "day": "Wednesday", "completed": true, "mood": "good" },
+      { "day": "Tuesday", "completed": false, "mood": "low" }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "אביגיל שלום",
+    "grade": "כיתה ח'",
+    "status": "לא פעילה היום",
+    "engagement_level": "low",
+    "reflection": "לא רציתי להשתתף היום.",
+    "recent_tasks": [
+      { "day": "Sunday", "completed": false, "mood": "withdrawn" },
+      { "day": "Monday", "completed": false, "mood": "low" }
+    ]
+  }
+]

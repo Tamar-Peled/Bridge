@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BRIDGE – יועצת</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f4f2; --card: #ffffff; --dark: #1a1a1a; --mid: #666; --light: #aaa;
+    --border: #e8e8e4; --green: #27ae60; --green-soft: #eafaf1;
+    --red: #e74c3c; --red-soft: #fdecea; --yellow: #f39c12; --yellow-soft: #fef9e7;
+    --radius: 18px; --radius-sm: 12px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06); --shadow-lg: 0 8px 32px rgba(0,0,0,0.13);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--dark); min-height: 100vh; direction: rtl; }
+  .screen { display: none; min-height: 100vh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  #screen-landing { align-items: center; justify-content: center; padding: 40px 24px; text-align: center; }
+  .logo-box { width: 84px; height: 84px; background: var(--dark); border-radius: 24px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 38px; font-weight: 900; margin: 0 auto 24px; box-shadow: var(--shadow-lg); }
+  .landing-title { font-size: 40px; font-weight: 900; letter-spacing: -1px; margin-bottom: 6px; }
+  .landing-sub { color: var(--light); font-size: 15px; margin-bottom: 52px; }
+  .landing-welcome { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  .landing-desc { color: var(--mid); font-size: 15px; margin-bottom: 36px; }
+  .btn-primary { display: block; width: 100%; max-width: 420px; background: var(--dark); color: #fff; border: none; border-radius: var(--radius); padding: 18px; font-size: 17px; font-weight: 700; cursor: pointer; font-family: 'Heebo', sans-serif; transition: opacity .15s, transform .15s; margin: 0 auto; }
+  .btn-primary:hover { opacity: .88; transform: translateY(-2px); }
+  .footer-txt { color: var(--light); font-size: 13px; margin-top: 48px; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  .topbar-brand { display: flex; align-items: center; gap: 10px; }
+  .topbar-logo { width: 34px; height: 34px; background: var(--dark); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 15px; }
+  .topbar-name { font-weight: 800; font-size: 17px; }
+  .topbar-back { background: none; border: none; cursor: pointer; color: var(--mid); font-size: 16px; font-family: 'Heebo', sans-serif; padding: 4px 8px; }
+
+  .content { padding: 22px 20px; flex: 1; max-width: 520px; width: 100%; margin: 0 auto; }
+  .page-title { font-size: 26px; font-weight: 900; margin-bottom: 4px; }
+  .page-sub { color: var(--light); font-size: 14px; margin-bottom: 18px; }
+
+  .search-box { display: flex; align-items: center; gap: 10px; background: var(--card); border-radius: var(--radius); padding: 12px 16px; border: 1px solid var(--border); margin-bottom: 14px; }
+  .search-box input { border: none; outline: none; width: 100%; font-size: 15px; font-family: 'Heebo', sans-serif; color: var(--dark); background: transparent; text-align: right; }
+  .search-box input::placeholder { color: var(--light); }
+  .count-lbl { color: var(--light); font-size: 13px; margin-bottom: 10px; text-align: left; }
+
+  .student-card { background: var(--card); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 11px; display: flex; align-items: center; gap: 14px; cursor: pointer; border: 1px solid var(--border); box-shadow: var(--shadow); transition: box-shadow .15s, transform .15s; }
+  .student-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); }
+  .s-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; flex-shrink: 0; }
+  .s-info { flex: 1; }
+  .s-name { font-weight: 700; font-size: 16px; margin-bottom: 2px; }
+  .s-meta { color: var(--light); font-size: 13px; margin-bottom: 5px; }
+  .s-badges { display: flex; align-items: center; gap: 7px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .badge { padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .badge-g { background: var(--green-soft); color: #1a7a42; }
+  .badge-r { background: var(--red-soft); color: #c0392b; }
+  .badge-y { background: var(--yellow-soft); color: #b7770d; }
+  .grade-lbl { color: var(--light); font-size: 12px; }
+  .arrow { color: var(--light); font-size: 18px; flex-shrink: 0; }
+  .new-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); flex-shrink: 0; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .btn-add { display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--card); border: 2px dashed var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; color: var(--light); font-size: 15px; font-family: 'Heebo', sans-serif; width: 100%; margin-top: 6px; transition: border-color .15s, color .15s; }
+  .btn-add:hover { border-color: var(--dark); color: var(--dark); }
+
+  .detail-header { background: var(--card); border-radius: var(--radius); padding: 20px; margin-bottom: 14px; display: flex; gap: 16px; align-items: flex-start; border: 1px solid var(--border); box-shadow: var(--shadow); }
+  .d-avatar { width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; flex-shrink: 0; }
+  .d-name { font-size: 22px; font-weight: 800; margin-bottom: 3px; }
+  .d-sub { color: var(--light); font-size: 13px; margin-bottom: 2px; }
+  .status-row { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
+
+  .sec { background: var(--card); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 12px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+  .sec-title { font-weight: 700; font-size: 15px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .sec-empty { color: var(--light); font-size: 14px; text-align: center; padding: 6px 0; }
+
+  .task-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .task-item:last-child { border-bottom: none; }
+  .task-done { text-decoration: line-through; color: var(--light); }
+  .task-chk { font-size: 18px; cursor: pointer; }
+  .task-del { margin-right: auto; font-size: 16px; cursor: pointer; color: var(--light); }
+  .task-del:hover { color: var(--red); }
+
+  .add-row { display: flex; gap: 8px; margin-top: 10px; }
+  .add-input { flex: 1; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 14px; font-family: 'Heebo', sans-serif; outline: none; color: var(--dark); text-align: right; }
+  .add-input:focus { border-color: var(--dark); }
+  .btn-sm { background: var(--dark); color: #fff; border: none; border-radius: var(--radius-sm); padding: 10px 16px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Heebo', sans-serif; }
+
+  .report-item { background: #fafafa; border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 8px; border: 1px solid var(--border); }
+  .report-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .report-mood { font-size: 15px; font-weight: 600; }
+  .report-time { color: var(--light); font-size: 12px; }
+  .report-text { color: var(--mid); font-size: 13px; line-height: 1.5; }
+  .report-new { background: var(--red-soft); border-color: #f5c6c2; }
+
+  .log-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .log-item:last-child { border-bottom: none; }
+  .log-time { color: var(--light); font-size: 12px; }
+
+  .ai-panel { background: #f7f7f5; border-radius: var(--radius-sm); padding: 16px; }
+  .ai-hint { color: var(--mid); font-size: 14px; margin-bottom: 12px; text-align: center; }
+  .btn-ai { background: var(--dark); color: #fff; border: none; border-radius: var(--radius-sm); padding: 14px 24px; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%; font-family: 'Heebo', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity .15s; }
+  .btn-ai:hover { opacity: .85; }
+  .ai-result { display: none; margin-top: 14px; }
+  .ai-result.show { display: block; }
+  .ai-block { background: var(--card); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 10px; border: 1px solid var(--border); }
+  .ai-block h4 { font-size: 13px; font-weight: 700; color: var(--mid); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+  .ai-block ul { padding-right: 16px; }
+  .ai-block li { font-size: 14px; line-height: 1.7; }
+  .ai-block p { font-size: 14px; line-height: 1.6; }
+  .alert-chip { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+  .alert-low { background: var(--green-soft); color: var(--green); }
+  .alert-medium { background: var(--yellow-soft); color: var(--yellow); }
+  .alert-high { background: var(--red-soft); color: var(--red); }
+  .ai-loading { display: none; text-align: center; color: var(--mid); font-size: 14px; padding: 16px 0; }
+  .ai-loading.show { display: block; }
+
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+  .overlay.show { display: flex; }
+  .modal { background: var(--card); border-radius: var(--radius); padding: 24px; width: 100%; max-width: 420px; box-shadow: var(--shadow-lg); }
+  .modal h3 { font-size: 20px; font-weight: 800; margin-bottom: 16px; }
+  .modal input, .modal select { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 15px; font-family: 'Heebo', sans-serif; margin-bottom: 12px; outline: none; text-align: right; color: var(--dark); }
+  .modal input:focus, .modal select:focus { border-color: var(--dark); }
+  .modal-btns { display: flex; gap: 10px; margin-top: 4px; }
+  .btn-cancel { flex: 1; background: var(--border); color: var(--dark); border: none; border-radius: var(--radius-sm); padding: 12px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: 'Heebo', sans-serif; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--dark); color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 14px; font-weight: 600; z-index: 999; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .spinner { width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .suggested-task { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .suggested-task:last-child { border-bottom: none; }
+  .stask-text { flex: 1; font-size: 14px; line-height: 1.5; }
+  .stask-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .stask-btn { border: none; border-radius: 8px; padding: 5px 10px; font-size: 13px; cursor: pointer; font-family: 'Heebo', sans-serif; transition: opacity .15s; }
+  .stask-btn:hover { opacity: .75; }
+  .stask-btn.edit   { background: var(--yellow-soft); color: #7c5e00; }
+  .stask-btn.delete { background: var(--red-soft);    color: var(--red); }
+  .stask-btn.add    { background: var(--green-soft);  color: var(--green); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div id="screen-landing" class="screen active">
+  <div class="logo-box">B</div>
+  <div class="landing-title">BRIDGE</div>
+  <div class="landing-sub">עוזרת AI ליועצות בית ספר</div>
+  <div class="landing-welcome">!ברוכה הבאה</div>
+  <div class="landing-desc">כניסה לממשק הייעוץ המקצועי</div>
+  <button class="btn-primary" onclick="enterCounselor()">כניסה למערכת</button>
+  <div class="footer-txt">BRIDGE © 2026 — כל הזכויות שמורות</div>
+</div>
+
+<div id="screen-main" class="screen">
+  <div class="topbar">
+    <button class="topbar-back" onclick="showScreen('screen-landing')">יציאה →</button>
+    <div class="topbar-brand">
+      <div class="topbar-name">BRIDGE</div>
+      <div class="topbar-logo">B</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="page-title">התלמידים שלי</div>
+    <div class="page-sub">תלמידים הנמצאים בתהליך ליווי פעיל</div>
+    <div class="search-box">
+      <input type="text" id="search-input" placeholder="חפש תלמיד..." oninput="filterStudents()">
+      <span>🔍</span>
+    </div>
+    <div class="count-lbl" id="count-lbl"></div>
+    <div id="students-list"></div>
+    <button class="btn-add" onclick="openAddModal()">+ הוסף תלמיד</button>
+  </div>
+</div>
+
+<div id="screen-detail" class="screen">
+  <div class="topbar">
+    <button class="topbar-back" onclick="showScreen('screen-main');loadAndRenderList()">→ חזרה</button>
+    <div class="topbar-brand">
+      <div class="topbar-name">BRIDGE</div>
+      <div class="topbar-logo">B</div>
+    </div>
+  </div>
+  <div class="content" id="detail-content"></div>
+</div>
+
+<div class="overlay" id="modal-add">
+  <div class="modal">
+    <h3>הוספת תלמיד חדש</h3>
+    <input type="text" id="new-name" placeholder="שם מלא" />
+    <input type="text" id="new-grade" placeholder='כיתה (למשל: י"א)' />
+    <input type="text" id="new-reason" placeholder="סיבת פנייה" />
+    <select id="new-status">
+      <option value="יציב">יציב</option>
+      <option value="דורש תשומת לב">דורש תשומת לב</option>
+      <option value="במעקב">במעקב</option>
+    </select>
+    <input type="text" id="new-code" placeholder="קוד גישה לתלמיד (לדוגמה: 1234)" />
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-add')">ביטול</button>
+      <button class="btn-primary" style="flex:1;margin:0;" onclick="addStudent()">הוסף</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:8000';
+const STATUS_CFG = {
+  'יציב':           { dot: 'var(--green)',  badge: 'badge-g' },
+  'דורש תשומת לב': { dot: 'var(--red)',    badge: 'badge-r' },
+  'במעקב':          { dot: 'var(--yellow)', badge: 'badge-y' }
+};
+
+let allStudents = [];
+let currentStudentId = null;
+
+// ─── HELPERS ─────────────────────────────────────────────────────
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${API}${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+function formatTime(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) +
+    ' · ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+}
+
+// ─── SCREENS ─────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+async function enterCounselor() {
+  showScreen('screen-main');
+  await loadAndRenderList();
+}
+
+// ─── STUDENTS LIST ────────────────────────────────────────────────
+async function loadAndRenderList() {
+  document.getElementById('students-list').innerHTML = '<div class="loading-screen">טוען תלמידים...</div>';
+  try {
+    allStudents = await apiFetch('/students');
+    renderList(allStudents);
+  } catch (e) {
+    document.getElementById('students-list').innerHTML =
+      `<div class="loading-screen">שגיאה: ${e.message}<br>ודאי שהשרת רץ על ${API}</div>`;
+  }
+}
+
+function renderList(list) {
+  document.getElementById('count-lbl').textContent = `${list.length} תלמידים`;
+  document.getElementById('students-list').innerHTML = list.map(s => {
+    const sc = STATUS_CFG[s.status] || STATUS_CFG['יציב'];
+    const hasAlert = s.status === 'דורש תשומת לב';
+    return `<div class="student-card" onclick="openStudent('${s.id}')">
+      <span class="arrow">‹</span>
+      <div class="s-info">
+        <div class="s-name">${hasAlert ? '⚠️ ' : ''}${s.name}</div>
+        <div class="s-meta">${s.reason}</div>
+        <div class="s-badges">
+          <span class="dot" style="background:${sc.dot}"></span>
+          <span class="badge ${sc.badge}">${s.status}</span>
+          <span class="grade-lbl">כיתה ${s.grade}</span>
+        </div>
+      </div>
+      <div class="s-avatar">${s.name[0]}</div>
+    </div>`;
+  }).join('') || '<div class="sec-empty" style="padding:20px;text-align:center;">לא נמצאו תלמידים</div>';
+}
+
+function filterStudents() {
+  const q = document.getElementById('search-input').value.trim();
+  renderList(allStudents.filter(s => s.name.includes(q) || s.reason.includes(q)));
+}
+
+// ─── STUDENT DETAIL ───────────────────────────────────────────────
+async function openStudent(id) {
+  currentStudentId = id;
+  showScreen('screen-detail');
+  document.getElementById('detail-content').innerHTML = '<div class="loading-screen">טוען...</div>';
+
+  try {
+    const [tasks, reports, logs] = await Promise.all([
+      apiFetch(`/tasks/${id}`),
+      apiFetch(`/reports/${id}`),
+      apiFetch(`/logs/${id}`)
+    ]);
+    // סמן דיווחים כנקראו
+    await apiFetch(`/reports/${id}/mark-seen`, { method: 'PATCH' });
+    const s = allStudents.find(x => x.id === id);
+    renderDetail(s, tasks, reports, logs);
+  } catch (e) {
+    document.getElementById('detail-content').innerHTML = `<div class="loading-screen">שגיאה: ${e.message}</div>`;
+  }
+}
+
+function renderDetail(s, tasks, reports, logs) {
+  const sc = STATUS_CFG[s.status] || STATUS_CFG['יציב'];
+  const avatarBg = s.status === 'יציב' ? 'var(--green-soft)' : s.status === 'דורש תשומת לב' ? 'var(--red-soft)' : 'var(--yellow-soft)';
+
+  const tasksHtml = tasks.length
+    ? tasks.map(t => `<div class="task-item">
+        <span class="task-chk" onclick="toggleTask('${t.id}','${s.id}')">${t.done ? '✅' : '⭕'}</span>
+        <span class="${t.done ? 'task-done' : ''}">${t.text}</span>
+        <span class="task-del" onclick="deleteTask('${t.id}','${s.id}')">🗑️</span>
+      </div>`).join('')
+    : '<div class="sec-empty">אין משימות עדיין</div>';
+
+  const reportsHtml = reports.length
+    ? reports.map(r => `<div class="report-item ${r.is_new ? 'report-new' : ''}">
+        <div class="report-top">
+          <span class="report-mood">${r.mood}</span>
+          <span class="report-time">${formatTime(r.created_at)}</span>
+        </div>
+        ${r.text ? `<div class="report-text">${r.text}</div>` : ''}
+      </div>`).join('')
+    : '<div class="sec-empty">התלמיד טרם שלח דיווח</div>';
+
+  const logsHtml = logs.length
+    ? logs.map(l => `<div class="log-item">
+        <span>💬 ${l.text}</span>
+        <span class="log-time">${formatTime(l.created_at)}</span>
+      </div>`).join('')
+    : '<div class="sec-empty">אין פעולות אחרונות</div>';
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-header">
+      <div style="flex:1">
+        <div class="d-name">${s.name}</div>
+        <div class="d-sub">${s.reason} · כיתה ${s.grade}</div>
+        <div class="d-sub">קוד תלמיד: <strong>${s.code}</strong></div>
+        <div class="status-row">
+          <span style="color:var(--mid);font-size:14px">סטטוס</span>
+          <span class="badge ${sc.badge}" style="display:flex;align-items:center;gap:6px;">
+            <span class="dot" style="background:${sc.dot}"></span>${s.status}
+          </span>
+        </div>
+      </div>
+      <div class="d-avatar" style="background:${avatarBg}">${s.name[0]}</div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">📨 דיווחי תלמיד</div>
+      ${reportsHtml}
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">📋 משימות</div>
+      ${tasksHtml}
+      <div class="add-row">
+        <input class="add-input" id="task-inp" placeholder="הוסף משימה חדשה..." onkeydown="if(event.key==='Enter')addTask('${s.id}')">
+        <button class="btn-sm" onclick="addTask('${s.id}')">+</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">🕐 פעולות אחרונות</div>
+      ${logsHtml}
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">✨ ניתוח AI</div>
+      <div class="ai-panel">
+        <div class="ai-hint">ניתוח מבוסס דפוסי דיווח ומשימות התלמיד</div>
+        <button class="btn-ai" id="btn-ai" onclick="runAI('${s.id}')">✦ צור תובנות AI</button>
+        <div class="ai-loading" id="ai-loading">מנתח נתונים... <span class="spinner"></span></div>
+        <div class="ai-result" id="ai-result"></div>
+      </div>
+    </div>`;
+}
+
+// ─── TASKS ────────────────────────────────────────────────────────
+async function toggleTask(taskId, studentId) {
+  try {
+    await apiFetch(`/tasks/${taskId}/done`, { method: 'PATCH' });
+    await openStudent(studentId);
+  } catch (e) { showToast('שגיאה בעדכון משימה'); }
+}
+
+async function deleteTask(taskId, studentId) {
+  try {
+    await apiFetch(`/tasks/${taskId}`, { method: 'DELETE' });
+    await openStudent(studentId);
+    showToast('משימה נמחקה');
+  } catch (e) { showToast('שגיאה במחיקה'); }
+}
+
+async function addTask(studentId) {
+  const inp = document.getElementById('task-inp');
+  const text = inp.value.trim();
+  if (!text) return;
+  try {
+    await apiFetch('/tasks', {
+      method: 'POST',
+      body: JSON.stringify({ student_id: studentId, text })
+    });
+    await openStudent(studentId);
+    showToast('משימה נוספה ✓');
+  } catch (e) { showToast('שגיאה בהוספת משימה'); }
+}
+
+// ─── ADD STUDENT ──────────────────────────────────────────────────
+function openAddModal() { document.getElementById('modal-add').classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+async function addStudent() {
+  const name   = document.getElementById('new-name').value.trim();
+  const grade  = document.getElementById('new-grade').value.trim();
+  const reason = document.getElementById('new-reason').value.trim();
+  const status = document.getElementById('new-status').value;
+  const code   = document.getElementById('new-code').value.trim();
+  if (!name || !grade || !reason || !code) { showToast('נא למלא את כל השדות'); return; }
+  try {
+    await apiFetch('/students', {
+      method: 'POST',
+      body: JSON.stringify({ name, grade, reason, status, code })
+    });
+    closeModal('modal-add');
+    ['new-name','new-grade','new-reason','new-code'].forEach(id => document.getElementById(id).value = '');
+    await loadAndRenderList();
+    showToast(`${name} נוסף/ה בהצלחה ✓`);
+  } catch (e) { showToast(`שגיאה: ${e.message}`); }
+}
+
+// ─── AI ───────────────────────────────────────────────────────────
+async function runAI(studentId) {
+  const btn     = document.getElementById('btn-ai');
+  const loading = document.getElementById('ai-loading');
+  const result  = document.getElementById('ai-result');
+  btn.style.display = 'none'; loading.classList.add('show'); result.classList.remove('show');
+
+  try {
+    // הendpoint החדש שולף את כל הנתונים בעצמו מהDB
+    const data = await apiFetch(`/analyze-student/${studentId}`, { method: 'POST' });
+
+    const alertLabels = { low: 'נמוך', medium: 'בינוני', high: 'גבוה' };
+
+    // בניית HTML למשימות מוצעות — עם עריכה, מחיקה והוספה
+    const suggestedTasksHtml = (data.suggested_tasks || []).map((task, i) => `
+      <div class="suggested-task" id="stask-${i}">
+        <span class="stask-text" id="stask-text-${i}">${task}</span>
+        <div class="stask-actions">
+          <button class="stask-btn edit"   onclick="editSuggestedTask(${i}, '${studentId}')">✏️</button>
+          <button class="stask-btn delete" onclick="removeSuggestedTask(${i})">🗑️</button>
+          <button class="stask-btn add"    onclick="addSuggestedTask(${i}, '${studentId}')">+ הוסף</button>
+        </div>
+      </div>`).join('');
+
+    result.innerHTML = `
+      <div class="ai-block">
+        <h4>רמת דחיפות</h4>
+        <span class="alert-chip alert-${data.alert_level}">${alertLabels[data.alert_level]}</span>
+      </div>
+      <div class="ai-block">
+        <h4>תובנות</h4>
+        <ul>${data.insights.map(i => `<li>${i}</li>`).join('')}</ul>
+      </div>
+      <div class="ai-block">
+        <h4>סיבה אפשרית</h4>
+        <p>${data.possible_cause}</p>
+      </div>
+      <div class="ai-block">
+        <h4>המלצות ליועצת</h4>
+        <ul>${data.recommendations.map(r => `<li>${r}</li>`).join('')}</ul>
+      </div>
+      <div class="ai-block" style="border-color: #a8d5b5;">
+        <h4>💡 משימות מוצעות לתלמיד</h4>
+        <p style="color:var(--light);font-size:13px;margin-bottom:10px">ערכי, מחקי או הוסיפי ישירות לתלמיד</p>
+        <div id="suggested-tasks-list">${suggestedTasksHtml}</div>
+      </div>`;
+    result.classList.add('show');
+
+    // שמירת המשימות המוצעות במשתנה גלובלי לעריכה
+    window._suggestedTasks = [...(data.suggested_tasks || [])];
+    window._aiStudentId    = studentId;
+
+  } catch (e) {
+    result.innerHTML = `<div class="ai-block" style="border-color:var(--red)">
+      <h4>שגיאה</h4><p>${e.message}</p></div>`;
+    result.classList.add('show');
+  }
+  loading.classList.remove('show'); btn.style.display = 'flex';
+}
+
+function editSuggestedTask(idx, studentId) {
+  const textEl = document.getElementById(`stask-text-${idx}`);
+  const current = window._suggestedTasks[idx];
+  const newText = prompt('ערכי את המשימה:', current);
+  if (newText && newText.trim()) {
+    window._suggestedTasks[idx] = newText.trim();
+    textEl.textContent = newText.trim();
+  }
+}
+
+function removeSuggestedTask(idx) {
+  document.getElementById(`stask-${idx}`).remove();
+  window._suggestedTasks[idx] = null;
+}
+
+async function addSuggestedTask(idx, studentId) {
+  const text = window._suggestedTasks[idx];
+  if (!text) return;
+  try {
+    await apiFetch('/tasks', {
+      method: 'POST',
+      body: JSON.stringify({ student_id: studentId, text })
+    });
+    document.getElementById(`stask-${idx}`).style.opacity = '0.4';
+    document.querySelector(`#stask-${idx} .stask-btn.add`).textContent = '✓ נוסף';
+    showToast('משימה נוספה לתלמיד ✓');
+  } catch (e) { showToast(`שגיאה: ${e.message}`); }
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// רענון כל 30 שניות
+setInterval(() => {
+  if (document.getElementById('screen-main').classList.contains('active')) loadAndRenderList();
+}, 30000);
+</script>
+</body>
+</html>

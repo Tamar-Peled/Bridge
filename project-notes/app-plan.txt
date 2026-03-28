@@ -1,0 +1,25 @@
+Product: AI-powered counselor assistant for school counselors.
+
+Main user:
+School counselor.
+
+Core problem:
+Counselors struggle to manually analyze each student’s emotional, behavioral, and engagement patterns across tasks and reflections.
+
+Core value:
+The system helps counselors identify patterns, receive smart alerts, and get actionable recommendations for intervention.
+
+MVP screens:
+1. Login screen
+2. Student list screen
+3. Student detail screen
+4. AI insights and recommendations section
+
+Main AI features:
+- Automatic insights
+- Smart alerts
+- Recommended counselor actions
+
+Important note:
+The counselor dashboard is the main focus of the MVP.
+Student-side functionality is secondary.

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BRIDGE – תלמיד</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f4f2; --card: #ffffff; --dark: #1a1a1a; --mid: #666; --light: #aaa;
+    --border: #e8e8e4; --green: #27ae60; --green-soft: #eafaf1;
+    --red: #e74c3c; --red-soft: #fdecea; --yellow: #f39c12; --yellow-soft: #fef9e7;
+    --radius: 18px; --radius-sm: 12px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06); --shadow-lg: 0 8px 32px rgba(0,0,0,0.13);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--dark); min-height: 100vh; direction: rtl; }
+  .screen { display: none; min-height: 100vh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  #screen-login { align-items: center; justify-content: center; padding: 40px 24px; text-align: center; }
+  .logo-box { width: 84px; height: 84px; background: var(--dark); border-radius: 24px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 38px; font-weight: 900; margin: 0 auto 24px; box-shadow: var(--shadow-lg); }
+  .landing-title { font-size: 40px; font-weight: 900; letter-spacing: -1px; margin-bottom: 6px; }
+  .landing-sub { color: var(--light); font-size: 15px; margin-bottom: 48px; }
+  .login-box { background: var(--card); border-radius: var(--radius); padding: 28px 24px; width: 100%; max-width: 360px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+  .login-box h2 { font-size: 20px; font-weight: 800; margin-bottom: 18px; text-align: center; }
+  .login-box input { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; font-size: 20px; font-family: 'Heebo', sans-serif; outline: none; text-align: center; color: var(--dark); margin-bottom: 14px; letter-spacing: 6px; font-weight: 700; }
+  .login-box input:focus { border-color: var(--dark); }
+  .btn-primary { display: block; width: 100%; background: var(--dark); color: #fff; border: none; border-radius: var(--radius); padding: 16px; font-size: 17px; font-weight: 700; cursor: pointer; font-family: 'Heebo', sans-serif; transition: opacity .15s; }
+  .btn-primary:hover { opacity: .88; }
+  .login-err { color: var(--red); font-size: 13px; text-align: center; margin-top: 10px; display: none; }
+  .login-err.show { display: block; }
+  .footer-txt { color: var(--light); font-size: 13px; margin-top: 32px; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  .topbar-brand { display: flex; align-items: center; gap: 10px; }
+  .topbar-logo { width: 34px; height: 34px; background: var(--dark); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 15px; }
+  .topbar-name { font-weight: 800; font-size: 17px; }
+  .topbar-exit { background: none; border: none; cursor: pointer; color: var(--light); font-size: 16px; font-family: 'Heebo', sans-serif; }
+
+  .content { padding: 22px 20px; flex: 1; max-width: 480px; width: 100%; margin: 0 auto; }
+
+  .welcome-banner { background: var(--dark); color: #fff; border-radius: var(--radius); padding: 20px 22px; margin-bottom: 18px; }
+  .welcome-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+  .welcome-sub { color: rgba(255,255,255,.6); font-size: 14px; }
+
+  .sec { background: var(--card); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+  .sec-title { font-weight: 700; font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .sec-empty { color: var(--light); font-size: 14px; text-align: center; padding: 8px 0; }
+
+  .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .task-item:last-child { border-bottom: none; }
+  .task-chk-btn { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; background: none; font-size: 14px; transition: border-color .15s, background .15s; }
+  .task-chk-btn.done { background: var(--green); border-color: var(--green); color: #fff; }
+  .task-text { flex: 1; font-size: 15px; line-height: 1.5; padding-top: 2px; }
+  .task-text.done-txt { text-decoration: line-through; color: var(--light); }
+  .task-report-btn { background: none; border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-size: 13px; font-family: 'Heebo', sans-serif; cursor: pointer; color: var(--mid); flex-shrink: 0; transition: border-color .15s, color .15s; }
+  .task-report-btn:hover { border-color: var(--dark); color: var(--dark); }
+
+  #screen-report { background: var(--bg); }
+  .report-title { font-size: 26px; font-weight: 900; margin-bottom: 6px; }
+  .report-task-name { color: var(--mid); font-size: 15px; margin-bottom: 28px; }
+  .report-q { font-size: 16px; font-weight: 600; margin-bottom: 14px; }
+  .emoji-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .emoji-btn { background: var(--card); border: 2px solid var(--border); border-radius: var(--radius); padding: 18px 12px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; font-weight: 600; cursor: pointer; font-family: 'Heebo', sans-serif; color: var(--dark); transition: border-color .15s, background .15s; }
+  .emoji-btn .emo { font-size: 26px; }
+  .emoji-btn.selected { border-color: var(--dark); background: #f0f0ee; }
+  .report-textarea { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; font-size: 14px; font-family: 'Heebo', sans-serif; resize: vertical; min-height: 100px; outline: none; text-align: right; color: var(--dark); background: var(--card); }
+  .report-textarea:focus { border-color: var(--dark); }
+  .btn-save { display: block; width: 100%; background: #bbb; color: #fff; border: none; border-radius: var(--radius); padding: 18px; font-size: 17px; font-weight: 700; cursor: pointer; margin-top: 20px; font-family: 'Heebo', sans-serif; transition: background .2s; }
+  .btn-save.ready { background: var(--dark); }
+
+  .history-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .history-item:last-child { border-bottom: none; }
+  .history-task { color: var(--mid); font-size: 13px; flex: 1; margin: 0 12px; }
+  .history-time { color: var(--light); font-size: 12px; flex-shrink: 0; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--dark); color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 14px; font-weight: 600; z-index: 999; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+
+  .success-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,.96); z-index: 300; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 40px; }
+  .success-overlay.show { display: flex; }
+  .success-emoji { font-size: 72px; margin-bottom: 20px; animation: pop .4s ease; }
+  @keyframes pop { 0%{transform:scale(0)} 80%{transform:scale(1.15)} 100%{transform:scale(1)} }
+  .success-title { font-size: 28px; font-weight: 900; margin-bottom: 8px; }
+  .success-sub { color: var(--mid); font-size: 16px; margin-bottom: 32px; }
+  .loading-screen { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--light); font-size: 15px; }
+  .spinner { width: 18px; height: 18px; border: 3px solid rgba(0,0,0,.15); border-top-color: var(--dark); border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; margin-left: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="screen-login" class="screen active">
+  <div class="logo-box">B</div>
+  <div class="landing-title">BRIDGE</div>
+  <div class="landing-sub">מערכת ליווי אישית</div>
+  <div class="login-box">
+    <h2>כניסה לתלמיד</h2>
+    <input type="text" id="login-code" placeholder="הכנס קוד" maxlength="10"
+      oninput="clearLoginErr()" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-primary" onclick="doLogin()">כניסה</button>
+    <div class="login-err" id="login-err">הקוד שגוי. נסה שוב.</div>
+  </div>
+  <div class="footer-txt">BRIDGE © 2026 — כל הזכויות שמורות</div>
+</div>
+
+<div id="screen-home" class="screen">
+  <div class="topbar">
+    <button class="topbar-exit" onclick="doLogout()">יציאה →</button>
+    <div class="topbar-brand">
+      <div class="topbar-name">BRIDGE</div>
+      <div class="topbar-logo">B</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="welcome-banner">
+      <div class="welcome-name" id="welcome-name">שלום!</div>
+      <div class="welcome-sub">כיתה <span id="welcome-grade"></span></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">📋 המשימות שלי</div>
+      <div id="tasks-list"><div class="loading-screen">טוען... <span class="spinner"></span></div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">🕐 הדיווחים שלי</div>
+      <div id="history-list"></div>
+    </div>
+  </div>
+</div>
+
+<div id="screen-report" class="screen">
+  <div class="topbar">
+    <button class="topbar-exit" onclick="showScreen('screen-home')">→ חזרה</button>
+    <div class="topbar-brand">
+      <div class="topbar-name">BRIDGE</div>
+      <div class="topbar-logo">B</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="report-title">דיווח משימה</div>
+    <div class="report-task-name" id="report-task-name"></div>
+    <div class="report-q">?איך הרגשת אחרי המשימה</div>
+    <div class="emoji-grid">
+      <button class="emoji-btn" onclick="selectEmoji(this,'😊 טוב')"><span class="emo">😊</span> טוב</button>
+      <button class="emoji-btn" onclick="selectEmoji(this,'😣 לחוץ')"><span class="emo">😣</span> לחוץ</button>
+      <button class="emoji-btn" onclick="selectEmoji(this,'😟 לא בנוח')"><span class="emo">😟</span> לא בנוח</button>
+      <button class="emoji-btn" onclick="selectEmoji(this,'😔 עצוב')"><span class="emo">😔</span> עצוב</button>
+    </div>
+    <div class="report-q">?רוצה לשתף עוד משהו</div>
+    <textarea class="report-textarea" id="report-text" placeholder="כתוב כאן בחופשיות... (לא חובה)" oninput="checkReady()"></textarea>
+    <button class="btn-save" id="btn-save" onclick="submitReport()">שמור דיווח</button>
+  </div>
+</div>
+
+<div class="success-overlay" id="success-overlay">
+  <div class="success-emoji">🎉</div>
+  <div class="success-title">תודה על הדיווח!</div>
+  <div class="success-sub">היועצת שלך תראה את זה בקרוב</div>
+  <button class="btn-primary" style="max-width:300px" onclick="closeSuccess()">חזרה לבית</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'http://localhost:8000';
+
+let currentStudent = null;
+let currentTaskId = null;
+let currentTaskName = null;
+let selectedMood = null;
+
+// ─── HELPERS ──────────────────────────────────────────────────────
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${API}${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+function formatTime(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) +
+    ' · ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ─── LOGIN ────────────────────────────────────────────────────────
+async function doLogin() {
+  const code = document.getElementById('login-code').value.trim();
+  if (!code) return;
+  try {
+    // GET /students/login/{code} — שולח את הקוד לbackend, מקבל את פרטי התלמיד
+    currentStudent = await apiFetch(`/students/login/${code}`);
+    document.getElementById('welcome-name').textContent = `!שלום, ${currentStudent.name}`;
+    document.getElementById('welcome-grade').textContent = currentStudent.grade;
+    showScreen('screen-home');
+    await loadHomeData();
+  } catch (e) {
+    document.getElementById('login-err').classList.add('show');
+  }
+}
+
+function clearLoginErr() { document.getElementById('login-err').classList.remove('show'); }
+
+function doLogout() {
+  currentStudent = null;
+  document.getElementById('login-code').value = '';
+  showScreen('screen-login');
+}
+
+// ─── HOME DATA ────────────────────────────────────────────────────
+async function loadHomeData() {
+  if (!currentStudent) return;
+  try {
+    const [tasks, reports] = await Promise.all([
+      apiFetch(`/tasks/${currentStudent.id}`),
+      apiFetch(`/reports/${currentStudent.id}`)
+    ]);
+    renderTasks(tasks);
+    renderHistory(reports);
+  } catch (e) {
+    document.getElementById('tasks-list').innerHTML = `<div class="sec-empty">שגיאה: ${e.message}</div>`;
+  }
+}
+
+function renderTasks(tasks) {
+  const el = document.getElementById('tasks-list');
+  if (!tasks.length) {
+    el.innerHTML = '<div class="sec-empty">אין משימות כרגע — היועצת תוסיף בקרוב</div>';
+    return;
+  }
+  el.innerHTML = tasks.map(t => `
+    <div class="task-item">
+      <button class="task-chk-btn ${t.done ? 'done' : ''}" onclick="markTask('${t.id}', '${t.text}')">${t.done ? '✓' : ''}</button>
+      <span class="task-text ${t.done ? 'done-txt' : ''}">${t.text}</span>
+      <button class="task-report-btn" onclick="openReport('${t.id}', '${t.text.replace(/'/g, "\\'")}')">
+        ${t.done ? 'דווח שוב' : 'סיימתי'}
+      </button>
+    </div>`).join('');
+}
+
+function renderHistory(reports) {
+  const el = document.getElementById('history-list');
+  if (!reports.length) {
+    el.innerHTML = '<div class="sec-empty">טרם שלחת דיווחים</div>';
+    return;
+  }
+  el.innerHTML = reports.map(r => `
+    <div class="history-item">
+      <span>${r.mood}</span>
+      <span class="history-task">${r.task_name || ''}</span>
+      <span class="history-time">${formatTime(r.created_at)}</span>
+    </div>`).join('');
+}
+
+// ─── TASKS ────────────────────────────────────────────────────────
+async function markTask(taskId, taskText) {
+  try {
+    await apiFetch(`/tasks/${taskId}/done`, { method: 'PATCH' });
+    openReport(taskId, taskText);
+  } catch (e) { showToast('שגיאה'); }
+}
+
+// ─── REPORT ───────────────────────────────────────────────────────
+function openReport(taskId, taskText) {
+  currentTaskId = taskId;
+  currentTaskName = taskText;
+  selectedMood = null;
+  document.getElementById('report-task-name').textContent = `משימה: ${taskText}`;
+  document.getElementById('report-text').value = '';
+  document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('btn-save').classList.remove('ready');
+  showScreen('screen-report');
+}
+
+function selectEmoji(btn, label) {
+  document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedMood = label;
+  checkReady();
+}
+
+function checkReady() {
+  document.getElementById('btn-save').classList.toggle('ready', !!selectedMood);
+}
+
+async function submitReport() {
+  if (!selectedMood) return;
+  const text = document.getElementById('report-text').value.trim();
+  try {
+    // POST /reports — שולח את הדיווח לbackend, שומר בDB
+    await apiFetch('/reports', {
+      method: 'POST',
+      body: JSON.stringify({
+        student_id: currentStudent.id,
+        mood: selectedMood,
+        text: text || null,
+        task_name: currentTaskName
+      })
+    });
+    document.getElementById('success-overlay').classList.add('show');
+  } catch (e) { showToast(`שגיאה: ${e.message}`); }
+}
+
+async function closeSuccess() {
+  document.getElementById('success-overlay').classList.remove('show');
+  showScreen('screen-home');
+  await loadHomeData();
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
