@@ -29,8 +29,8 @@ db: Client   = create_client(supabase_url, supabase_key)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://bridge-git-main-tamar-peleds-projects.vercel.app",
-        "https://bridge-qpfmfezma-tamar-peleds-projects.vercel.app"
+        "https://bridge-git-main-tamar-peleds-projects.vercel.app/",
+        "https://bridge-cf8nltqje-tamar-peleds-projects.vercel.app/"
     ],
     allow_credentials=True,
     allow_methods=["*"],
