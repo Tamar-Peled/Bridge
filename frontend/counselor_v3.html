@@ -63,6 +63,12 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   border-radius:var(--radius-sm);padding:10px 16px;
   font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;
 }
+.ai-reason-tip{
+  margin-top:8px;font-size:12px;line-height:1.45;color:var(--mid);
+  background:var(--bg);border:1px dashed var(--border);border-radius:var(--radius-sm);
+  padding:8px 10px;display:none;
+}
+.ai-reason-tip.show{display:block}
 .btn-icon{background:none;border:none;cursor:pointer;font-size:14px;color:var(--light);padding:3px;transition:color .12s}
 .btn-icon:hover{color:var(--dark)}
 .btn-add{
@@ -120,7 +126,48 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   transition:box-shadow .15s,transform .15s;
 }
 .student-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px)}
-.student-card.alert-card{border-right:3px solid var(--red)}
+/* Priority 1 — counselor "attention required" (red, always on top) */
+.student-card.alert-card{
+  border:1.5px solid var(--red);
+  box-shadow:0 10px 26px rgba(231,76,60,.12);
+}
+.system-flag-label{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  font-family:'Heebo',sans-serif;
+  font-size:12px;font-weight:600;
+  padding:3px 10px;
+  border-radius:20px;
+  border:1px solid #fdba74;
+  background:#ffedd5;
+  color:#9a3412;
+  cursor:pointer;
+  white-space:nowrap;
+}
+/* row wrapper for the clickable AI label */
+.dashboard-alert-row{
+  direction:rtl;display:flex;flex-wrap:wrap;align-items:center;gap:6px;
+  margin-top:4px;
+}
+.action-req{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--red-soft);color:var(--red-dk);
+  border:1px solid #f5c6c2;
+  font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;
+}
+.reason-tag{
+  display:inline-flex;align-items:center;
+  background:#fff;border:1px solid var(--border);
+  color:var(--mid);font-size:11px;font-weight:700;
+  padding:2px 8px;border-radius:999px;
+}
+.distress-dot{
+  width:9px;height:9px;border-radius:50%;
+  background:#ff2a2a;
+  display:inline-block;
+  margin-inline-start:6px;
+  box-shadow:0 0 0 3px rgba(255,42,42,.18);
+  vertical-align:middle;
+}
 .s-avatar{
   width:48px;height:48px;border-radius:50%;
   background:var(--border);display:flex;align-items:center;
@@ -310,13 +357,31 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .rep-audio audio{width:100%;height:36px;border-radius:8px}
 .rep-conf{display:inline-block;background:var(--yellow-soft);color:var(--yellow-dk);font-size:12px;font-weight:700;padding:2px 8px;border-radius:8px;margin-top:6px}
 .rep-unseen{background:var(--red-soft);border-color:#f5c6c2}
+.note-meta{
+  font-size:11px;
+  color:var(--light);
+  text-align:right;
+}
 
 /* toast + spinner */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;padding:12px 24px;border-radius:30px;font-size:14px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1}
-.spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;display:inline-block;vertical-align:middle}
-.spinner-dk{border-color:rgba(0,0,0,.1);border-top-color:var(--dark)}
-@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{
+  width:18px;height:18px;border-radius:999px;
+  border:2.5px solid rgba(255,255,255,.35);
+  border-top-color:#fff;border-right-color:#fff;
+  box-shadow:0 0 0 1px rgba(0,0,0,.02);
+  animation:spin .7s cubic-bezier(.4,0,.2,1) infinite;
+  display:inline-block;vertical-align:middle;
+}
+.spinner-dk{
+  border-color:rgba(0,0,0,.08);
+  border-top-color:var(--dark);
+  border-right-color:var(--dark);
+}
+@keyframes spin{
+  to{transform:rotate(360deg)}
+}
 .loading-box{display:flex;align-items:center;justify-content:center;height:150px;color:var(--light);font-size:14px;gap:10px}
 </style>
 </head>
@@ -448,6 +513,16 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   </div>
 </div>
 
+<!-- ════ MODAL: AI ALERT EXPLANATION ════ -->
+<div class="overlay" id="modal-ai-alert">
+  <div class="modal">
+    <h3>אזהרת מערכת</h3>
+    <div class="modal-note" id="ai-alert-note"></div>
+    <div id="ai-alert-body"></div>
+    <div class="modal-btns" id="ai-alert-btns"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -459,9 +534,27 @@ const STATUSES = ['בתהליך','סיים תהליך','נדרש מעקב צמו
 
 function canonicalStatus(raw){
   if(STATUSES.includes(raw)) return raw;
-  if(raw==='יציב') return 'סיים תהליך';
-  if(raw==='דורש תשומת לב'||raw==='במעקב') return 'נדרש מעקב צמוד';
+  if(raw==='יציב'||raw==='תקין') return 'סיים תהליך';
+  if(raw==='דורש תשומת לב'||raw==='במעקב'||raw==='נדרשת פעולה') return 'נדרש מעקב צמוד';
   return 'בתהליך';
+}
+function isStatusOkForClearance(s){
+  return canonicalStatus(s)==='סיים תהליך';
+}
+
+async function setStatusForStudentById(studentId,newStatus){
+  const s=allStudents.find(x=>x.id===studentId);if(!s)return;
+  const prev=s.status;
+  s.status=newStatus;
+  try{
+    await apiFetch(`/students/${studentId}`,{method:'PATCH',body:JSON.stringify({status:newStatus})});
+    showToast('סטטוס עודכן ✓');
+  }catch(e){
+    s.status=prev;
+    showToast(`שגיאה: ${e.message}`);
+  }finally{
+    renderList(allStudents);
+  }
 }
 function statusBadgeCls(s){
   if(s==='סיים תהליך')      return 'badge-g';
@@ -484,6 +577,9 @@ let _photoSid      = null;
 let _descSid       = null;
 let _aiSummaryLast = '';
 let _noteIsAi      = false;
+let _editingNoteId = null;
+// dashboard proactive alerts (per student id)
+let proactiveById  = {}; // { [id]: computeProactiveAlert(...) }
 
 /* ════════════════ HTTP ════════════════ */
 async function apiFetch(path, opts={}){
@@ -497,6 +593,196 @@ async function apiFetch(path, opts={}){
     throw new Error(d);
   }
   return res.json();
+}
+
+/* ════════════════ PROACTIVE ALERTS (DASHBOARD) ════════════════ */
+function parseIsoMs(iso){
+  if(!iso) return null;
+  const t=Date.parse(String(iso).replace(' ','T'));
+  return Number.isFinite(t)?t:null;
+}
+function daysSinceMs(ms){
+  if(!ms) return Infinity;
+  return (Date.now()-ms)/(1000*60*60*24);
+}
+function isNegativeEmojiMood(moodRaw){
+  const mood=String(moodRaw||'');
+  // Strict rule: only emoji-based negativity in the mood label (not keywords / free text)
+  return /(?:😣|😟|😔)/.test(mood);
+}
+function isPositiveEmojiMood(moodRaw){
+  const mood=String(moodRaw||'');
+  if(isNegativeEmojiMood(moodRaw)) return false;
+  return /(?:😊|🙂|😌|😀|😃|😄|👍|💪|✨|🎉)/.test(mood);
+}
+/** Heuristic "positive sentiment" (no server field yet); empty text with positive emoji counts as positive */
+function isPositiveSentimentText(text){
+  const t=String(text||'').trim();
+  if(!t) return true;
+  // Strong negative signals in Hebrew
+  if (/(עצוב|לחוץ|נורא|גרוע|רע|מעצבן|בדידות|חרדה|מצוק|נשבר|בעייתי|בעיה|מעצבנ|נשברתי|מצב רע|בלא)/.test(t)) return false;
+  if (/(טוב|טובה|מצוין|יופי|מצו|בסדר|נשמע|כיף|שמח|נחמד|קל|הקלה|נראה|מצחיק|אחלה|מעולה|הקלה|הרגשתי|אחלה|מעולה)/.test(t)) return true;
+  if(t.length<48) return true;
+  return false;
+}
+function shouldRelaxAIFlag(reports){
+  if(!reports||!reports.length) return false;
+  const reps=reports.slice().sort((a,b)=>parseIsoMs(b.created_at)-parseIsoMs(a.created_at));
+  const latest=reps[0];
+  return isPositiveEmojiMood(latest.mood) && isPositiveSentimentText(latest.text);
+}
+function computeProactiveAlert(student, tasks, reports){
+  const tags=[];
+  let inactive7=false;
+  let isDistressed=false;
+
+  const weeklyPicked=(tasks||[]).some(t=>t&&t.selected);
+  const pickTimes=(tasks||[]).map(t=>parseIsoMs(t&&t.selected_at)).filter(Boolean);
+  const latestPickMs=pickTimes.length?Math.max(...pickTimes):null;
+
+  const createdMs=parseIsoMs(student.created_at);
+  const baselineMs=latestPickMs || createdMs;
+
+  // Rule 1: no weekly selection right now AND baseline is >7d
+  if(!weeklyPicked && daysSinceMs(baselineMs)>7){
+    inactive7=true;
+    tags.push('7 days inactive');
+  }
+
+  // Distress rule (strict):
+  // - last 3 reports (chronological) all have negative emoji mood, OR
+  // - 3+ uncompleted weekly missions
+  const reps=(reports||[]).slice().sort((a,b)=>parseIsoMs(a.created_at)-parseIsoMs(b.created_at)); // oldest -> newest
+  const last3=reps.slice(-3);
+  const threeNegEmoji=(last3.length===3)&&last3.every(r=>isNegativeEmojiMood(r.mood));
+
+  const weeklyUncompleted=(tasks||[]).filter(t=>t&&t.selected&&!t.done).length;
+  const tooManyWeeklyIncomplete=weeklyUncompleted>=3;
+
+  if(threeNegEmoji||tooManyWeeklyIncomplete){
+    isDistressed=true;
+    if(tooManyWeeklyIncomplete){
+      tags.push('3+ weekly incomplete');
+    }
+  }
+
+  const reasonParts=[];
+  if(inactive7) reasonParts.push('ללא בחירת משימה שבועית מעל 7 ימים');
+  if(threeNegEmoji) reasonParts.push('3 אימוג\'ים עצובים ברצף');
+  if(tooManyWeeklyIncomplete) reasonParts.push(`${weeklyUncompleted} משימות שבועיות שלא הושלמו`);
+  const reasonHebrew=reasonParts.join(' · ');
+
+  const last3Key=last3.map(r=>String(r.id||r.created_at||'')).join(',');
+  const silenceFingerprint=[
+    inactive7?'1':'0',
+    threeNegEmoji?'1':'0',
+    tooManyWeeklyIncomplete?String(weeklyUncompleted):'0',
+    last3Key
+  ].join('|');
+
+  const baseSignals=inactive7||isDistressed;
+  const relaxedByPositiveData=baseSignals && shouldRelaxAIFlag(reports);
+  const aiStillDetected=baseSignals && !relaxedByPositiveData;
+
+  return {
+    needs:aiStillDetected,
+    aiStillDetected,
+    relaxedByPositiveData,
+    inactive7,
+    isDistressed,
+    tags,
+    reasonHebrew,
+    silenceFingerprint:aiStillDetected?silenceFingerprint:''
+  };
+}
+
+const LS_SYSTEM_FLAG_SILENCE='bridge_system_flag_silence_v3';
+function loadSystemFlagSilence(){
+  try{return JSON.parse(localStorage.getItem(LS_SYSTEM_FLAG_SILENCE)||'{}');}catch(_){return{};}
+}
+function isSystemFlagSilenced(studentId, fp){
+  if(!fp) return false;
+  return loadSystemFlagSilence()[studentId]===fp;
+}
+function setSystemFlagSilenced(studentId, fp){
+  const m=loadSystemFlagSilence();
+  m[studentId]=fp;
+  localStorage.setItem(LS_SYSTEM_FLAG_SILENCE, JSON.stringify(m));
+}
+function clearSystemFlagStateForStudent(studentId){
+  const m=loadSystemFlagSilence();
+  delete m[studentId];
+  localStorage.setItem(LS_SYSTEM_FLAG_SILENCE, JSON.stringify(m));
+}
+
+let _aiAlertSid=null;
+function openAiAlertModal(studentId, ev){
+  if(ev) ev.stopPropagation();
+  _aiAlertSid=studentId;
+  const s=allStudents.find(x=>x.id===studentId);
+  const pa=proactiveById[studentId]||{};
+  const status=s?canonicalStatus(s.status):'בתהליך';
+  const noteEl=document.getElementById('ai-alert-note');
+  const bodyEl=document.getElementById('ai-alert-body');
+  const btnsEl=document.getElementById('ai-alert-btns');
+  const reason=pa.reasonHebrew||'המערכת זיהתה דפוס שמצריך תשומת לב.';
+  if(noteEl) noteEl.textContent='התראה זו נוצרה אוטומטית לפי דפוסי דיווח ומשימות.';
+  if(bodyEl){
+    bodyEl.innerHTML=`<div style="font-size:14px;color:var(--mid);line-height:1.6;margin-top:6px">
+      ${escH(reason)}
+    </div>`;
+  }
+  if(btnsEl){
+    if(status==='בתהליך'){
+      btnsEl.innerHTML=`<button class="btn-cancel" onclick="aiAlertMarkOk()" style="flex:1;background:var(--green-soft);color:var(--green-dk)">סמן כתקין</button>
+        <button class="btn-primary" onclick="aiAlertAccept()" style="flex:1;margin:0">קבל אזהרה</button>`;
+    }else if(status==='נדרש מעקב צמוד'){
+      btnsEl.innerHTML=`<button class="btn-cancel" onclick="aiAlertCloseOnly()" style="flex:1">סגור</button>`;
+    }else{
+      btnsEl.innerHTML=`<button class="btn-cancel" onclick="aiAlertMarkOk()" style="flex:1">סגור</button>`;
+    }
+  }
+  document.getElementById('modal-ai-alert').classList.add('show');
+}
+function aiAlertSilenceCurrent(){
+  const sid=_aiAlertSid;
+  if(!sid) return;
+  const pa=proactiveById[sid];
+  if(pa&&pa.silenceFingerprint){
+    setSystemFlagSilenced(sid, pa.silenceFingerprint);
+  }
+}
+function aiAlertMarkOk(){
+  aiAlertSilenceCurrent();
+  closeModal('modal-ai-alert');
+  filterStudents();
+}
+async function aiAlertAccept(){
+  const sid=_aiAlertSid;
+  if(!sid){closeModal('modal-ai-alert');return;}
+  aiAlertSilenceCurrent();
+  closeModal('modal-ai-alert');
+  await setStatusForStudentById(sid,'נדרש מעקב צמוד');
+}
+function aiAlertCloseOnly(){
+  aiAlertSilenceCurrent();
+  closeModal('modal-ai-alert');
+  filterStudents();
+}
+
+async function mapPool(items, concurrency, fn){
+  if(!items||!items.length) return [];
+  const out=new Array(items.length);
+  let i=0;
+  async function worker(){
+    while(i<items.length){
+      const idx=i++;
+      out[idx]=await fn(items[idx], idx);
+    }
+  }
+  const workers=Array.from({length:Math.min(concurrency, items.length)},()=>worker());
+  await Promise.all(workers);
+  return out;
 }
 
 /* ════════════════ UTILS ════════════════ */
@@ -516,7 +802,8 @@ function showToast(msg,ms=2600){
 }
 function setBusy(id,busy,label){
   const el=document.getElementById(id);if(!el)return;
-  el.disabled=busy;el.innerHTML=busy?'<span class="spinner"></span>':label;
+  const spinCls=el.classList.contains('btn-sm')?'spinner spinner-dk':'spinner';
+  el.disabled=busy;el.innerHTML=busy?`<span class="${spinCls}"></span>`:label;
 }
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -554,6 +841,21 @@ async function loadList(){
   el.innerHTML='<div class="loading-box"><span class="spinner spinner-dk"></span> טוען...</div>';
   try{
     allStudents=await apiFetch('/students');
+    proactiveById={};
+
+    // Fetch per-student tasks+reports to power proactive alerts (bounded concurrency)
+    await mapPool(allStudents, 6, async (s)=>{
+      try{
+        const [tasks,reports]=await Promise.all([
+          apiFetch(`/tasks/${s.id}`),
+          apiFetch(`/reports/${s.id}`),
+        ]);
+        proactiveById[s.id]=computeProactiveAlert(s, tasks, reports);
+      }catch(_){
+        proactiveById[s.id]={needs:false,aiStillDetected:false,relaxedByPositiveData:false,inactive7:false,isDistressed:false,tags:[],reasonHebrew:'',silenceFingerprint:''};
+      }
+    });
+
     renderList(allStudents);
   }catch(e){
     el.innerHTML=`<div class="loading-box">שגיאה: ${escH(e.message)}</div>`;
@@ -566,18 +868,35 @@ function renderList(list){
   if(!list.length){el.innerHTML='<div class="sec-empty" style="padding:20px">לא נמצאו תלמידים</div>';return;}
   el.innerHTML=list.map(s=>{
     const status=canonicalStatus(s.status);
-    const isAlert=(status==='נדרש מעקב צמוד');
+    const isStatusAlert=(status==='נדרש מעקב צמוד');
+    const pa=proactiveById[s.id]||{needs:false,aiStillDetected:false,relaxedByPositiveData:false,inactive7:false,isDistressed:false,tags:[],reasonHebrew:'',silenceFingerprint:''};
+    const aiStillDetected=!!pa.aiStillDetected;
+    const fp=pa.silenceFingerprint||'';
+    const silenced=isSystemFlagSilenced(s.id, fp);
+    const showAiLabel=aiStillDetected&&!silenced;
+    const cardCls=`student-card${isStatusAlert?' alert-card':''}`;
     const av=s.photo
       ?`<div class="s-avatar"><img src="${escH(s.photo)}" alt="" onerror="this.parentElement.textContent='${escH(s.name[0])}'"></div>`
       :`<div class="s-avatar">${escH(s.name[0])}</div>`;
-    return `<div class="student-card${isAlert?' alert-card':''}" onclick="openStudent('${s.id}')">
+    const reasonTags=(showAiLabel&&(pa.tags||[]).length)
+      ?`<div class="s-badges" style="margin-top:6px">${pa.tags.map(t=>`<span class="reason-tag">${escH(t)}</span>`).join('')}</div>`
+      :'';
+    const tip=escH(pa.reasonHebrew||'');
+    const sysLbl=showAiLabel
+      ?`<div class="dashboard-alert-row">
+          <button type="button" class="system-flag-label" title="${tip}" onclick="openAiAlertModal('${s.id}',event)">⚠️ אזהרה לתשומת לב</button>
+        </div>`
+      :'';
+    return `<div class="${cardCls}" onclick="openStudent('${s.id}')">
       ${av}
       <div class="s-info">
-        <div class="s-name">${isAlert?'⚠️ ':''}${escH(s.name)}</div>
+        <div class="s-name">${isStatusAlert?'⚠️ ':''}${escH(s.name)}</div>
         <div class="s-meta">כיתה ${escH(s.grade)}</div>
         <div class="s-badges">
           <span class="badge ${statusBadgeCls(status)}">${status}</span>
         </div>
+        ${sysLbl}
+        ${reasonTags}
       </div>
       <span class="arrow">‹</span>
     </div>`;
@@ -652,6 +971,13 @@ function renderDetail(s){
     ?bankTasks.map(taskRow).join('')
     :'<div class="sec-empty">כל המשימות נבחרו לשבוע</div>';
 
+  function noteSourceLabel(n){
+    const status=(n.edit_status)|| (n.is_ai_generated?'ai_generated':'manual');
+    if(status==='manual') return 'נכתב על ידך';
+    if(status==='ai_edited') return 'נכתב על ידי AI ונערך על ידך';
+    return 'נכתב על ידי AI ✨';
+  }
+
   const notesHtml=(currentNotes&&currentNotes.length)
     ?currentNotes.map(n=>`<div class="rep-card" style="margin:8px 0">
         <div class="rep-top">
@@ -659,6 +985,10 @@ function renderDetail(s){
           <span class="rep-time">${fmtTime(n.created_at)}</span>
         </div>
         <div class="rep-body">${escH(n.content||'')}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+          <span class="note-meta">${escH(noteSourceLabel(n))}</span>
+          <button class="btn-icon" onclick="startEditNote('${n.id}')">✏️ עריכה</button>
+        </div>
       </div>`).join('')
     :'<div class="sec-empty">אין עדיין סיכומי פגישות</div>';
 
@@ -702,8 +1032,10 @@ function renderDetail(s){
       <div class="add-row">
         <input class="add-input" id="task-inp" placeholder="הוסף משימה לבנק..."
           onkeydown="if(event.key==='Enter')addTask()">
+        <button class="btn-sm" id="btn-task-ai" title="הצעת משימה חכמה מהבנק לפי הקשר המלא" onclick="getAiTaskRecommendation()">✨</button>
         <button class="btn-sm" onclick="addTask()">+</button>
       </div>
+      <div class="ai-reason-tip" id="task-ai-reason" title="AI Reasoning"></div>
     </div>
 
     <div class="sec">
@@ -830,6 +1162,32 @@ async function addTask(){
   }catch(e){showToast(`שגיאה: ${e.message}`);}
 }
 
+async function getAiTaskRecommendation(){
+  const inp=document.getElementById('task-inp');
+  const tip=document.getElementById('task-ai-reason');
+  if(!currentSid){showToast('לא נבחר תלמיד');return;}
+  if(tip){tip.classList.remove('show');tip.textContent='';tip.removeAttribute('title');}
+  setBusy('btn-task-ai',true,'✨');
+  try{
+    const data=await apiFetch(`/get-ai-task-recommendation/${currentSid}`,{method:'POST'});
+    const title=(data && data.recommended_task_title)||'';
+    const why=(data && data.reasoning)||'';
+    if(title){
+      inp.value=title;
+      inp.focus();
+      if(tip && why){
+        tip.textContent=why;
+        tip.setAttribute('title',why);
+        tip.classList.add('show');
+      }
+      showToast('הצעת משימה מוכנה ✓');
+    }else{
+      showToast('לא נמצאה הצעה');
+    }
+  }catch(e){showToast(`שגיאה: ${e.message}`);}
+  finally{setBusy('btn-task-ai',false,'✨');}
+}
+
 async function delTask(taskId){
   if(!confirm('למחוק משימה זו?'))return;
   try{
@@ -898,6 +1256,7 @@ function aiToHistory(){
   if(!ta) return;
   ta.value=_aiSummaryLast||'';
   _noteIsAi=!!_aiSummaryLast;
+  _editingNoteId=null;
   ta.focus();
 }
 
@@ -905,14 +1264,49 @@ async function saveNote(){
   const ta=document.getElementById('note-draft');
   const text=(ta&&ta.value||'').trim();
   if(!text){showToast('נא לכתוב סיכום לפני שמירה');return;}
+   const isAi=_noteIsAi;
+   let editStatus;
+   if(_editingNoteId){
+     const existing=(currentNotes||[]).find(n=>n.id===_editingNoteId);
+     if(existing && (existing.is_ai_generated || existing.edit_status==='ai_generated' || existing.edit_status==='ai_edited')){
+       editStatus='ai_edited';
+     }else{
+       editStatus='manual';
+     }
+   }else{
+     editStatus=isAi?'ai_generated':'manual';
+   }
   try{
-    const saved=await apiFetch(`/meeting-notes/${currentSid}`,{method:'POST',body:JSON.stringify({content:text,is_ai_generated:_noteIsAi})});
-    currentNotes=[saved,...(currentNotes||[])];
+    let saved;
+    if(_editingNoteId){
+      saved=await apiFetch(`/meeting-notes/${_editingNoteId}`,{
+        method:'PATCH',
+        body:JSON.stringify({content:text,is_ai_generated:isAi,edit_status:editStatus})
+      });
+      currentNotes=(currentNotes||[]).map(n=>n.id===_editingNoteId?saved:n);
+    }else{
+      saved=await apiFetch(`/meeting-notes/${currentSid}`,{
+        method:'POST',
+        body:JSON.stringify({content:text,is_ai_generated:isAi,edit_status:editStatus})
+      });
+      currentNotes=[saved,...(currentNotes||[])];
+    }
     if(ta) ta.value='';
     _noteIsAi=false;
+    _editingNoteId=null;
     renderDetail(allStudents.find(x=>x.id===currentSid));
     showToast('נשמר להיסטוריה ✓');
   }catch(e){showToast(`שגיאה: ${e.message}`);}
+}
+
+function startEditNote(id){
+  const note=(currentNotes||[]).find(n=>n.id===id);
+  const ta=document.getElementById('note-draft');
+  if(!note||!ta)return;
+  ta.value=note.content||'';
+  _editingNoteId=id;
+  _noteIsAi=!!note.is_ai_generated;
+  ta.focus();
 }
 function editSug(i){const el=document.getElementById(`sg-t-${i}`);const v=prompt('ערכי את המשימה:',window._sug[i]);if(v&&v.trim()){window._sug[i]=v.trim();el.textContent=v.trim();}}
 function remSug(i){document.getElementById(`sg-${i}`).remove();window._sug[i]=null;}

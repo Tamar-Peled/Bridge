@@ -260,7 +260,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .btn-rec:active{opacity:.8}
 .btn-rec.recording{background:#8b0000;animation:recpulse .9s ease-in-out infinite}
 @keyframes recpulse{0%,100%{opacity:1}50%{opacity:.55}}
-.rec-dot{width:10px;height:10px;border-radius:50%;background:#fff;animation:recpulse .9s ease-in-out infinite}
+.rec-dot{width:10px;height:10px;border-radius:50%;background:#ff2a2a;box-shadow:0 0 0 0 rgba(255,42,42,.65);animation:recpulse .9s ease-in-out infinite}
 .rec-timer{font-size:13px;color:var(--mid);font-weight:700;font-variant-numeric:tabular-nums}
 .audio-player{width:100%;margin-top:10px;height:36px;border-radius:var(--radius-xs)}
 .audio-ok{font-size:12px;color:var(--green-dk);margin-top:6px;font-weight:600}
@@ -283,7 +283,15 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 
 /* ══════════ MISC ══════════ */
 .loading-box{display:flex;align-items:center;justify-content:center;height:200px;color:var(--light);font-size:14px;gap:10px}
-.spinner{width:18px;height:18px;border:2.5px solid rgba(0,0,0,.1);border-top-color:var(--dark);border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+.spinner{
+  width:18px;height:18px;border-radius:999px;
+  border:2.5px solid rgba(0,0,0,.08);
+  border-top-color:var(--dark);
+  border-right-color:var(--dark);
+  box-shadow:0 0 0 1px rgba(0,0,0,.02);
+  animation:spin .7s cubic-bezier(.4,0,.2,1) infinite;
+  display:inline-block;
+}
 @keyframes spin{to{transform:rotate(360deg)}}
 .toast{position:fixed;bottom:calc(var(--safe-bottom) + 20px);left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;padding:12px 22px;border-radius:30px;font-size:14px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
 .toast.show{opacity:1}
@@ -407,7 +415,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     <div class="audio-box">
       <div class="audio-box-title">🎙️ הקלטת קול (לא חובה)</div>
       <div class="rec-controls">
-        <button class="btn-rec" id="btn-rec" onclick="toggleRecord()">🎙️ התחל הקלטה</button>
+        <button class="btn-rec" id="btn-rec" onclick="toggleRecord()">🎙️ Start Recording</button>
         <span class="rec-timer" id="rec-timer"></span>
       </div>
       <div id="audio-preview-wrap" style="display:none">
@@ -865,18 +873,35 @@ function checkSaveReady(){
 function resetAudioUI(){
   document.getElementById('audio-preview-wrap').style.display='none';
   const btn=document.getElementById('btn-rec');
-  btn.innerHTML='🎙️ התחל הקלטה';btn.classList.remove('recording');
+  btn.innerHTML='🎙️ התחל הקלטה';btn.classList.remove('recording');btn.disabled=false;
   document.getElementById('rec-timer').textContent='';
   clearInterval(recTimerId);recSecs=0;
   if(mediaRec&&mediaRec.state!=='inactive'){try{mediaRec.stop();}catch(_){}}
   mediaRec=null;audioChunks=[];
 }
 
+async function transcribeAudio(blob){
+  const fd=new FormData();
+  fd.append('file', blob, 'recording.webm');
+  let res;
+  try{
+    res = await fetch(`${API}/api/transcribe`,{method:'POST',body:fd});
+  }catch(e){throw new Error(`שגיאת רשת: ${e.message}`);}
+  if(!res.ok){
+    let d=`HTTP ${res.status}`;
+    try{d=(await res.json()).detail||d;}catch(_){}
+    throw new Error(d);
+  }
+  return res.json();
+}
+
 async function toggleRecord(){
   if(mediaRec&&mediaRec.state==='recording'){
     mediaRec.stop();clearInterval(recTimerId);
-    document.getElementById('btn-rec').innerHTML='🎙️ הקלטה מחדש';
-    document.getElementById('btn-rec').classList.remove('recording');
+    const btn=document.getElementById('btn-rec');
+    btn.classList.remove('recording');
+    btn.disabled=true;
+    btn.innerHTML='<span class="spinner"></span> מתמלל...';
     document.getElementById('rec-timer').textContent='';
     return;
   }
@@ -886,7 +911,7 @@ async function toggleRecord(){
     const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';
     mediaRec=new MediaRecorder(stream,{mimeType:mime});
     mediaRec.ondataavailable=e=>{if(e.data.size)audioChunks.push(e.data);};
-    mediaRec.onstop=()=>{
+    mediaRec.onstop=async ()=>{
       audioBlob=new Blob(audioChunks,{type:mime});
       const url=URL.createObjectURL(audioBlob);
       document.getElementById('audio-player').src=url;
@@ -895,10 +920,28 @@ async function toggleRecord(){
       reader.onload=e=>{audioB64=e.target.result;};
       reader.readAsDataURL(audioBlob);
       stream.getTracks().forEach(t=>t.stop());
+
+      try{
+        const out=await transcribeAudio(audioBlob);
+        const txt=((out&&out.text)||'').trim();
+        if(txt){
+          const ta=document.getElementById('rep-text');
+          const cur=(ta.value||'').trim();
+          ta.value=cur?`${cur}\n${txt}`:txt;
+          checkSaveReady();
+        }
+      }catch(e){
+        toast(`תמלול נכשל: ${e.message}`);
+      }finally{
+        const btn=document.getElementById('btn-rec');
+        btn.disabled=false;
+        btn.classList.remove('recording');
+        btn.innerHTML='🎙️ התחל הקלטה';
+      }
     };
     mediaRec.start(250);
     const btn=document.getElementById('btn-rec');
-    btn.innerHTML='<div class="rec-dot"></div> עצור הקלטה';btn.classList.add('recording');
+    btn.innerHTML='<div class="rec-dot"></div> Recording...';btn.classList.add('recording');
     recSecs=0;
     recTimerId=setInterval(()=>{
       recSecs++;
@@ -949,9 +992,29 @@ async function submitReport(){
         }),
       });
       myReports.push(saved);
+
+      // Auto-complete: if this is a weekly task that is not yet done, mark it done in backend+state
+      const t=myTasks.find(t=>t.id===fTaskId);
+      if(t && t.selected && !t.done){
+        try{
+          const updated=await api(`/tasks/${fTaskId}/done`,{method:'PATCH'});
+          t.done=updated.done!==undefined?updated.done:true;
+        }catch(_){
+          // If this fails, we still keep the report; task status can be fixed later
+        }
+      }
     }
 
+    // Refresh home view with latest local state
     renderHome();
+
+    // Reset save button and form state so next report starts clean
+    btn.disabled=false;btn.textContent='שמור דיווח';btn.classList.remove('ready');
+    fMood=null;fReportId=null;fEditMode=false;
+    document.getElementById('rep-text').value='';
+    document.querySelectorAll('.emoji-btn').forEach(b=>b.classList.remove('picked'));
+    resetAudioUI();
+
     document.getElementById('success-overlay').classList.add('show');
   }catch(e){
     toast(`שגיאה: ${e.message}`);
@@ -961,7 +1024,6 @@ async function submitReport(){
 
 async function afterSuccess(){
   document.getElementById('success-overlay').classList.remove('show');
-  await loadHome();
   showScreen('sc-home');
 }
 
