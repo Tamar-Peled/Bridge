@@ -356,7 +356,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     </div>
   </div>
   <div class="content">
-    <div class="conf-heading">לפני שנתחיל..</div>
+    <div class="conf-heading">לפני שנתחיל...</div>
     <div class="conf-task-label">המשימה:</div>
     <div class="conf-task" id="conf-task-name"></div>
     <div class="conf-q">כמה את/ה מאמין/ה שתצליח/י ?</div>
@@ -440,7 +440,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 <div class="success" id="success-overlay">
   <div class="success-emoji">🎉</div>
   <div class="success-title">תודה על הדיווח!</div>
-  <div class="success-sub">היועצת שלך תראה את זה בקרוב 💙</div>
   <button class="btn-primary" style="max-width:280px" onclick="afterSuccess()">חזרה לבית</button>
 </div>
 
@@ -448,7 +447,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 
 <script>
 /* ══════════ CONFIG & STATE ══════════ */
-const API = 'http://localhost:8000';
+const API = 'https://bridge-2-rhtw.onrender.com/';
 
 let me           = null;   // { id, name, grade }
 let myTasks      = [];     // all tasks from server
