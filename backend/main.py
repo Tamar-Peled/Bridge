@@ -28,8 +28,13 @@ db: Client   = create_client(supabase_url, supabase_key)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], allow_credentials=True,
-    allow_methods=["*"], allow_headers=["*"],
+    allow_origins=[
+        "https://bridge-git-main-tamar-peleds-projects.vercel.app",
+        "https://bridge-qpfmfezma-tamar-peleds-projects.vercel.app"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ═══════════════════ MODELS ═══════════════════════════════════
