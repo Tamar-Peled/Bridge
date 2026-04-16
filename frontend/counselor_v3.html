@@ -452,7 +452,9 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 
 <script>
 /* ════════════════ CONFIG ════════════════ */
-const API = 'https://bridge-2-rhtw.onrender.com';
+const API = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  ? 'http://127.0.0.1:8000'
+  : 'https://bridge-2-rhtw.onrender.com';
 const STATUSES = ['בתהליך','סיים תהליך','נדרש מעקב צמוד'];
 
 function canonicalStatus(raw){
@@ -477,8 +479,11 @@ let allStudents    = [];
 let currentSid     = null;
 let currentTasks   = [];
 let currentReports = [];
+let currentNotes   = [];
 let _photoSid      = null;
 let _descSid       = null;
+let _aiSummaryLast = '';
+let _noteIsAi      = false;
 
 /* ════════════════ HTTP ════════════════ */
 async function apiFetch(path, opts={}){
@@ -591,9 +596,13 @@ async function openStudent(id){
   currentSid=id;showScreen('screen-detail');
   document.getElementById('detail-content').innerHTML='<div class="loading-box"><span class="spinner spinner-dk"></span> טוען...</div>';
   try{
-    const [tasks,reports]=await Promise.all([apiFetch(`/tasks/${id}`),apiFetch(`/reports/${id}`)]);
+    const [tasks,reports,notes]=await Promise.all([
+      apiFetch(`/tasks/${id}`),
+      apiFetch(`/reports/${id}`),
+      apiFetch(`/meeting-notes/${id}`).catch(()=>[])
+    ]);
     apiFetch(`/reports/${id}/mark-seen`,{method:'PATCH'}).catch(()=>{});
-    currentTasks=tasks;currentReports=reports;
+    currentTasks=tasks;currentReports=reports;currentNotes=notes||[];
     renderDetail(allStudents.find(x=>x.id===id));
   }catch(e){
     document.getElementById('detail-content').innerHTML=`<div class="loading-box">שגיאה: ${escH(e.message)}</div>`;
@@ -605,6 +614,7 @@ function renderDetail(s){
   const status=canonicalStatus(s.status);
   const selCls=statusSelCls(status);
   const desc=(s.description||'').trim();
+  _aiSummaryLast='';
 
   const weeklyTasks=currentTasks.filter(t=>t.selected);
   const bankTasks  =currentTasks.filter(t=>!t.selected);
@@ -641,6 +651,16 @@ function renderDetail(s){
   const bankHtml=bankTasks.length
     ?bankTasks.map(taskRow).join('')
     :'<div class="sec-empty">כל המשימות נבחרו לשבוע</div>';
+
+  const notesHtml=(currentNotes&&currentNotes.length)
+    ?currentNotes.map(n=>`<div class="rep-card" style="margin:8px 0">
+        <div class="rep-top">
+          <span class="rep-mood">${n.is_ai_generated?'🤖':'🗓️'}</span>
+          <span class="rep-time">${fmtTime(n.created_at)}</span>
+        </div>
+        <div class="rep-body">${escH(n.content||'')}</div>
+      </div>`).join('')
+    :'<div class="sec-empty">אין עדיין סיכומי פגישות</div>';
 
   document.getElementById('detail-content').innerHTML=`
     <div class="detail-header">
@@ -693,6 +713,20 @@ function renderDetail(s){
         <button class="btn-ai" id="btn-ai" onclick="runAI()">✦ צור תובנות AI</button>
         <div class="ai-loading" id="ai-loading">מנתח... <span class="spinner"></span></div>
         <div class="ai-result" id="ai-result"></div>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">
+          <button class="btn-sm" id="btn-ai-to-history" style="display:none" onclick="aiToHistory()">📄 הוסף להיסטוריה</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">היסטוריה וסיכומי פגישות</div>
+      <div id="notes-list">
+        ${notesHtml}
+      </div>
+      <div class="add-row" style="align-items:stretch;gap:10px">
+        <textarea class="add-input" id="note-draft" style="height:88px;resize:vertical;padding:10px 12px" placeholder="כתבי כאן סיכום פגישה..."></textarea>
+        <button class="btn-sm" style="height:42px" onclick="saveNote()">שמור</button>
       </div>
     </div>`;
 }
@@ -838,36 +872,47 @@ async function runAI(){
   const btn=document.getElementById('btn-ai');
   const loading=document.getElementById('ai-loading');
   const result=document.getElementById('ai-result');
+  const btnToHist=document.getElementById('btn-ai-to-history');
   btn.style.display='none';loading.classList.add('show');result.classList.remove('show');
+  if(btnToHist) btnToHist.style.display='none';
   try{
     const data=await apiFetch(`/analyze-student/${currentSid}`,{method:'POST'});
-    const lvl={low:'נמוך',medium:'בינוני',high:'גבוה'};
-    const sugH=(data.suggested_tasks||[]).map((t,i)=>`
-      <div class="sug-task" id="sg-${i}">
-        <span class="sug-text" id="sg-t-${i}">${escH(t)}</span>
-        <div class="sug-acts">
-          <button class="sug-btn edit" onclick="editSug(${i})">✏️</button>
-          <button class="sug-btn del"  onclick="remSug(${i})">🗑️</button>
-          <button class="sug-btn add"  onclick="addSug(${i})">+ הוסף</button>
-        </div>
-      </div>`).join('');
+    _aiSummaryLast = (data.sentiment_summary||'').trim();
     result.innerHTML=`
-      <div class="ai-block"><h4>רמת דחיפות</h4><span class="alert-chip alert-${data.alert_level}">${lvl[data.alert_level]||data.alert_level}</span></div>
-      <div class="ai-block"><h4>תובנות</h4><ul>${(data.insights||[]).map(i=>`<li>${escH(i)}</li>`).join('')}</ul></div>
-      <div class="ai-block"><h4>סיבה אפשרית</h4><p>${escH(data.possible_cause||'')}</p></div>
-      <div class="ai-block"><h4>המלצות ליועצת</h4><ul>${(data.recommendations||[]).map(r=>`<li>${escH(r)}</li>`).join('')}</ul></div>
-      <div class="ai-block" style="border-color:#a8d5b5">
-        <h4>💡 משימות מוצעות</h4>
-        <p style="color:var(--light);font-size:13px;margin-bottom:9px">ערכי, מחקי או הוסיפי לבנק המשימות</p>
-        ${sugH}
-      </div>`;
+      <div class="ai-block">
+        <h4>סיכום קצר</h4>
+        <p>${escH(_aiSummaryLast)}</p>
+      </div>
+    `;
     result.classList.add('show');
-    window._sug=[...(data.suggested_tasks||[])];
+    if(btnToHist && _aiSummaryLast) btnToHist.style.display='inline-flex';
   }catch(e){
     result.innerHTML=`<div class="ai-block" style="border-color:var(--red)"><h4>שגיאה</h4><p>${escH(e.message)}</p></div>`;
     result.classList.add('show');
   }
   loading.classList.remove('show');btn.style.display='flex';
+}
+
+function aiToHistory(){
+  const ta=document.getElementById('note-draft');
+  if(!ta) return;
+  ta.value=_aiSummaryLast||'';
+  _noteIsAi=!!_aiSummaryLast;
+  ta.focus();
+}
+
+async function saveNote(){
+  const ta=document.getElementById('note-draft');
+  const text=(ta&&ta.value||'').trim();
+  if(!text){showToast('נא לכתוב סיכום לפני שמירה');return;}
+  try{
+    const saved=await apiFetch(`/meeting-notes/${currentSid}`,{method:'POST',body:JSON.stringify({content:text,is_ai_generated:_noteIsAi})});
+    currentNotes=[saved,...(currentNotes||[])];
+    if(ta) ta.value='';
+    _noteIsAi=false;
+    renderDetail(allStudents.find(x=>x.id===currentSid));
+    showToast('נשמר להיסטוריה ✓');
+  }catch(e){showToast(`שגיאה: ${e.message}`);}
 }
 function editSug(i){const el=document.getElementById(`sg-t-${i}`);const v=prompt('ערכי את המשימה:',window._sug[i]);if(v&&v.trim()){window._sug[i]=v.trim();el.textContent=v.trim();}}
 function remSug(i){document.getElementById(`sg-${i}`).remove();window._sug[i]=null;}

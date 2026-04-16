@@ -447,7 +447,9 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 
 <script>
 /* ══════════ CONFIG & STATE ══════════ */
-const API = 'https://bridge-2-rhtw.onrender.com';
+const API = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  ? 'http://127.0.0.1:8000'
+  : 'https://bridge-2-rhtw.onrender.com';
 
 let me           = null;   // { id, name, grade }
 let myTasks      = [];     // all tasks from server
