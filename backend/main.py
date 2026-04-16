@@ -29,9 +29,11 @@ db: Client   = create_client(supabase_url, supabase_key)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "http://127.0.0.1:5500",
         "https://bridge-git-main-tamar-peleds-projects.vercel.app",
         "https://bridge-cf8nltqje-tamar-peleds-projects.vercel.app"
     ],
+    allow_origin_regex=r"^http://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -81,6 +83,10 @@ class ReportPatch(BaseModel):
     audio_url:        Optional[str] = None
     confidence_score: Optional[int] = Field(None, ge=1, le=5)
 
+class MeetingNoteCreate(BaseModel):
+    content: str
+    is_ai_generated: bool = False
+
 class AnalysisResult(BaseModel):
     insights:       List[str]
     alert_level:    Literal["low", "medium", "high"]
@@ -90,26 +96,46 @@ class AnalysisResult(BaseModel):
 
 # ═══════════════════ AI SETUP ═════════════════════════════════
 
-llm            = ChatOpenAI(model="gpt-4o-mini", temperature=0.4, api_key=api_key)
-structured_llm = llm.with_structured_output(AnalysisResult)
+class AnalysisResultV4(BaseModel):
+    sentiment_summary: str
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system", "אתה עוזר AI מקצועי לייעוץ חינוכי. כל התשובות שלך חייבות להיות בעברית בלבד."),
-    ("human", """נתח את נתוני התלמיד הבאים וזהה דפוסים התנהגותיים.
 
-נתוני התלמיד:
-שם: {name} | כיתה: {grade} | סטטוס: {status}
-תיאור רקע: {description}
-סיבת פנייה: {reason}
-רמת מעורבות: {engagement_level}
-הערות מדיווחים: {reflection}
+llm_v4 = ChatOpenAI(model="gpt-4o", temperature=0.3, api_key=api_key)
+structured_llm_v4 = llm_v4.with_structured_output(AnalysisResultV4)
 
-משימות:
-{recent_tasks}
+prompt_v4 = ChatPromptTemplate.from_messages([
+    ("system",
+     "את/ה 'Concise Counselor Assistant' — עוזר/ת ליועצת חינוכית בצורה עניינית וקצרה. "
+     "החזר/י עברית מקצועית, רגישה ולא שיפוטית, עם תשומת לב לניואנסים (סלנג, אירוניה, ניסוחים מרומזים) ולמשמעות של אימוג'ים. "
+     "אל תאבחני/ן אבחנות רפואיות. "
+     "החזיר/י JSON בלבד בהתאם לסכמה."),
+    ("human", """נתונים (בעברית):
 
-החזר תובנות, סיבה אפשרית, המלצות ומשימות מוצעות. הכל בעברית."""),
+1) תיאור ראשוני של היועצת/ה על התלמיד/ה:
+{student_description}
+
+2) הדיווח האחרון של התלמיד/ה (אימוג'י + טקסט אם קיים):
+{latest_report}
+
+3) משימות שבועיות שהוקצו אך לא הושלמו (דגל אדום):
+{weekly_assigned_not_done}
+
+4) משימות שהושלמו ויש עליהן משוב/דיווח (עם טקסט משוב):
+{completed_with_feedback}
+
+כללי עדיפות נתונים:
+- לנתח אך ורק את (3) ו-(4).
+- להתייחס ל-(2) רק כדי להבין מצב רגשי נוכחי.
+- להתעלם לחלוטין ממשימות שלא הוקצו לשבוע (Mission Bank).
+
+דרישות פלט:
+- sentiment_summary: סיכום מקצועי וקצר בעברית (עד 3–4 משפטים).
+- להתמקד למה משימות שהוקצו לא בוצעו (ככל שניתן להסיק מהדיווחים) ומה המצב הרגשי הנוכחי.
+- לא לכלול פעולות מומלצות בטקסט.
+"""),
 ])
-chain = prompt | structured_llm
+
+chain_v4 = prompt_v4 | structured_llm_v4
 
 # ═══════════════════ HELPERS ══════════════════════════════════
 
@@ -316,6 +342,38 @@ def get_logs(student_id: str):
     )
     return res.data
 
+@app.get("/meeting-notes/{student_id}")
+def get_meeting_notes(student_id: str):
+    res = (
+        db.table("meeting_notes").select("id,student_id,content,created_at,is_ai_generated")
+        .eq("student_id", student_id)
+        .order("created_at", desc=True)
+        .limit(100)
+        .execute()
+    )
+    return res.data or []
+
+@app.post("/meeting-notes/{student_id}")
+def add_meeting_note(student_id: str, note: MeetingNoteCreate):
+    content = (note.content or "").strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="אין טקסט לשמירה")
+    res = db.table("meeting_notes").insert({
+        "student_id": student_id,
+        "content": content,
+        "is_ai_generated": bool(note.is_ai_generated),
+    }).execute()
+    if not res.data:
+        raise HTTPException(status_code=500, detail="שגיאה בשמירת סיכום")
+    row = res.data[0]
+    return {
+        "id": row.get("id"),
+        "student_id": row.get("student_id"),
+        "content": row.get("content"),
+        "created_at": row.get("created_at"),
+        "is_ai_generated": row.get("is_ai_generated", False),
+    }
+
 # ═══════════════════ AI ═══════════════════════════════════════
 
 @app.post("/analyze-student/{student_id}")
@@ -327,32 +385,57 @@ def analyze_student(student_id: str):
         student = student_res.data[0]
 
         tasks_res   = db.table("tasks").select("*").eq("student_id", student_id).order("created_at").execute()
-        reports_res = db.table("reports").select("*").eq("student_id", student_id).order("created_at").execute()
+        reports_res = db.table("reports").select("*").eq("student_id", student_id).order("created_at", desc=True).execute()
         tasks, reports = tasks_res.data, reports_res.data
 
-        by_id   = {r["task_id"]:   r.get("mood","לא דווח") for r in reports if r.get("task_id")}
-        by_name = {r["task_name"]: r.get("mood","לא דווח") for r in reports if r.get("task_name")}
+        # Index reports by task reference, prefer newest first (reports already desc)
+        rep_by_task_id = {}
+        rep_by_task_name = {}
+        for r in reports:
+            if r.get("task_id") and r.get("task_id") not in rep_by_task_id:
+                rep_by_task_id[r["task_id"]] = r
+            if r.get("task_name") and r.get("task_name") not in rep_by_task_name:
+                rep_by_task_name[r["task_name"]] = r
 
-        rows = []
-        for t in tasks:
-            d  = format_date_hebrew(t.get("created_at",""))
-            m  = by_id.get(t["id"]) or by_name.get(t["text"], "לא דווח")
-            st = "✓ נבחרה שבועית" if t.get("selected") else "בנק משימות"
-            dn = "בוצעה ✓" if t.get("done") else "לא בוצעה"
+        def rep_for_task(t: dict):
+            return rep_by_task_id.get(t.get("id")) or rep_by_task_name.get(t.get("text"))
+
+        # Data priority rules:
+        # - Analyze ONLY weekly assigned missions, never mission bank
+        weekly_tasks = [t for t in tasks if t.get("selected")]
+        weekly_assigned_not_done = [t for t in weekly_tasks if not t.get("done")]
+        completed_with_feedback = []
+        for t in weekly_tasks:
+            if not t.get("done"):
+                continue
+            rep = rep_for_task(t)
+            # "feedback" = report text; mood-only is not treated as feedback
+            if rep and (rep.get("text") or "").strip():
+                completed_with_feedback.append((t, rep))
+
+        def fmt_weekly_not_done(t: dict) -> str:
+            d = format_date_hebrew(t.get("created_at", ""))
             cf = f" | ביטחון: {t['confidence_score']}/5" if t.get("confidence_score") else ""
-            rows.append(f"{d} | {t['text']} | {st} | {dn} | מצב רוח: {m}{cf}")
+            return f"{d} | {t.get('text','')} | לא הושלמה{cf}"
 
-        reflection = " | ".join(r["text"] for r in reports if r.get("text")) or "אין הערות"
+        def fmt_completed_feedback(t: dict, rep: dict) -> str:
+            d = format_date_hebrew(rep.get("created_at") or t.get("created_at", ""))
+            mood = rep.get("mood") or "לא דווח"
+            txt = (rep.get("text") or "").strip()
+            return f"{d} | {t.get('text','')} | {mood} | משוב: {txt}"
 
-        result = chain.invoke({
-            "name":             student["name"],
-            "grade":            student["grade"],
-            "status":           student.get("status",""),
-            "description":      student.get("description","לא צוין"),
-            "reason":           student.get("reason","לא צוין"),
-            "engagement_level": compute_engagement(tasks),
-            "reflection":       reflection,
-            "recent_tasks":     "\n".join(rows) or "אין משימות",
+        latest_report = reports[0] if reports else None
+        latest_mood = latest_report.get("mood") if latest_report else None
+        latest_text = latest_report.get("text") if latest_report else None
+        latest_report_str = (
+            f"{latest_mood or 'לא דווח'}"
+            + (f" — {latest_text.strip()}" if latest_text and latest_text.strip() else "")
+        )
+        result = chain_v4.invoke({
+            "student_description": student.get("description", "לא צוין"),
+            "latest_report": latest_report_str,
+            "weekly_assigned_not_done": "\n".join(fmt_weekly_not_done(t) for t in weekly_assigned_not_done) or "אין",
+            "completed_with_feedback": "\n".join(fmt_completed_feedback(t, rep) for (t, rep) in completed_with_feedback) or "אין",
         })
         return result.model_dump()
 
