@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BRIDGE – תלמיד</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ══════════ TOKENS — light, clean ══════════ */
+:root{
+  --bg:#f4f4f2; --card:#fff; --dark:#1a1a1a; --mid:#666; --light:#aaa;
+  --border:#e8e8e4;
+  --green:#27ae60; --green-soft:#eafaf1; --green-dk:#1a7a42;
+  --red:#e74c3c;   --red-soft:#fdecea;
+  --yellow:#f39c12;--yellow-soft:#fef9e7; --yellow-dk:#b7770d;
+  --blue:#2980b9;  --blue-soft:#eaf4fd;
+  --radius:18px; --radius-sm:12px; --radius-xs:8px;
+  --shadow:0 2px 12px rgba(0,0,0,.06);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.13);
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh;direction:rtl;overscroll-behavior:none}
+
+/* screens */
+.screen{display:none;min-height:100vh;flex-direction:column}
+.screen.active{display:flex}
+
+/* ══════════ LOGIN SCREEN ══════════ */
+#sc-login{
+  background:var(--bg);
+  align-items:center;justify-content:center;
+  padding:calc(var(--safe-top) + 40px) 24px calc(var(--safe-bottom) + 32px);
+  text-align:center;
+}
+.login-logo{
+  width:76px;height:76px;border-radius:22px;background:var(--dark);
+  display:flex;align-items:center;justify-content:center;
+  font-size:34px;font-weight:900;color:#fff;
+  margin:0 auto 20px;box-shadow:var(--shadow-lg);
+}
+.login-title{font-size:38px;font-weight:900;color:var(--dark);letter-spacing:-1.5px;margin-bottom:5px}
+.login-sub{color:var(--light);font-size:14px;margin-bottom:36px}
+
+/* Student ID entry — large, touch-friendly */
+.id-card{
+  background:var(--card);border-radius:var(--radius);
+  padding:28px 22px;width:100%;max-width:340px;
+  border:1px solid var(--border);box-shadow:var(--shadow);
+}
+.id-card h2{font-size:18px;font-weight:800;margin-bottom:6px;text-align:center;color:var(--dark)}
+.id-card p{font-size:13px;color:var(--light);text-align:center;margin-bottom:20px;line-height:1.5}
+.id-input{
+  width:100%;border:2px solid var(--border);border-radius:var(--radius-sm);
+  padding:14px;font-size:18px;font-family:'Heebo',sans-serif;
+  outline:none;text-align:center;color:var(--dark);
+  margin-bottom:14px;font-weight:700;
+  background:var(--bg);transition:border-color .15s;
+  -webkit-appearance:none;
+}
+.id-input:focus{border-color:var(--dark);background:var(--card)}
+.id-input::placeholder{color:var(--light);font-size:14px;font-weight:400;letter-spacing:0}
+.login-err{color:var(--red);font-size:13px;text-align:center;margin-top:10px;display:none}
+.login-err.show{display:block}
+.login-footer{color:var(--light);font-size:12px;margin-top:32px}
+
+/* ══════════ TOPBAR ══════════ */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:calc(var(--safe-top) + 12px) 18px 12px;
+  background:var(--card);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.topbar-brand{display:flex;align-items:center;gap:8px}
+.tb-logo{width:30px;height:30px;background:var(--dark);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:13px}
+.tb-name{font-weight:800;font-size:16px}
+.tb-btn{background:none;border:none;cursor:pointer;color:var(--light);font-size:15px;font-family:'Heebo',sans-serif;padding:8px;border-radius:8px}
+.tb-back{display:flex;align-items:center;gap:5px;color:var(--dark);font-size:14px;font-weight:600;background:none;border:none;cursor:pointer;font-family:'Heebo',sans-serif;padding:8px;border-radius:8px}
+
+/* ══════════ CONTENT ══════════ */
+.content{padding:18px 16px calc(var(--safe-bottom) + 24px);flex:1;max-width:500px;width:100%;margin:0 auto}
+
+/* ══════════ BUTTONS ══════════ */
+.btn-primary{
+  display:block;width:100%;background:var(--dark);color:#fff;border:none;
+  border-radius:var(--radius);padding:17px 20px;font-size:17px;font-weight:800;
+  cursor:pointer;font-family:'Heebo',sans-serif;
+  transition:opacity .15s,transform .1s;min-height:54px;-webkit-appearance:none;
+}
+.btn-primary:hover{opacity:.88}
+.btn-primary:active{transform:scale(.98)}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn-ghost{
+  display:block;width:100%;background:var(--card);color:var(--dark);
+  border:2px solid var(--border);border-radius:var(--radius);
+  padding:14px 20px;font-size:16px;font-weight:700;cursor:pointer;
+  font-family:'Heebo',sans-serif;transition:border-color .12s;min-height:50px;
+  -webkit-appearance:none;margin-top:10px;
+}
+.btn-ghost:hover{border-color:var(--dark)}
+.btn-ghost:active{background:var(--bg)}
+.btn-save{
+  display:block;width:100%;background:#ccc;color:#fff;border:none;
+  border-radius:var(--radius);padding:17px 20px;font-size:17px;font-weight:800;
+  cursor:not-allowed;margin-top:18px;font-family:'Heebo',sans-serif;
+  transition:background .2s,transform .1s;min-height:54px;-webkit-appearance:none;
+}
+.btn-save.ready{background:var(--dark);cursor:pointer}
+.btn-save.ready:active{transform:scale(.98)}
+
+/* ══════════ WELCOME BANNER ══════════ */
+.welcome{
+  background:var(--dark);color:#fff;border-radius:var(--radius);
+  padding:20px 20px 18px;margin-bottom:16px;
+}
+.welcome-name{font-size:20px;font-weight:800;margin-bottom:3px}
+.welcome-grade{color:rgba(255,255,255,.5);font-size:13px;margin-bottom:14px}
+.prog-track{background:rgba(255,255,255,.18);border-radius:10px;height:7px;overflow:hidden}
+.prog-fill{background:#fff;border-radius:10px;height:100%;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.prog-lbl{font-size:12px;color:rgba(255,255,255,.65);margin-top:7px;font-weight:600}
+
+/* ══════════ SECTIONS ══════════ */
+.sec{
+  background:var(--card);border-radius:var(--radius);
+  padding:17px 16px;margin-bottom:14px;
+  border:1px solid var(--border);box-shadow:var(--shadow);
+}
+.sec-head{font-weight:700;font-size:14px;margin-bottom:13px;display:flex;align-items:center;gap:7px}
+.cnt-chip{margin-right:auto;background:var(--bg);color:var(--mid);font-size:12px;font-weight:700;padding:2px 10px;border-radius:20px;border:1px solid var(--border)}
+.sec-empty{color:var(--light);font-size:14px;text-align:center;padding:14px 0;line-height:1.5}
+
+/* ══════════ TASK ROWS ══════════ */
+.t-row{
+  display:flex;align-items:flex-start;gap:13px;
+  padding:13px 0;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .1s;
+}
+.t-row:last-child{border-bottom:none}
+.t-row:active{background:var(--bg)}
+
+.t-circle{
+  width:28px;height:28px;border-radius:50%;
+  border:2.5px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;margin-top:1px;background:var(--card);
+  transition:border-color .15s,background .15s;
+}
+.t-circle.done{background:var(--green);border-color:var(--green)}
+.t-circle.inprog{border-color:var(--yellow);border-width:2.5px}
+.t-circle svg{display:none}
+.t-circle.done svg{display:block}
+
+.t-body{flex:1;min-width:0}
+.t-text{font-size:15px;line-height:1.45;font-weight:500;color:var(--dark)}
+/* No strikethrough — text stays readable even when done */
+.t-hint{font-size:12px;color:var(--light);margin-top:3px;line-height:1.4}
+.t-hint.ok{color:var(--green-dk)}
+.t-hint.warn{color:var(--yellow-dk)}
+.t-hint.prog{color:var(--blue)}
+.t-arrow{color:var(--border);font-size:18px;flex-shrink:0;margin-top:3px}
+
+/* Bank task row — slightly muted */
+.t-row.bank-row .t-text{color:var(--mid)}
+
+/* ══════════ TASK DETAIL MODAL (in-progress) ══════════ */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center}
+.overlay.show{display:flex}
+.bottom-sheet{
+  background:var(--card);border-radius:var(--radius) var(--radius) 0 0;
+  padding:24px 20px calc(var(--safe-bottom) + 24px);
+  width:100%;max-width:500px;box-shadow:var(--shadow-lg);
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+.sheet-title{font-size:18px;font-weight:800;margin-bottom:4px}
+.sheet-sub{color:var(--light);font-size:13px;margin-bottom:20px}
+.sheet-status{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--blue-soft);color:var(--blue);
+  font-size:13px;font-weight:700;padding:5px 12px;border-radius:20px;margin-bottom:18px;
+}
+.sheet-status.done-st{background:var(--green-soft);color:var(--green-dk)}
+.btn-sheet-primary{
+  display:block;width:100%;background:var(--dark);color:#fff;border:none;
+  border-radius:var(--radius);padding:16px;font-size:16px;font-weight:800;
+  cursor:pointer;font-family:'Heebo',sans-serif;min-height:52px;
+  transition:opacity .15s;-webkit-appearance:none;
+}
+.btn-sheet-primary:hover{opacity:.88}
+.btn-sheet-secondary{
+  display:block;width:100%;background:var(--card);color:var(--mid);border:none;
+  border-radius:var(--radius);padding:14px;font-size:15px;font-weight:600;
+  cursor:pointer;font-family:'Heebo',sans-serif;margin-top:10px;
+  -webkit-appearance:none;
+}
+.btn-sheet-secondary:hover{color:var(--dark)}
+.btn-sheet-return{
+  display:block;width:100%;background:var(--card);color:var(--red);
+  border:1.5px solid var(--red-soft);border-radius:var(--radius);
+  padding:13px;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:'Heebo',sans-serif;margin-top:10px;
+  transition:background .12s;-webkit-appearance:none;
+}
+.btn-sheet-return:hover{background:var(--red-soft)}
+
+/* ══════════ CONFIDENCE SCREEN ══════════ */
+#sc-conf .content{display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:32px}
+.conf-heading{font-size:26px;font-weight:900;margin-bottom:20px;letter-spacing:-.5px;color:var(--dark)}
+.conf-task-label{font-size:13px;color:var(--light);font-weight:600;margin-bottom:6px;text-align:center}
+.conf-task{
+  color:var(--dark);font-size:16px;font-weight:700;
+  margin-bottom:32px;max-width:300px;line-height:1.5;
+  background:var(--card);border-radius:var(--radius-sm);
+  padding:14px 18px;border:1px solid var(--border);
+  width:100%;text-align:center;
+}
+.conf-q{font-size:16px;font-weight:700;margin-bottom:20px;color:var(--dark)}
+.stars{display:flex;gap:12px;margin-bottom:12px;justify-content:center}
+.star{font-size:42px;cursor:pointer;transition:transform .12s,filter .12s;background:none;border:none;padding:4px;line-height:1;filter:grayscale(80%) opacity(.35)}
+.star.lit{filter:none;transform:scale(1.12)}
+.star:active{transform:scale(.9)}
+.conf-lbl{font-size:14px;color:var(--mid);margin-bottom:32px;min-height:22px;font-weight:600}
+
+/* ══════════ REPORT FORM ══════════ */
+.rep-heading{font-size:22px;font-weight:900;margin-bottom:6px;color:var(--dark)}
+.rep-task-lbl{color:var(--mid);font-size:14px;margin-bottom:22px;background:var(--card);border-radius:var(--radius-sm);padding:10px 13px;border:1px solid var(--border);line-height:1.5}
+.rep-q{font-size:15px;font-weight:700;margin-bottom:12px;color:var(--dark)}
+.emoji-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.emoji-btn{
+  background:var(--card);border:2px solid var(--border);border-radius:var(--radius-sm);
+  padding:15px 10px;display:flex;align-items:center;justify-content:center;gap:9px;
+  font-size:15px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;
+  color:var(--dark);transition:border-color .12s,background .12s;min-height:58px;
+  -webkit-appearance:none;
+}
+.emoji-btn .emo{font-size:24px}
+.emoji-btn.picked{border-color:var(--dark);background:#f0f0ee}
+.emoji-btn:active{background:var(--bg)}
+.rep-textarea{
+  width:100%;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  padding:14px;font-size:15px;font-family:'Heebo',sans-serif;
+  resize:none;min-height:90px;outline:none;text-align:right;
+  color:var(--dark);background:var(--card);-webkit-appearance:none;
+}
+.rep-textarea:focus{border-color:var(--dark)}
+
+/* audio box */
+.audio-box{margin-top:16px;background:var(--bg);border-radius:var(--radius-sm);border:1.5px solid var(--border);padding:14px 15px}
+.audio-box-title{font-size:13px;font-weight:700;color:var(--mid);margin-bottom:10px}
+.rec-controls{display:flex;gap:10px;align-items:center}
+.btn-rec{
+  background:var(--red);color:#fff;border:none;border-radius:var(--radius-sm);
+  padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;
+  font-family:'Heebo',sans-serif;display:flex;align-items:center;gap:6px;
+  transition:opacity .12s;min-height:44px;-webkit-appearance:none;
+}
+.btn-rec:active{opacity:.8}
+.btn-rec.recording{background:#8b0000;animation:recpulse .9s ease-in-out infinite}
+@keyframes recpulse{0%,100%{opacity:1}50%{opacity:.55}}
+.rec-dot{width:10px;height:10px;border-radius:50%;background:#fff;animation:recpulse .9s ease-in-out infinite}
+.rec-timer{font-size:13px;color:var(--mid);font-weight:700;font-variant-numeric:tabular-nums}
+.audio-player{width:100%;margin-top:10px;height:36px;border-radius:var(--radius-xs)}
+.audio-ok{font-size:12px;color:var(--green-dk);margin-top:6px;font-weight:600}
+
+/* ══════════ VIEW REPORT ══════════ */
+.view-task-lbl{font-size:13px;color:var(--light);margin-bottom:12px;font-weight:600}
+.view-card{background:var(--card);border-radius:var(--radius);padding:20px;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:14px}
+.view-mood{font-size:28px;font-weight:900;margin-bottom:8px;color:var(--dark)}
+.view-conf{display:inline-flex;align-items:center;gap:5px;background:var(--yellow-soft);color:var(--yellow-dk);font-size:13px;font-weight:700;padding:4px 12px;border-radius:12px;margin-bottom:12px}
+.view-text{color:var(--mid);font-size:15px;line-height:1.6;margin-bottom:12px}
+.view-time{color:var(--light);font-size:12px}
+
+/* ══════════ SUCCESS ══════════ */
+.success{display:none;position:fixed;inset:0;background:rgba(255,255,255,.97);z-index:300;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px 24px}
+.success.show{display:flex}
+.success-emoji{font-size:72px;margin-bottom:18px;animation:pop .45s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pop{0%{transform:scale(0)}100%{transform:scale(1)}}
+.success-title{font-size:26px;font-weight:900;margin-bottom:8px;color:var(--dark)}
+.success-sub{color:var(--mid);font-size:15px;margin-bottom:32px;line-height:1.5}
+
+/* ══════════ MISC ══════════ */
+.loading-box{display:flex;align-items:center;justify-content:center;height:200px;color:var(--light);font-size:14px;gap:10px}
+.spinner{width:18px;height:18px;border:2.5px solid rgba(0,0,0,.1);border-top-color:var(--dark);border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:calc(var(--safe-bottom) + 20px);left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;padding:12px 22px;border-radius:30px;font-size:14px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1}
+.mt10{margin-top:10px}
+</style>
+</head>
+<body>
+
+<!-- ════ LOGIN — 4-digit code ════ -->
+<div id="sc-login" class="screen active">
+  <div class="login-logo">B</div>
+  <div class="login-title">BRIDGE</div>
+  <div class="login-sub">מערכת ליווי אישית</div>
+  <div class="id-card">
+    <h2>כניסה לתלמיד</h2>
+    <p>הכנס/י את קוד הכניסה שקיבלת מהיועצת</p>
+    <input type="text" class="id-input" id="student-id-input"
+      placeholder="• • • •"
+      maxlength="4" inputmode="numeric" pattern="[0-9]{4}"
+      autocomplete="off" autocorrect="off"
+      oninput="this.value=this.value.replace(/[^0-9]/g,'');document.getElementById('login-err').classList.remove('show')"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-primary" onclick="doLogin()">כניסה</button>
+    <div class="login-err" id="login-err">קוד שגוי. בדוק/י מול היועצת.</div>
+  </div>
+  <div class="login-footer">BRIDGE © 2026 — כל הזכויות שמורות</div>
+</div>
+
+<!-- ════ HOME ════ -->
+<div id="sc-home" class="screen">
+  <div class="topbar">
+    <button class="tb-btn" onclick="doLogout()">יציאה →</button>
+    <div class="topbar-brand">
+      <div class="tb-name">BRIDGE</div>
+      <div class="tb-logo">B</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="welcome">
+      <div class="welcome-name" id="w-name">שלום!</div>
+      <div class="welcome-grade">כיתה <span id="w-grade"></span></div>
+      <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="prog-lbl" id="prog-lbl">טוען...</div>
+    </div>
+
+    <!-- Weekly tasks -->
+    <div class="sec" id="weekly-sec">
+      <div class="sec-head">
+        📅 המשימות השבועיות שלי
+        <span class="cnt-chip" id="weekly-chip"></span>
+      </div>
+      <div id="weekly-list"><div class="loading-box"><span class="spinner"></span></div></div>
+    </div>
+
+    <!-- Task bank -->
+    <div class="sec" id="bank-sec">
+      <div class="sec-head">📚 בנק משימות</div>
+      <div id="bank-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ CONFIDENCE (first-time task selection) ════ -->
+<div id="sc-conf" class="screen">
+  <div class="topbar">
+    <button class="tb-back" onclick="cancelConf()">← חזרה</button>
+    <div class="topbar-brand">
+      <div class="tb-name">BRIDGE</div>
+      <div class="tb-logo">B</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="conf-heading">לפני שנתחיל..</div>
+    <div class="conf-task-label">המשימה:</div>
+    <div class="conf-task" id="conf-task-name"></div>
+    <div class="conf-q">כמה את/ה מאמין/ה שתצליח/י ?</div>
+    <div class="stars" id="conf-stars"></div>
+    <div class="conf-lbl" id="conf-lbl">לחץ/י על כוכב לבחירה</div>
+    <button class="btn-primary" id="btn-conf-go" onclick="confirmConf()" disabled>
+      בוא נתחיל
+    </button>
+  </div>
+</div>
+
+<!-- ════ TASK DETAIL SHEET (weekly task) ════ -->
+<div class="overlay" id="sheet-overlay" onclick="closeSheet()">
+  <div class="bottom-sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="sheet-title"></div>
+    <div id="sheet-status-chip"></div>
+    <div id="sheet-report-preview"></div>
+    <button class="btn-sheet-primary" id="sheet-main-btn" onclick="sheetMainAction()"></button>
+    <button class="btn-sheet-return" id="sheet-return-btn" onclick="returnToBank()">
+      ↩ החזר לבנק המשימות
+    </button>
+    <button class="btn-sheet-secondary" onclick="closeSheet()">סגור</button>
+  </div>
+</div>
+
+<!-- ════ REPORT FORM ════ -->
+<div id="sc-report" class="screen">
+  <div class="topbar">
+    <button class="tb-back" onclick="cancelReport()">← חזרה</button>
+    <div class="topbar-brand">
+      <div class="tb-name">BRIDGE</div>
+      <div class="tb-logo">B</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="rep-heading" id="rep-mode-lbl">דיווח משימה</div>
+    <div class="rep-task-lbl" id="rep-task-lbl"></div>
+    <div class="rep-q">איך הרגשת אחרי המשימה?</div>
+    <div class="emoji-grid">
+      <button class="emoji-btn" onclick="pickMood(this,'😊 טוב')"><span class="emo">😊</span> טוב</button>
+      <button class="emoji-btn" onclick="pickMood(this,'😣 לחוץ')"><span class="emo">😣</span> לחוץ</button>
+      <button class="emoji-btn" onclick="pickMood(this,'😟 לא בנוח')"><span class="emo">😟</span> לא בנוח</button>
+      <button class="emoji-btn" onclick="pickMood(this,'😔 עצוב')"><span class="emo">😔</span> עצוב</button>
+    </div>
+    <div class="rep-q">רוצה לשתף עוד משהו?</div>
+    <textarea class="rep-textarea" id="rep-text" placeholder="כתוב/י כאן בחופשיות... (לא חובה)" rows="4" oninput="checkSaveReady()"></textarea>
+    <div class="audio-box">
+      <div class="audio-box-title">🎙️ הקלטת קול (לא חובה)</div>
+      <div class="rec-controls">
+        <button class="btn-rec" id="btn-rec" onclick="toggleRecord()">🎙️ התחל הקלטה</button>
+        <span class="rec-timer" id="rec-timer"></span>
+      </div>
+      <div id="audio-preview-wrap" style="display:none">
+        <audio class="audio-player" id="audio-player" controls></audio>
+        <div class="audio-ok">✓ הקלטה שמורה</div>
+      </div>
+    </div>
+    <button class="btn-save" id="btn-save" onclick="submitReport()">שמור דיווח</button>
+  </div>
+</div>
+
+<!-- ════ VIEW REPORT ════ -->
+<div id="sc-view" class="screen">
+  <div class="topbar">
+    <button class="tb-back" onclick="showScreen('sc-home')">← חזרה</button>
+    <div class="topbar-brand">
+      <div class="tb-name">BRIDGE</div>
+      <div class="tb-logo">B</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="view-task-lbl" id="view-task-lbl"></div>
+    <div class="view-card" id="view-card"></div>
+    <button class="btn-ghost" onclick="openEditReport()">✏️ ערוך דיווח</button>
+    <button class="btn-primary mt10" onclick="showScreen('sc-home')">חזרה לבית</button>
+  </div>
+</div>
+
+<!-- ════ SUCCESS ════ -->
+<div class="success" id="success-overlay">
+  <div class="success-emoji">🎉</div>
+  <div class="success-title">תודה על הדיווח!</div>
+  <div class="success-sub">היועצת שלך תראה את זה בקרוב 💙</div>
+  <button class="btn-primary" style="max-width:280px" onclick="afterSuccess()">חזרה לבית</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════ CONFIG & STATE ══════════ */
+const API = 'http://localhost:8000';
+
+let me           = null;   // { id, name, grade }
+let myTasks      = [];     // all tasks from server
+let myReports    = [];
+
+// form state
+let fTaskId      = null;
+let fTaskText    = null;
+let fReportId    = null;   // null = new, else editing
+let fMood        = null;
+let fConfScore   = null;   // pre-task confidence 1-5
+let fEditMode    = false;
+
+// sheet state
+let sheetTaskId  = null;   // task currently open in bottom sheet
+let sheetAction  = null;   // 'finish' | 'view' | 'complete'
+
+// audio
+let mediaRec     = null;
+let audioChunks  = [];
+let audioBlob    = null;
+let audioB64     = null;
+let recTimerId   = null;
+let recSecs      = 0;
+
+// view
+let viewTaskId   = null;
+
+/* ══════════ HTTP ══════════ */
+async function api(path, opts={}) {
+  let res;
+  try{
+    res = await fetch(`${API}${path}`,{headers:{'Content-Type':'application/json'},...opts});
+  }catch(e){throw new Error(`שגיאת רשת: ${e.message}`);}
+  if(!res.ok){
+    let d=`HTTP ${res.status}`;
+    try{d=(await res.json()).detail||d;}catch(_){}
+    throw new Error(d);
+  }
+  return res.json();
+}
+
+/* ══════════ UTILS ══════════ */
+function fmtTime(iso){
+  if(!iso) return '';
+  const d=new Date(iso);
+  return d.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})+
+    ' · '+d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toast(msg,ms=2500){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tid);t._tid=setTimeout(()=>t.classList.remove('show'),ms);
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function getReport(task){
+  return myReports.find(r=>r.task_id===task.id||r.task_name===task.text)||null;
+}
+
+/* ══════════ LOGIN — by student UUID ══════════ */
+async function doLogin(){
+  const code=document.getElementById('student-id-input').value.trim();
+  if(!code||code.length!==4){
+    document.getElementById('login-err').classList.add('show');
+    return;
+  }
+  try{
+    // GET /students/login/{code} — login by 4-digit code
+    me=await api(`/students/login/${code}`);
+    document.getElementById('w-name').textContent=`שלום, ${me.name}! 👋`;
+    document.getElementById('w-grade').textContent=me.grade;
+    showScreen('sc-home');
+    loadHome();
+  }catch{
+    document.getElementById('login-err').classList.add('show');
+  }
+}
+
+function doLogout(){
+  me=null;
+  document.getElementById('student-id-input').value='';
+  showScreen('sc-login');
+}
+
+/* ══════════ HOME ══════════ */
+async function loadHome(){
+  if(!me) return;
+  try{
+    [myTasks,myReports]=await Promise.all([api(`/tasks/${me.id}`),api(`/reports/${me.id}`)]);
+    renderHome();
+  }catch(e){
+    document.getElementById('weekly-list').innerHTML=`<div class="sec-empty">שגיאה: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderHome(){
+  const weeklyTasks=myTasks.filter(t=>t.selected);
+  const bankTasks  =myTasks.filter(t=>!t.selected);
+  const doneCount  =weeklyTasks.filter(t=>t.done).length;
+  const total      =weeklyTasks.length;
+  const pct        =total?Math.round(doneCount/total*100):0;
+
+  document.getElementById('prog-fill').style.width=`${pct}%`;
+  document.getElementById('prog-lbl').textContent=`${doneCount} מתוך ${total} משימות שבועיות הושלמו`;
+  document.getElementById('weekly-chip').textContent=`${doneCount}/${total}`;
+
+  // weekly section
+  document.getElementById('weekly-list').innerHTML=weeklyTasks.length
+    ?weeklyTasks.map(t=>weeklyTaskRow(t)).join('')
+    :'<div class="sec-empty">עדיין לא בחרת משימות לשבוע זה<br><span style="font-size:13px;color:var(--light)">בחר/י מבנק המשימות למטה</span></div>';
+
+  // bank section
+  document.getElementById('bank-list').innerHTML=bankTasks.length
+    ?bankTasks.map(t=>bankTaskRow(t)).join('')
+    :'<div class="sec-empty">כל המשימות נבחרו לשבוע ✓</div>';
+}
+
+function weeklyTaskRow(t){
+  const rep=getReport(t);
+  const done=!!t.done;
+  let hint='',hintCls='';
+  if(done && rep)      {hint=`✓ הושלם · ${fmtTime(rep.created_at)}`;hintCls='ok';}
+  else if(done && !rep){hint='⚠️ דיווח נדרש';hintCls='warn';}
+  else                  {hint='בתהליך — לחץ/י להמשיך';hintCls='prog';}
+
+  return `<div class="t-row" onclick="openTaskSheet('${t.id}')">
+    <div class="t-circle${done?' done':' inprog'}">
+      <svg width="12" height="9" viewBox="0 0 12 9" fill="none">
+        <path d="M1 4.5L4.5 8L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="t-body">
+      <div class="t-text">${esc(t.text)}</div>
+      <div class="t-hint ${hintCls}">${hint}</div>
+    </div>
+    <span class="t-arrow">›</span>
+  </div>`;
+}
+
+function bankTaskRow(t){
+  return `<div class="t-row bank-row" onclick="selectFromBank('${t.id}')">
+    <div class="t-circle" style="border-style:dashed;border-color:#ccc;flex-shrink:0"></div>
+    <div class="t-body">
+      <div class="t-text">${esc(t.text)}</div>
+      <div class="t-hint">לחץ/י לבחירה לשבוע שלך</div>
+    </div>
+    <span style="color:var(--green);font-size:20px;font-weight:700;flex-shrink:0">+</span>
+  </div>`;
+}
+
+/* ══════════ BANK → CONFIDENCE SCREEN ══════════ */
+function selectFromBank(taskId){
+  const task=myTasks.find(t=>t.id===taskId);
+  if(!task) return;
+
+  fTaskId    = task.id;
+  fTaskText  = task.text;
+  fConfScore = null;
+
+  // Set texts exactly as required
+  document.getElementById('conf-task-name').textContent = task.text;
+  document.getElementById('conf-lbl').textContent = 'לחץ/י על כוכב לבחירה';
+  document.getElementById('btn-conf-go').disabled = true;
+
+  // Build star buttons 1–5
+  const starsEl = document.getElementById('conf-stars');
+  starsEl.innerHTML = '';
+  for(let i=1; i<=5; i++){
+    const b = document.createElement('button');
+    b.className = 'star';
+    b.textContent = '⭐';
+    b.dataset.val = i;
+    b.setAttribute('aria-label', `${i} מתוך 5`);
+    b.onclick = () => pickStar(i);
+    starsEl.appendChild(b);
+  }
+  showScreen('sc-conf');
+}
+
+function pickStar(val){
+  fConfScore = val;
+  document.querySelectorAll('.star').forEach((b,i) => b.classList.toggle('lit', i < val));
+  const lbls = ['','נמוך מאוד ⭐','נמוך ⭐⭐','בינוני ⭐⭐⭐','גבוה ⭐⭐⭐⭐','גבוה מאוד ⭐⭐⭐⭐⭐'];
+  document.getElementById('conf-lbl').textContent = lbls[val];
+  document.getElementById('btn-conf-go').disabled = false;
+}
+
+async function confirmConf(){
+  // PATCH /tasks/{id}/select — saves selected=true + confidence_score
+  // Task moves from bank → weekly list in Supabase
+  const btn = document.getElementById('btn-conf-go');
+  btn.disabled = true;
+  btn.textContent = 'שומר...';
+  try{
+    const updated = await api(`/tasks/${fTaskId}/select`, {
+      method: 'PATCH',
+      body: JSON.stringify({ confidence_score: fConfScore }),
+    });
+    // Update local state immediately — no full reload needed
+    const t = myTasks.find(x => x.id === fTaskId);
+    if(t){
+      t.selected         = true;
+      t.confidence_score = fConfScore;
+      t.selected_at      = updated.selected_at || new Date().toISOString();
+      t.done             = false;
+    }
+    renderHome();
+    showScreen('sc-home');
+    toast('משימה נוספה לשבוע שלך ✓');
+  }catch(e){
+    toast(`שגיאה: ${e.message}`);
+    btn.disabled = false;
+    btn.textContent = 'בוא נתחיל';
+  }
+}
+
+function cancelConf(){
+  // User backed out — task stays in bank, nothing saved
+  showScreen('sc-home');
+}
+
+/* ══════════ WEEKLY TASK SHEET ══════════ */
+function openTaskSheet(taskId){
+  const task = myTasks.find(t => t.id === taskId);
+  if(!task) return;
+  const rep = getReport(task);
+  sheetTaskId = taskId;
+
+  document.getElementById('sheet-title').textContent = task.text;
+
+  // Status chip
+  const chipEl = document.getElementById('sheet-status-chip');
+  if(task.done){
+    chipEl.innerHTML = '<div class="sheet-status done-st">✅ הושלם</div>';
+  } else {
+    chipEl.innerHTML = '<div class="sheet-status">⏳ בתהליך</div>';
+  }
+
+  // Report preview
+  const prevEl = document.getElementById('sheet-report-preview');
+  if(rep){
+    prevEl.innerHTML = `<div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;border:1px solid var(--border)">
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px">${esc(rep.mood)}</div>
+      ${rep.text ? `<div style="font-size:13px;color:var(--mid);line-height:1.5">${esc(rep.text)}</div>` : ''}
+      <div style="font-size:11px;color:var(--light);margin-top:6px">${fmtTime(rep.created_at)}</div>
+    </div>`;
+  } else {
+    prevEl.innerHTML = '';
+  }
+
+  // Main action button logic
+  const mainBtn = document.getElementById('sheet-main-btn');
+  if(task.done && rep){
+    mainBtn.textContent = '✏️ ערוך דיווח';
+    sheetAction = 'edit';
+  } else if(task.done && !rep){
+    mainBtn.textContent = '📝 הוסף דיווח (נדרש)';
+    sheetAction = 'report';
+  } else if(!task.done && rep){
+    mainBtn.textContent = '✅ סמן כהושלם';
+    sheetAction = 'complete';
+  } else {
+    // in progress, no report yet
+    mainBtn.textContent = '📝 סיים ודווח';
+    sheetAction = 'report';
+  }
+
+  // Show/hide return button — only show when task is not yet done
+  const returnBtn = document.getElementById('sheet-return-btn');
+  returnBtn.style.display = task.done ? 'none' : 'block';
+
+  document.getElementById('sheet-overlay').classList.add('show');
+}
+
+function closeSheet(){
+  document.getElementById('sheet-overlay').classList.remove('show');
+}
+
+/* Return task from weekly list back to bank — full reset */
+async function returnToBank(){
+  const task = myTasks.find(t => t.id === sheetTaskId);
+  if(!task) return;
+
+  const returnBtn = document.getElementById('sheet-return-btn');
+  returnBtn.disabled = true;
+  returnBtn.textContent = 'מחזיר...';
+
+  try{
+    // PATCH /tasks/{id}/deselect — resets selected, confidence_score, done
+    await api(`/tasks/${sheetTaskId}/deselect`, { method: 'PATCH' });
+
+    // Full reset in local state
+    task.selected         = false;
+    task.confidence_score = null;
+    task.selected_at      = null;
+    task.done             = false;
+
+    closeSheet();
+    renderHome();
+    toast('המשימה הוחזרה לבנק ✓');
+  }catch(e){
+    toast(`שגיאה: ${e.message}`);
+    returnBtn.disabled = false;
+    returnBtn.textContent = '↩ החזר לבנק המשימות';
+  }
+}
+
+async function sheetMainAction(){
+  const task=myTasks.find(t=>t.id===sheetTaskId);if(!task)return;
+  const rep=getReport(task);
+  closeSheet();
+
+  if(sheetAction==='edit'){
+    viewTaskId=sheetTaskId;
+    openEditReport();
+    return;
+  }
+
+  if(sheetAction==='complete'){
+    // Has report → mark done
+    try{
+      const updated=await api(`/tasks/${sheetTaskId}/done`,{method:'PATCH'});
+      const t=myTasks.find(x=>x.id===sheetTaskId);
+      if(t) t.done=updated.done!==undefined?updated.done:true;
+      renderHome();
+      toast(t&&t.done?'משימה הושלמה ✓':'משימה חזרה לתהליך');
+    }catch(e){toast(`שגיאה: ${e.message}`);}
+    return;
+  }
+
+  // sheetAction === 'report': open report form
+  beginReport(task);
+}
+
+/* ══════════ REPORT FORM ══════════ */
+function beginReport(task){
+  fTaskId   = task.id;
+  fTaskText = task.text;
+  fReportId = null;
+  fMood     = null;
+  fEditMode = false;
+  audioBlob = null;audioB64 = null;
+
+  document.getElementById('rep-mode-lbl').textContent='דיווח משימה';
+  document.getElementById('rep-task-lbl').textContent=task.text;
+  document.getElementById('rep-text').value='';
+  document.querySelectorAll('.emoji-btn').forEach(b=>b.classList.remove('picked'));
+  document.getElementById('btn-save').classList.remove('ready');
+  resetAudioUI();
+  showScreen('sc-report');
+}
+
+function openEditReport(){
+  const task=myTasks.find(t=>t.id===(viewTaskId||sheetTaskId));
+  const rep=task?getReport(task):null;
+  if(!task||!rep)return;
+
+  fTaskId   = task.id;
+  fTaskText = task.text;
+  fReportId = rep.id;
+  fMood     = rep.mood;
+  fEditMode = true;
+  audioBlob = null;audioB64 = null;
+
+  document.getElementById('rep-mode-lbl').textContent='עריכת דיווח ✏️';
+  document.getElementById('rep-task-lbl').textContent=task.text;
+  document.getElementById('rep-text').value=rep.text||'';
+  resetAudioUI();
+
+  document.querySelectorAll('.emoji-btn').forEach(b=>{
+    b.classList.toggle('picked',b.getAttribute('onclick').includes(rep.mood.replace(/'/g,"\\'")));
+  });
+  document.getElementById('btn-save').classList.add('ready');
+  showScreen('sc-report');
+}
+
+function showViewReport(task,rep){
+  viewTaskId=task.id;
+  document.getElementById('view-task-lbl').textContent=`משימה: ${task.text}`;
+  const confH=rep.confidence_score?`<div class="view-conf">⭐ ביטחון עצמי: ${rep.confidence_score}/5</div>`:'';
+  const textH=rep.text?`<div class="view-text">${esc(rep.text)}</div>`:`<div class="view-text" style="color:var(--light);font-style:italic">לא נוסף פירוט</div>`;
+  const audioH=rep.audio_url?`<audio controls src="${esc(rep.audio_url)}" style="width:100%;height:36px;border-radius:8px;margin-top:10px"></audio>`:'';
+  document.getElementById('view-card').innerHTML=`${confH}<div class="view-mood">${esc(rep.mood)}</div>${textH}${audioH}<div class="view-time">${fmtTime(rep.created_at)}</div>`;
+  showScreen('sc-view');
+}
+
+/* ══════════ MOOD ══════════ */
+function pickMood(btn,label){
+  document.querySelectorAll('.emoji-btn').forEach(b=>b.classList.remove('picked'));
+  btn.classList.add('picked');
+  fMood=label;
+  checkSaveReady();
+}
+function checkSaveReady(){
+  document.getElementById('btn-save').classList.toggle('ready',!!fMood);
+}
+
+/* ══════════ AUDIO RECORDER ══════════ */
+function resetAudioUI(){
+  document.getElementById('audio-preview-wrap').style.display='none';
+  const btn=document.getElementById('btn-rec');
+  btn.innerHTML='🎙️ התחל הקלטה';btn.classList.remove('recording');
+  document.getElementById('rec-timer').textContent='';
+  clearInterval(recTimerId);recSecs=0;
+  if(mediaRec&&mediaRec.state!=='inactive'){try{mediaRec.stop();}catch(_){}}
+  mediaRec=null;audioChunks=[];
+}
+
+async function toggleRecord(){
+  if(mediaRec&&mediaRec.state==='recording'){
+    mediaRec.stop();clearInterval(recTimerId);
+    document.getElementById('btn-rec').innerHTML='🎙️ הקלטה מחדש';
+    document.getElementById('btn-rec').classList.remove('recording');
+    document.getElementById('rec-timer').textContent='';
+    return;
+  }
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    audioChunks=[];
+    const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';
+    mediaRec=new MediaRecorder(stream,{mimeType:mime});
+    mediaRec.ondataavailable=e=>{if(e.data.size)audioChunks.push(e.data);};
+    mediaRec.onstop=()=>{
+      audioBlob=new Blob(audioChunks,{type:mime});
+      const url=URL.createObjectURL(audioBlob);
+      document.getElementById('audio-player').src=url;
+      document.getElementById('audio-preview-wrap').style.display='block';
+      const reader=new FileReader();
+      reader.onload=e=>{audioB64=e.target.result;};
+      reader.readAsDataURL(audioBlob);
+      stream.getTracks().forEach(t=>t.stop());
+    };
+    mediaRec.start(250);
+    const btn=document.getElementById('btn-rec');
+    btn.innerHTML='<div class="rec-dot"></div> עצור הקלטה';btn.classList.add('recording');
+    recSecs=0;
+    recTimerId=setInterval(()=>{
+      recSecs++;
+      const m=String(Math.floor(recSecs/60)).padStart(2,'0');
+      const s=String(recSecs%60).padStart(2,'0');
+      document.getElementById('rec-timer').textContent=`${m}:${s}`;
+      if(recSecs>=120){mediaRec.stop();clearInterval(recTimerId);}
+    },1000);
+  }catch(e){toast('לא ניתן לגשת למיקרופון — בדוק/י הרשאות');}
+}
+
+/* ══════════ SUBMIT REPORT ══════════
+   POST /reports (new) — task_id stored as UUID FK
+   PATCH /reports/{id} (edit)
+   RULE: task cannot be marked done without a report.
+   After submitting, if task.done===false, try to mark done.
+══════════════════════════════════════ */
+async function submitReport(){
+  if(!fMood) return;
+  const btn=document.getElementById('btn-save');
+  btn.disabled=true;btn.textContent='שומר...';
+
+  try{
+    const text=(document.getElementById('rep-text').value||'').trim();
+    const audio_url=audioB64||null;
+    let saved;
+
+    if(fEditMode && fReportId){
+      // PATCH existing report
+      saved=await api(`/reports/${fReportId}`,{
+        method:'PATCH',
+        body:JSON.stringify({mood:fMood,text:text||null,audio_url}),
+      });
+      const idx=myReports.findIndex(r=>r.id===fReportId);
+      if(idx!==-1) myReports[idx]={...myReports[idx],...saved};
+    }else{
+      // POST new report
+      saved=await api('/reports',{
+        method:'POST',
+        body:JSON.stringify({
+          student_id:me.id,
+          task_id:fTaskId,
+          task_name:fTaskText,
+          mood:fMood,
+          text:text||null,
+          audio_url,
+          confidence_score:fConfScore||null,
+        }),
+      });
+      myReports.push(saved);
+    }
+
+    renderHome();
+    document.getElementById('success-overlay').classList.add('show');
+  }catch(e){
+    toast(`שגיאה: ${e.message}`);
+    btn.disabled=false;btn.textContent='שמור דיווח';btn.classList.add('ready');
+  }
+}
+
+async function afterSuccess(){
+  document.getElementById('success-overlay').classList.remove('show');
+  await loadHome();
+  showScreen('sc-home');
+}
+
+async function cancelReport(){
+  await loadHome();
+  showScreen('sc-home');
+}
+</script>
+</body>
+</html>

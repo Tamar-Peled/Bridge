@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BRIDGE – יועצת</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ══════════ TOKENS — light, clean, friendly ══════════ */
+:root{
+  --bg:#f4f4f2; --card:#ffffff; --dark:#1a1a1a; --mid:#666; --light:#aaa;
+  --border:#e8e8e4;
+  --green:#27ae60; --green-soft:#eafaf1; --green-dk:#1a7a42;
+  --red:#e74c3c;   --red-soft:#fdecea;   --red-dk:#c0392b;
+  --yellow:#f39c12;--yellow-soft:#fef9e7;--yellow-dk:#b7770d;
+  --blue:#2980b9;  --blue-soft:#eaf4fd;
+  --radius:18px; --radius-sm:12px; --radius-xs:8px;
+  --shadow:0 2px 12px rgba(0,0,0,.06);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.13);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh;direction:rtl}
+
+/* screens */
+.screen{display:none;min-height:100vh;flex-direction:column}
+.screen.active{display:flex}
+
+/* landing — light */
+#screen-landing{
+  align-items:center;justify-content:center;padding:48px 24px;
+  text-align:center;background:var(--bg);
+}
+.logo-box{
+  width:84px;height:84px;background:var(--dark);border-radius:24px;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:38px;font-weight:900;
+  margin:0 auto 24px;box-shadow:var(--shadow-lg);
+}
+.landing-title{font-size:40px;font-weight:900;letter-spacing:-1px;margin-bottom:6px;color:var(--dark)}
+.landing-sub{color:var(--light);font-size:15px;margin-bottom:52px}
+.landing-welcome{font-size:28px;font-weight:800;margin-bottom:8px;color:var(--dark)}
+.landing-desc{color:var(--mid);font-size:15px;margin-bottom:36px}
+.footer-txt{color:var(--light);font-size:13px;margin-top:48px}
+
+/* buttons */
+.btn-primary{
+  display:block;width:100%;max-width:420px;
+  background:var(--dark);color:#fff;border:none;
+  border-radius:var(--radius);padding:18px;
+  font-size:17px;font-weight:700;cursor:pointer;
+  font-family:'Heebo',sans-serif;
+  transition:opacity .15s,transform .15s;margin:0 auto;
+}
+.btn-primary:hover{opacity:.88;transform:translateY(-2px)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-cancel{
+  flex:1;background:var(--border);color:var(--dark);
+  border:none;border-radius:var(--radius-sm);padding:12px;
+  font-size:15px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;
+}
+.btn-sm{
+  background:var(--dark);color:#fff;border:none;
+  border-radius:var(--radius-sm);padding:10px 16px;
+  font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;
+}
+.btn-icon{background:none;border:none;cursor:pointer;font-size:14px;color:var(--light);padding:3px;transition:color .12s}
+.btn-icon:hover{color:var(--dark)}
+.btn-add{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--card);border:2px dashed var(--border);
+  border-radius:var(--radius);padding:14px;cursor:pointer;
+  color:var(--light);font-size:15px;font-family:'Heebo',sans-serif;
+  width:100%;margin-top:6px;transition:border-color .15s,color .15s;
+}
+.btn-add:hover{border-color:var(--dark);color:var(--dark)}
+
+/* topbar */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px;background:var(--card);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.topbar-brand{display:flex;align-items:center;gap:10px}
+.topbar-logo{
+  width:34px;height:34px;background:var(--dark);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:900;font-size:15px;
+}
+.topbar-name{font-weight:800;font-size:17px}
+.topbar-back{
+  background:none;border:none;cursor:pointer;
+  color:var(--mid);font-size:16px;font-family:'Heebo',sans-serif;padding:4px 8px;
+}
+
+.content{padding:22px 20px;flex:1;max-width:540px;width:100%;margin:0 auto}
+.page-title{font-size:26px;font-weight:900;margin-bottom:4px}
+.page-sub{color:var(--light);font-size:14px;margin-bottom:18px}
+
+/* search */
+.search-box{
+  display:flex;align-items:center;gap:10px;background:var(--card);
+  border-radius:var(--radius);padding:12px 16px;
+  border:1px solid var(--border);margin-bottom:14px;
+}
+.search-box input{
+  border:none;outline:none;width:100%;font-size:15px;
+  font-family:'Heebo',sans-serif;color:var(--dark);
+  background:transparent;text-align:right;
+}
+.search-box input::placeholder{color:var(--light)}
+.count-lbl{color:var(--light);font-size:13px;margin-bottom:10px;text-align:left}
+
+/* student card */
+.student-card{
+  background:var(--card);border-radius:var(--radius);
+  padding:16px 18px;margin-bottom:11px;
+  display:flex;align-items:center;gap:14px;cursor:pointer;
+  border:1px solid var(--border);box-shadow:var(--shadow);
+  transition:box-shadow .15s,transform .15s;
+}
+.student-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px)}
+.student-card.alert-card{border-right:3px solid var(--red)}
+.s-avatar{
+  width:48px;height:48px;border-radius:50%;
+  background:var(--border);display:flex;align-items:center;
+  justify-content:center;font-weight:700;font-size:18px;
+  flex-shrink:0;overflow:hidden;color:var(--dark);
+}
+.s-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.s-info{flex:1;min-width:0}
+.s-name{font-weight:700;font-size:16px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-meta{color:var(--light);font-size:13px;margin-bottom:5px}
+.s-badges{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.badge{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
+.badge-g{background:var(--green-soft);color:var(--green-dk)}
+.badge-r{background:var(--red-soft);color:var(--red-dk)}
+.badge-y{background:var(--yellow-soft);color:var(--yellow-dk)}
+.arrow{color:var(--light);font-size:18px;flex-shrink:0}
+
+/* detail header */
+.detail-header{
+  background:var(--card);border-radius:var(--radius);
+  padding:20px;margin-bottom:14px;
+  display:flex;gap:16px;align-items:flex-start;
+  border:1px solid var(--border);box-shadow:var(--shadow);
+}
+.d-avatar-wrap{position:relative;flex-shrink:0;cursor:pointer}
+.d-avatar{
+  width:72px;height:72px;border-radius:18px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:700;overflow:hidden;
+  border:2px solid var(--border);
+}
+.d-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:16px}
+.d-avatar-badge{
+  position:absolute;bottom:-5px;left:-5px;
+  background:var(--dark);color:#fff;border-radius:50%;
+  width:22px;height:22px;display:flex;align-items:center;
+  justify-content:center;font-size:11px;
+  box-shadow:0 1px 4px rgba(0,0,0,.3);border:2px solid var(--card);
+}
+.d-info{flex:1;min-width:0}
+.d-name{font-size:22px;font-weight:800;margin-bottom:2px}
+.d-grade{color:var(--mid);font-size:14px;font-weight:600;margin-bottom:8px}
+
+/* status */
+.status-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.status-lbl{color:var(--mid);font-size:13px}
+.status-select{
+  border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  padding:5px 10px;font-size:13px;font-family:'Heebo',sans-serif;
+  background:var(--card);color:var(--dark);cursor:pointer;outline:none;
+  transition:border-color .15s;font-weight:600;
+}
+.status-select:focus{border-color:var(--dark)}
+.status-select.s-g{border-color:var(--green);color:var(--green-dk)}
+.status-select.s-r{border-color:var(--red);color:var(--red-dk)}
+.status-select.s-y{border-color:var(--yellow);color:var(--yellow-dk)}
+
+/* description */
+.desc-block{
+  display:flex;align-items:flex-start;gap:8px;
+  background:#f8f8f6;border-radius:var(--radius-sm);
+  padding:10px 14px;border:1px solid var(--border);
+  font-size:13px;color:var(--mid);line-height:1.6;
+  cursor:pointer;transition:border-color .12s;
+}
+.desc-block:hover{border-color:#bbb}
+.desc-txt{flex:1}
+.desc-empty{color:var(--light);font-style:italic}
+
+/* sections */
+.sec{
+  background:var(--card);border-radius:var(--radius);
+  padding:18px 20px;margin-bottom:12px;
+  border:1px solid var(--border);box-shadow:var(--shadow);
+}
+.sec-title{font-weight:700;font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sec-empty{color:var(--light);font-size:14px;text-align:center;padding:8px 0}
+.prog-badge{
+  margin-right:auto;background:var(--bg);color:var(--mid);
+  font-size:12px;font-weight:700;padding:2px 10px;border-radius:20px;
+  border:1px solid var(--border);
+}
+
+/* task rows — counselor view:
+   ✅ NO strikethrough, only a checkmark indicator */
+.task-row{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 0;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .1s;
+}
+.task-row:last-child{border-bottom:none}
+.task-row:hover{background:#f8f8f6;margin:0 -8px;padding:10px 8px;border-radius:8px}
+.task-chk-icon{
+  width:22px;height:22px;border-radius:50%;
+  border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-size:12px;
+}
+.task-chk-icon.done{background:var(--green);border-color:var(--green);color:#fff}
+/* NO done-txt class — text stays normal */
+.task-text{flex:1;font-size:14px;line-height:1.4;color:var(--dark)}
+.task-status-chip{
+  font-size:11px;padding:2px 8px;border-radius:8px;font-weight:700;flex-shrink:0;
+}
+.chip-done{background:var(--green-soft);color:var(--green-dk)}
+.chip-rep{background:var(--blue-soft);color:var(--blue)}
+.chip-week{background:var(--yellow-soft);color:var(--yellow-dk)}
+.task-del-btn{
+  font-size:15px;color:var(--light);background:none;border:none;
+  cursor:pointer;flex-shrink:0;padding:3px;transition:color .12s;
+}
+.task-del-btn:hover{color:var(--red)}
+
+/* add row */
+.add-row{display:flex;gap:8px;margin-top:10px}
+.add-input{
+  flex:1;border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:10px 12px;font-size:14px;font-family:'Heebo',sans-serif;
+  outline:none;color:var(--dark);text-align:right;background:var(--card);
+}
+.add-input:focus{border-color:var(--dark)}
+
+/* AI */
+.ai-panel{background:#f7f7f5;border-radius:var(--radius-sm);padding:16px}
+.ai-hint{color:var(--mid);font-size:14px;margin-bottom:12px;text-align:center}
+.btn-ai{
+  background:var(--dark);color:#fff;border:none;border-radius:var(--radius-sm);
+  padding:14px 24px;font-size:15px;font-weight:700;cursor:pointer;
+  width:100%;font-family:'Heebo',sans-serif;
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;
+}
+.btn-ai:hover{opacity:.85}
+.ai-result{display:none;margin-top:14px}
+.ai-result.show{display:block}
+.ai-block{background:var(--card);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;border:1px solid var(--border)}
+.ai-block h4{font-size:11px;font-weight:700;color:var(--light);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.ai-block ul{padding-right:16px}
+.ai-block li{font-size:14px;line-height:1.7}
+.ai-block p{font-size:14px;line-height:1.6}
+.alert-chip{display:inline-block;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700}
+.alert-low{background:var(--green-soft);color:var(--green-dk)}
+.alert-medium{background:var(--yellow-soft);color:var(--yellow-dk)}
+.alert-high{background:var(--red-soft);color:var(--red-dk)}
+.ai-loading{display:none;text-align:center;color:var(--mid);font-size:14px;padding:16px 0}
+.ai-loading.show{display:block}
+.sug-task{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.sug-task:last-child{border-bottom:none}
+.sug-text{flex:1;font-size:14px;line-height:1.5}
+.sug-acts{display:flex;gap:6px;flex-shrink:0}
+.sug-btn{border:none;border-radius:8px;padding:5px 10px;font-size:13px;cursor:pointer;font-family:'Heebo',sans-serif;transition:opacity .12s}
+.sug-btn:hover{opacity:.75}
+.sug-btn.edit{background:var(--yellow-soft);color:var(--yellow-dk)}
+.sug-btn.del{background:var(--red-soft);color:var(--red-dk)}
+.sug-btn.add{background:var(--green-soft);color:var(--green-dk);font-weight:700}
+
+/* overlays */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px}
+.overlay.show{display:flex}
+.modal{background:var(--card);border-radius:var(--radius);padding:24px;width:100%;max-width:460px;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto}
+.modal h3{font-size:20px;font-weight:800;margin-bottom:4px}
+.modal-note{font-size:13px;color:var(--light);margin-bottom:16px}
+.modal-lbl{font-size:13px;font-weight:600;color:var(--mid);margin-top:8px;margin-bottom:5px;display:block}
+.modal input,.modal select,.modal textarea{
+  width:100%;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  padding:12px 14px;font-size:15px;font-family:'Heebo',sans-serif;
+  margin-bottom:4px;outline:none;text-align:right;color:var(--dark);background:var(--card);
+}
+.modal textarea{resize:vertical;min-height:90px}
+.modal input:focus,.modal select:focus,.modal textarea:focus{border-color:var(--dark)}
+.modal-btns{display:flex;gap:10px;margin-top:16px}
+.photo-drop{
+  border:2px dashed var(--border);border-radius:var(--radius-sm);
+  padding:18px 14px;text-align:center;cursor:pointer;
+  color:var(--light);font-size:14px;margin-bottom:4px;transition:border-color .15s;
+}
+.photo-drop:hover{border-color:var(--dark)}
+.photo-drop img{width:68px;height:68px;border-radius:12px;object-fit:cover;display:block;margin:0 auto 8px}
+
+/* report card in modal */
+.rep-card{background:#fafafa;border-radius:var(--radius-sm);padding:14px;border:1px solid var(--border);margin-bottom:8px}
+.rep-card:last-child{margin-bottom:0}
+.rep-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.rep-mood{font-size:15px;font-weight:700}
+.rep-time{color:var(--light);font-size:12px}
+.rep-body{color:var(--mid);font-size:13px;line-height:1.55;margin-top:4px}
+.rep-audio{margin-top:8px}
+.rep-audio audio{width:100%;height:36px;border-radius:8px}
+.rep-conf{display:inline-block;background:var(--yellow-soft);color:var(--yellow-dk);font-size:12px;font-weight:700;padding:2px 8px;border-radius:8px;margin-top:6px}
+.rep-unseen{background:var(--red-soft);border-color:#f5c6c2}
+
+/* toast + spinner */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;padding:12px 24px;border-radius:30px;font-size:14px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;display:inline-block;vertical-align:middle}
+.spinner-dk{border-color:rgba(0,0,0,.1);border-top-color:var(--dark)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-box{display:flex;align-items:center;justify-content:center;height:150px;color:var(--light);font-size:14px;gap:10px}
+</style>
+</head>
+<body>
+
+<!-- ════ LANDING ════ -->
+<div id="screen-landing" class="screen active">
+  <div class="logo-box">B</div>
+  <div class="landing-title">BRIDGE</div>
+  <div class="landing-sub">עוזרת AI ליועצות בית ספר</div>
+  <div class="landing-welcome">!ברוכה הבאה</div>
+  <div class="landing-desc">כניסה לממשק הייעוץ המקצועי</div>
+  <button class="btn-primary" onclick="enterCounselor()">כניסה למערכת</button>
+  <div class="footer-txt">BRIDGE © 2026 — כל הזכויות שמורות</div>
+</div>
+
+<!-- ════ LIST ════ -->
+<div id="screen-main" class="screen">
+  <div class="topbar">
+    <button class="topbar-back" onclick="showScreen('screen-landing')">יציאה →</button>
+    <div class="topbar-brand">
+      <div class="topbar-name">BRIDGE</div>
+      <div class="topbar-logo">B</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="page-title">התלמידים שלי</div>
+    <div class="page-sub">תלמידים הנמצאים בתהליך ליווי פעיל</div>
+    <div class="search-box">
+      <input type="text" id="search-input" placeholder="חפש לפי שם, כיתה..." oninput="filterStudents()">
+      <span>🔍</span>
+    </div>
+    <div class="count-lbl" id="count-lbl"></div>
+    <div id="students-list"></div>
+    <button class="btn-add" onclick="openAddModal()">+ הוסף תלמיד</button>
+  </div>
+</div>
+
+<!-- ════ DETAIL ════ -->
+<div id="screen-detail" class="screen">
+  <div class="topbar">
+    <button class="topbar-back" onclick="goBack()">→ חזרה לרשימה</button>
+    <div class="topbar-brand">
+      <div class="topbar-name">BRIDGE</div>
+      <div class="topbar-logo">B</div>
+    </div>
+  </div>
+  <div class="content" id="detail-content"></div>
+</div>
+
+<!-- ════ MODAL: ADD STUDENT ════ -->
+<div class="overlay" id="modal-add">
+  <div class="modal">
+    <h3>הוספת תלמיד חדש</h3>
+    <div class="modal-note"></div>
+    <label class="modal-lbl">שם מלא *</label>
+    <input type="text" id="new-name" placeholder="שם מלא">
+    <label class="modal-lbl">כיתה *</label>
+    <input type="text" id="new-grade" placeholder="לדוגמה: ז2">
+    <label class="modal-lbl">סיבת פנייה *</label>
+    <input type="text" id="new-reason" placeholder="סיבת פנייה">
+    <label class="modal-lbl">תיאור רקע פנימי (התלמיד לא רואה) *</label>
+    <textarea id="new-description" placeholder="תיאור קצר על הרקע של התלמיד..."></textarea>
+    <label class="modal-lbl">תמונה</label>
+    <div class="photo-drop" id="new-photo-drop" onclick="document.getElementById('new-photo-file').click()">
+      📷 לחצי להעלאת תמונה
+    </div>
+    <input type="file" id="new-photo-file" accept="image/*" style="display:none"
+      onchange="handlePhoto(this,'new-photo-drop','new-photo-b64')">
+    <input type="hidden" id="new-photo-b64">
+    <label class="modal-lbl">קוד כניסה לתלמיד — 4 ספרות *</label>
+    <input type="text" id="new-code" placeholder="לדוגמה: 1234"
+      maxlength="4" inputmode="numeric" pattern="[0-9]{4}"
+      oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+      style="letter-spacing:8px;font-size:20px;font-weight:700;text-align:center">
+    <label class="modal-lbl">סטטוס</label>
+    <select id="new-status">
+      <option value="בתהליך">בתהליך</option>
+      <option value="סיים תהליך">סיים תהליך</option>
+      <option value="נדרש מעקב צמוד">נדרש מעקב צמוד</option>
+    </select>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-add')">ביטול</button>
+      <button class="btn-primary" style="flex:1;margin:0" id="btn-add-submit" onclick="doAddStudent()">הוסף</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL: EDIT DESCRIPTION ════ -->
+<div class="overlay" id="modal-desc">
+  <div class="modal">
+    <h3>תיאור רקע</h3>
+    <div class="modal-note">🔒 מידע פנימי — התלמיד אינו רואה זאת</div>
+    <textarea id="desc-ta" placeholder="הכניסי תיאור קצר על רקע התלמיד..." style="min-height:120px"></textarea>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-desc')">ביטול</button>
+      <button class="btn-primary" style="flex:1;margin:0" id="btn-desc-save" onclick="saveDesc()">שמור</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL: EDIT PHOTO ════ -->
+<div class="overlay" id="modal-photo">
+  <div class="modal">
+    <h3>תמונת תלמיד</h3>
+    <div class="modal-note"></div>
+    <div class="photo-drop" id="edit-photo-drop" onclick="document.getElementById('edit-photo-file').click()">
+      📷 לחצי להעלאת תמונה
+    </div>
+    <input type="file" id="edit-photo-file" accept="image/*" style="display:none"
+      onchange="handlePhoto(this,'edit-photo-drop','edit-photo-b64')">
+    <input type="hidden" id="edit-photo-b64">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-photo')">ביטול</button>
+      <button class="btn-primary" style="flex:1;margin:0" id="btn-photo-save" onclick="savePhoto()">שמור תמונה</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL: TASK REPORT ════ -->
+<div class="overlay" id="modal-task-rep">
+  <div class="modal">
+    <h3 id="mtr-title"></h3>
+    <div class="modal-note" id="mtr-status"></div>
+    <div id="mtr-body"></div>
+    <div class="modal-btns" style="margin-top:16px">
+      <button class="btn-cancel" onclick="closeModal('modal-task-rep')" style="flex:1">סגור</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════ CONFIG ════════════════ */
+const API = 'http://localhost:8000';
+const STATUSES = ['בתהליך','סיים תהליך','נדרש מעקב צמוד'];
+
+function canonicalStatus(raw){
+  if(STATUSES.includes(raw)) return raw;
+  if(raw==='יציב') return 'סיים תהליך';
+  if(raw==='דורש תשומת לב'||raw==='במעקב') return 'נדרש מעקב צמוד';
+  return 'בתהליך';
+}
+function statusBadgeCls(s){
+  if(s==='סיים תהליך')      return 'badge-g';
+  if(s==='נדרש מעקב צמוד') return 'badge-r';
+  return 'badge-y';
+}
+function statusSelCls(s){
+  if(s==='סיים תהליך')      return 's-g';
+  if(s==='נדרש מעקב צמוד') return 's-r';
+  return 's-y';
+}
+
+/* ════════════════ STATE ════════════════ */
+let allStudents    = [];
+let currentSid     = null;
+let currentTasks   = [];
+let currentReports = [];
+let _photoSid      = null;
+let _descSid       = null;
+
+/* ════════════════ HTTP ════════════════ */
+async function apiFetch(path, opts={}){
+  let res;
+  try{
+    res = await fetch(`${API}${path}`,{headers:{'Content-Type':'application/json'},...opts});
+  }catch(e){throw new Error(`שגיאת רשת: ${e.message}`);}
+  if(!res.ok){
+    let d=`HTTP ${res.status}`;
+    try{d=(await res.json()).detail||d;}catch(_){}
+    throw new Error(d);
+  }
+  return res.json();
+}
+
+/* ════════════════ UTILS ════════════════ */
+function fmtTime(iso){
+  if(!iso) return '';
+  const d=new Date(iso);
+  return d.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})+
+    ' · '+d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+}
+function escH(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showToast(msg,ms=2600){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tid);t._tid=setTimeout(()=>t.classList.remove('show'),ms);
+}
+function setBusy(id,busy,label){
+  const el=document.getElementById(id);if(!el)return;
+  el.disabled=busy;el.innerHTML=busy?'<span class="spinner"></span>':label;
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+document.querySelectorAll('.overlay').forEach(ov=>
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.remove('show');})
+);
+
+/* ════════════════ PHOTO ════════════════ */
+function handlePhoto(input,dropId,hiddenId){
+  const file=input.files[0];if(!file)return;
+  const img=new Image();
+  img.onload=()=>{
+    const MAX=400;let w=img.width,h=img.height;
+    if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h);
+    const b64=c.toDataURL('image/jpeg',.83);
+    document.getElementById(hiddenId).value=b64;
+    document.getElementById(dropId).innerHTML=`<img src="${b64}"><div style="font-size:12px;color:var(--mid);margin-top:5px">תמונה נבחרה</div>`;
+  };
+  img.src=URL.createObjectURL(file);
+}
+
+/* ════════════════ SCREENS ════════════════ */
+async function enterCounselor(){showScreen('screen-main');await loadList();}
+function goBack(){showScreen('screen-main');loadList();}
+
+/* ════════════════ LIST ════════════════ */
+async function loadList(){
+  const el=document.getElementById('students-list');
+  el.innerHTML='<div class="loading-box"><span class="spinner spinner-dk"></span> טוען...</div>';
+  try{
+    allStudents=await apiFetch('/students');
+    renderList(allStudents);
+  }catch(e){
+    el.innerHTML=`<div class="loading-box">שגיאה: ${escH(e.message)}</div>`;
+  }
+}
+
+function renderList(list){
+  document.getElementById('count-lbl').textContent=`${list.length} תלמידים`;
+  const el=document.getElementById('students-list');
+  if(!list.length){el.innerHTML='<div class="sec-empty" style="padding:20px">לא נמצאו תלמידים</div>';return;}
+  el.innerHTML=list.map(s=>{
+    const status=canonicalStatus(s.status);
+    const isAlert=(status==='נדרש מעקב צמוד');
+    const av=s.photo
+      ?`<div class="s-avatar"><img src="${escH(s.photo)}" alt="" onerror="this.parentElement.textContent='${escH(s.name[0])}'"></div>`
+      :`<div class="s-avatar">${escH(s.name[0])}</div>`;
+    return `<div class="student-card${isAlert?' alert-card':''}" onclick="openStudent('${s.id}')">
+      ${av}
+      <div class="s-info">
+        <div class="s-name">${isAlert?'⚠️ ':''}${escH(s.name)}</div>
+        <div class="s-meta">כיתה ${escH(s.grade)}</div>
+        <div class="s-badges">
+          <span class="badge ${statusBadgeCls(status)}">${status}</span>
+        </div>
+      </div>
+      <span class="arrow">‹</span>
+    </div>`;
+  }).join('');
+}
+
+function filterStudents(){
+  const q=document.getElementById('search-input').value.trim().toLowerCase();
+  renderList(allStudents.filter(s=>
+    s.name.toLowerCase().includes(q)||(s.grade||'').toLowerCase().includes(q)||(s.reason||'').toLowerCase().includes(q)
+  ));
+}
+
+/* ════════════════ DETAIL ════════════════ */
+async function openStudent(id){
+  currentSid=id;showScreen('screen-detail');
+  document.getElementById('detail-content').innerHTML='<div class="loading-box"><span class="spinner spinner-dk"></span> טוען...</div>';
+  try{
+    const [tasks,reports]=await Promise.all([apiFetch(`/tasks/${id}`),apiFetch(`/reports/${id}`)]);
+    apiFetch(`/reports/${id}/mark-seen`,{method:'PATCH'}).catch(()=>{});
+    currentTasks=tasks;currentReports=reports;
+    renderDetail(allStudents.find(x=>x.id===id));
+  }catch(e){
+    document.getElementById('detail-content').innerHTML=`<div class="loading-box">שגיאה: ${escH(e.message)}</div>`;
+  }
+}
+
+function renderDetail(s){
+  if(!s) return;
+  const status=canonicalStatus(s.status);
+  const selCls=statusSelCls(status);
+  const desc=(s.description||'').trim();
+
+  const weeklyTasks=currentTasks.filter(t=>t.selected);
+  const bankTasks  =currentTasks.filter(t=>!t.selected);
+  const doneCount  =weeklyTasks.filter(t=>t.done).length;
+
+  const avBg=status==='סיים תהליך'?'var(--green-soft)':
+             status==='נדרש מעקב צמוד'?'var(--red-soft)':'var(--yellow-soft)';
+  const avInner=s.photo
+    ?`<img src="${escH(s.photo)}" alt="" onerror="this.parentElement.innerHTML='${escH(s.name[0])}';">`
+    :escH(s.name[0]);
+
+  const statusOpts=STATUSES.map(v=>`<option value="${v}"${v===status?' selected':''}>${v}</option>`).join('');
+
+  function taskRow(t){
+    const rep=currentReports.find(r=>r.task_id===t.id||r.task_name===t.text);
+    // chips: done indicator + report indicator + weekly indicator
+    const chips=[];
+    if(t.done)     chips.push('<span class="task-status-chip chip-done">✓ הושלם</span>');
+    if(rep)        chips.push('<span class="task-status-chip chip-rep">📝 דיווח</span>');
+    if(t.selected) chips.push('<span class="task-status-chip chip-week">📅 שבועי</span>');
+    return `<div class="task-row" onclick="openTaskModal('${t.id}')">
+      <div class="task-chk-icon${t.done?' done':''}">
+        ${t.done?'✓':''}
+      </div>
+      <span class="task-text">${escH(t.text)}</span>
+      ${chips.join('')}
+      <button class="task-del-btn" onclick="event.stopPropagation();delTask('${t.id}')">🗑️</button>
+    </div>`;
+  }
+
+  const weeklyHtml=weeklyTasks.length
+    ?weeklyTasks.map(taskRow).join('')
+    :'<div class="sec-empty">התלמיד טרם בחר משימות שבועיות</div>';
+  const bankHtml=bankTasks.length
+    ?bankTasks.map(taskRow).join('')
+    :'<div class="sec-empty">כל המשימות נבחרו לשבוע</div>';
+
+  document.getElementById('detail-content').innerHTML=`
+    <div class="detail-header">
+      <div class="d-avatar-wrap" onclick="openPhotoModal()" title="שנה תמונה">
+        <div class="d-avatar" style="background:${avBg}">${avInner}</div>
+        <div class="d-avatar-badge">📷</div>
+      </div>
+      <div class="d-info">
+        <div class="d-name">${escH(s.name)}</div>
+        <div class="d-grade">כיתה ${escH(s.grade)}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;background:var(--bg);border-radius:var(--radius-sm);padding:8px 12px;border:1px solid var(--border)">
+          <span style="font-size:12px;color:var(--light);font-weight:600">קוד כניסה לתלמיד</span>
+          <span style="font-size:18px;font-weight:800;letter-spacing:4px;color:var(--dark);margin-right:auto">${escH(s.code||'—')}</span>
+        </div>
+        <div class="status-row">
+          <span class="status-lbl">סטטוס</span>
+          <select class="status-select ${selCls}" id="status-sel" onchange="updateStatus(this.value)">
+            ${statusOpts}
+          </select>
+        </div>
+        <div class="desc-block" onclick="openDescModal()" title="לחצי לעריכה">
+          <span class="desc-txt${desc?'':' desc-empty'}" id="desc-span">${desc?escH(desc):'לחצי להוספת תיאור רקע...'}</span>
+          <button class="btn-icon" tabindex="-1">✏️</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">
+        📅 משימות שבועיות
+        <span class="prog-badge">${doneCount} מתוך ${weeklyTasks.length} הושלמו</span>
+      </div>
+      ${weeklyHtml}
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">📚 בנק משימות</div>
+      ${bankHtml}
+      <div class="add-row">
+        <input class="add-input" id="task-inp" placeholder="הוסף משימה לבנק..."
+          onkeydown="if(event.key==='Enter')addTask()">
+        <button class="btn-sm" onclick="addTask()">+</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">✨ ניתוח AI</div>
+      <div class="ai-panel">
+        <div class="ai-hint">ניתוח מבוסס דפוסי דיווח ומשימות התלמיד</div>
+        <button class="btn-ai" id="btn-ai" onclick="runAI()">✦ צור תובנות AI</button>
+        <div class="ai-loading" id="ai-loading">מנתח... <span class="spinner"></span></div>
+        <div class="ai-result" id="ai-result"></div>
+      </div>
+    </div>`;
+}
+
+/* ════════════════ STATUS ════════════════ */
+async function updateStatus(newStatus){
+  const s=allStudents.find(x=>x.id===currentSid);if(!s)return;
+  const prev=s.status;
+  s.status=newStatus;
+  const sel=document.getElementById('status-sel');
+  if(sel){sel.className=`status-select ${statusSelCls(newStatus)}`;}
+  try{
+    await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({status:newStatus})});
+    showToast('סטטוס עודכן ✓');
+  }catch(e){
+    s.status=prev;
+    if(sel){sel.value=canonicalStatus(prev);sel.className=`status-select ${statusSelCls(canonicalStatus(prev))}`;}
+    showToast(`שגיאה: ${e.message}`);
+  }
+}
+
+/* ════════════════ DESCRIPTION ════════════════ */
+function openDescModal(){
+  const s=allStudents.find(x=>x.id===currentSid);
+  document.getElementById('desc-ta').value=(s&&s.description)||'';
+  _descSid=currentSid;
+  document.getElementById('modal-desc').classList.add('show');
+  requestAnimationFrame(()=>document.getElementById('desc-ta').focus());
+}
+async function saveDesc(){
+  const text=document.getElementById('desc-ta').value.trim();
+  setBusy('btn-desc-save',true,'שמור');
+  try{
+    await apiFetch(`/students/${_descSid}`,{method:'PATCH',body:JSON.stringify({description:text})});
+    const s=allStudents.find(x=>x.id===_descSid);
+    if(s) s.description=text;
+    const el=document.getElementById('desc-span');
+    if(el){el.className=`desc-txt${text?'':' desc-empty'}`;el.textContent=text||'לחצי להוספת תיאור רקע...';}
+    closeModal('modal-desc');showToast('תיאור עודכן ✓');
+  }catch(e){showToast(`שגיאה: ${e.message}`);}
+  finally{setBusy('btn-desc-save',false,'שמור');}
+}
+
+/* ════════════════ PHOTO ════════════════ */
+function openPhotoModal(){
+  _photoSid=currentSid;
+  document.getElementById('edit-photo-drop').innerHTML='📷 לחצי להעלאת תמונה';
+  document.getElementById('edit-photo-b64').value='';
+  document.getElementById('edit-photo-file').value='';
+  document.getElementById('modal-photo').classList.add('show');
+}
+async function savePhoto(){
+  const b64=document.getElementById('edit-photo-b64').value;
+  if(!b64){showToast('לא נבחרה תמונה');return;}
+  setBusy('btn-photo-save',true,'שמור תמונה');
+  try{
+    await apiFetch(`/students/${_photoSid}`,{method:'PATCH',body:JSON.stringify({photo:b64})});
+    const s=allStudents.find(x=>x.id===_photoSid);
+    if(s) s.photo=b64;
+    closeModal('modal-photo');showToast('תמונה עודכנה ✓');
+    renderDetail(allStudents.find(x=>x.id===_photoSid));
+  }catch(e){showToast(`שגיאה: ${e.message}`);}
+  finally{setBusy('btn-photo-save',false,'שמור תמונה');}
+}
+
+/* ════════════════ TASK REPORT MODAL ════════════════ */
+function openTaskModal(taskId){
+  const task=currentTasks.find(t=>t.id===taskId);if(!task)return;
+  const rep=currentReports.find(r=>r.task_id===taskId||r.task_name===task.text);
+  document.getElementById('mtr-title').textContent=task.text;
+  const statusTxt=task.done?'✅ הושלם':task.selected?'⏳ בתהליך':'📚 בנק משימות';
+  document.getElementById('mtr-status').textContent=statusTxt;
+  let body;
+  if(rep){
+    const confH=rep.confidence_score?`<div class="rep-conf">⭐ ביטחון עצמי: ${rep.confidence_score}/5</div>`:'';
+    const audioH=rep.audio_url?`<div class="rep-audio"><audio controls src="${escH(rep.audio_url)}"></audio></div>`:'';
+    body=`<div class="rep-card${rep.is_new?' rep-unseen':''}">
+      <div class="rep-top">
+        <span class="rep-mood">${escH(rep.mood)}</span>
+        <span class="rep-time">${fmtTime(rep.created_at)}</span>
+      </div>
+      ${rep.text?`<div class="rep-body">${escH(rep.text)}</div>`:''}
+      ${audioH}${confH}
+    </div>`;
+  }else{
+    body='<div class="sec-empty" style="padding:14px 0">התלמיד טרם דיווח על משימה זו</div>';
+  }
+  document.getElementById('mtr-body').innerHTML=body;
+  document.getElementById('modal-task-rep').classList.add('show');
+}
+
+/* ════════════════ TASKS ════════════════ */
+async function addTask(){
+  const inp=document.getElementById('task-inp');
+  const text=inp.value.trim();if(!text)return;
+  try{
+    const t=await apiFetch('/tasks',{method:'POST',body:JSON.stringify({student_id:currentSid,text})});
+    inp.value='';currentTasks.push(t);
+    renderDetail(allStudents.find(x=>x.id===currentSid));
+    showToast('משימה נוספה לבנק ✓');
+  }catch(e){showToast(`שגיאה: ${e.message}`);}
+}
+
+async function delTask(taskId){
+  if(!confirm('למחוק משימה זו?'))return;
+  try{
+    await apiFetch(`/tasks/${taskId}`,{method:'DELETE'});
+    currentTasks=currentTasks.filter(t=>t.id!==taskId);
+    currentReports=currentReports.filter(r=>r.task_id!==taskId);
+    renderDetail(allStudents.find(x=>x.id===currentSid));
+    showToast('משימה נמחקה');
+  }catch(e){showToast(`שגיאה: ${e.message}`);}
+}
+
+/* ════════════════ ADD STUDENT ════════════════ */
+function openAddModal(){
+  ['new-name','new-grade','new-reason','new-description','new-code'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('new-photo-b64').value='';
+  document.getElementById('new-photo-drop').innerHTML='📷 לחצי להעלאת תמונה';
+  document.getElementById('new-status').value='בתהליך';
+  document.getElementById('modal-add').classList.add('show');
+}
+async function doAddStudent(){
+  const name       =document.getElementById('new-name').value.trim();
+  const grade      =document.getElementById('new-grade').value.trim();
+  const reason     =document.getElementById('new-reason').value.trim();
+  const description=document.getElementById('new-description').value.trim();
+  const photo      =document.getElementById('new-photo-b64').value||'';
+  const status     =document.getElementById('new-status').value;
+  const code       =document.getElementById('new-code').value.trim();
+  if(!name||!grade||!reason){showToast('נא למלא שם, כיתה וסיבת פנייה');return;}
+  if(code && !/^\d{4}$/.test(code)){showToast('קוד כניסה חייב להיות 4 ספרות');return;}
+  setBusy('btn-add-submit',true,'הוסף');
+  try{
+    await apiFetch('/students',{method:'POST',body:JSON.stringify({name,grade,reason,description,photo,status,code:code||null})});
+    closeModal('modal-add');await loadList();showToast(`${name} נוסף/ה בהצלחה ✓`);
+  }catch(e){showToast(`שגיאה: ${e.message}`);}
+  finally{setBusy('btn-add-submit',false,'הוסף');}
+}
+
+/* ════════════════ AI ════════════════ */
+async function runAI(){
+  const btn=document.getElementById('btn-ai');
+  const loading=document.getElementById('ai-loading');
+  const result=document.getElementById('ai-result');
+  btn.style.display='none';loading.classList.add('show');result.classList.remove('show');
+  try{
+    const data=await apiFetch(`/analyze-student/${currentSid}`,{method:'POST'});
+    const lvl={low:'נמוך',medium:'בינוני',high:'גבוה'};
+    const sugH=(data.suggested_tasks||[]).map((t,i)=>`
+      <div class="sug-task" id="sg-${i}">
+        <span class="sug-text" id="sg-t-${i}">${escH(t)}</span>
+        <div class="sug-acts">
+          <button class="sug-btn edit" onclick="editSug(${i})">✏️</button>
+          <button class="sug-btn del"  onclick="remSug(${i})">🗑️</button>
+          <button class="sug-btn add"  onclick="addSug(${i})">+ הוסף</button>
+        </div>
+      </div>`).join('');
+    result.innerHTML=`
+      <div class="ai-block"><h4>רמת דחיפות</h4><span class="alert-chip alert-${data.alert_level}">${lvl[data.alert_level]||data.alert_level}</span></div>
+      <div class="ai-block"><h4>תובנות</h4><ul>${(data.insights||[]).map(i=>`<li>${escH(i)}</li>`).join('')}</ul></div>
+      <div class="ai-block"><h4>סיבה אפשרית</h4><p>${escH(data.possible_cause||'')}</p></div>
+      <div class="ai-block"><h4>המלצות ליועצת</h4><ul>${(data.recommendations||[]).map(r=>`<li>${escH(r)}</li>`).join('')}</ul></div>
+      <div class="ai-block" style="border-color:#a8d5b5">
+        <h4>💡 משימות מוצעות</h4>
+        <p style="color:var(--light);font-size:13px;margin-bottom:9px">ערכי, מחקי או הוסיפי לבנק המשימות</p>
+        ${sugH}
+      </div>`;
+    result.classList.add('show');
+    window._sug=[...(data.suggested_tasks||[])];
+  }catch(e){
+    result.innerHTML=`<div class="ai-block" style="border-color:var(--red)"><h4>שגיאה</h4><p>${escH(e.message)}</p></div>`;
+    result.classList.add('show');
+  }
+  loading.classList.remove('show');btn.style.display='flex';
+}
+function editSug(i){const el=document.getElementById(`sg-t-${i}`);const v=prompt('ערכי את המשימה:',window._sug[i]);if(v&&v.trim()){window._sug[i]=v.trim();el.textContent=v.trim();}}
+function remSug(i){document.getElementById(`sg-${i}`).remove();window._sug[i]=null;}
+async function addSug(i){
+  const text=window._sug[i];if(!text)return;
+  try{
+    const t=await apiFetch('/tasks',{method:'POST',body:JSON.stringify({student_id:currentSid,text})});
+    currentTasks.push(t);renderDetail(allStudents.find(x=>x.id===currentSid));
+    document.getElementById(`sg-${i}`).style.opacity='.4';
+    document.querySelector(`#sg-${i} .sug-btn.add`).textContent='✓ נוסף';
+    showToast('משימה נוספה לבנק ✓');
+  }catch(e){showToast(`שגיאה: ${e.message}`);}
+}
+
+/* ════════════════ AUTO REFRESH ════════════════ */
+setInterval(()=>{
+  if(document.getElementById('screen-main').classList.contains('active')) loadList();
+},30_000);
+</script>
+</body>
+</html>
