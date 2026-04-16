@@ -447,7 +447,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 
 <script>
 /* ══════════ CONFIG & STATE ══════════ */
-const API = 'https://bridge-2-rhtw.onrender.com/';
+const API = 'https://bridge-2-rhtw.onrender.com';
 
 let me           = null;   // { id, name, grade }
 let myTasks      = [];     // all tasks from server
@@ -706,8 +706,9 @@ function openTaskSheet(taskId){
   // Main action button logic
   const mainBtn = document.getElementById('sheet-main-btn');
   if(task.done && rep){
-    mainBtn.textContent = '✏️ ערוך דיווח';
-    sheetAction = 'edit';
+    // Task done + has report → show report view
+    mainBtn.textContent = '📋 ראה את הדיווח שלי';
+    sheetAction = 'view';
   } else if(task.done && !rep){
     mainBtn.textContent = '📝 הוסף דיווח (נדרש)';
     sheetAction = 'report';
@@ -765,7 +766,15 @@ async function sheetMainAction(){
   const rep=getReport(task);
   closeSheet();
 
+  if(sheetAction==='view'){
+    // done + has report → show report view screen
+    viewTaskId=sheetTaskId;
+    showViewReport(task,rep);
+    return;
+  }
+
   if(sheetAction==='edit'){
+    // editing from view-report screen (called via openEditReport button there)
     viewTaskId=sheetTaskId;
     openEditReport();
     return;

@@ -3,16 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <title>BRIDGE</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #f4f4f2;
+      gap: 16px;
+    }
+    h2 { color: #1a1a1a; margin-bottom: 8px; }
+    button {
+      padding: 16px 40px;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      background: #1a1a1a;
+      color: #fff;
+      width: 220px;
+    }
+    button:hover { opacity: 0.85; }
+  </style>
 </head>
 <body>
-  <h2>בחרי מסך:</h2>
-
-  <button onclick="window.location.href='student_v3.html'">
-    תלמיד
-  </button>
-
-  <button onclick="window.location.href='counselor_v3 .html'">
-    יועצת
-  </button>
+  <h2>BRIDGE — בחרי מסך</h2>
+  <button onclick="window.location.href='counselor_v3.html'">יועצת</button>
+  <button onclick="window.location.href='student_v3.html'">תלמיד</button>
 </body>
 </html>
