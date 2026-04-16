@@ -1,14 +1,5 @@
 """
 BRIDGE – FastAPI Backend v3
-============================
-Changes vs v2:
-  1. GET /students/{student_id}       — student identifies by ID (no code needed)
-  2. PATCH /tasks/{task_id}/select    — student selects task into weekly list + saves confidence
-  3. PATCH /tasks/{task_id}/deselect  — student removes task from weekly list
-  4. PATCH /tasks/{task_id}/done      — now a proper toggle (done/undone)
-  5. StudentCreate: code is now optional
-  6. TaskSelect model added
-  All other endpoints unchanged from v2.
 """
 
 from fastapi import FastAPI, HTTPException
@@ -48,7 +39,7 @@ class StudentCreate(BaseModel):
     grade:            str
     reason:           str
     status:           str  = "בתהליך"
-    code:             Optional[str] = None   # now optional
+    code:             Optional[str] = None   
     description:      str  = ""
     photo:            str  = ""
     engagement_level: str  = "medium"
