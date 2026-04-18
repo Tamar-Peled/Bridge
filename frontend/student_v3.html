@@ -8,8 +8,12 @@
 <style>
 /* ══════════ TOKENS — light, clean ══════════ */
 :root{
-  --bg:#f4f4f2; --card:#fff; --dark:#1a1a1a; --mid:#666; --light:#aaa;
-  --border:#e8e8e4;
+  --primary:#5BB7B7;
+  --primary-dk:#449494;
+  --primary-soft:rgba(91,183,183,.12);
+  --primary-border:rgba(91,183,183,.42);
+  --bg:#f5f9f9; --card:#fff; --dark:#333333; --mid:#666; --light:#999;
+  --border:#e4ecec;
   --green:#27ae60; --green-soft:#eafaf1; --green-dk:#1a7a42;
   --red:#e74c3c;   --red-soft:#fdecea;
   --yellow:#f39c12;--yellow-soft:#fef9e7; --yellow-dk:#b7770d;
@@ -30,13 +34,14 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 
 /* ══════════ LOGIN SCREEN ══════════ */
 #sc-login{
-  background:var(--bg);
+  background:linear-gradient(180deg,#fff 0%,#E6F4F4 50%,var(--bg) 100%);
   align-items:center;justify-content:center;
   padding:calc(var(--safe-top) + 40px) 24px calc(var(--safe-bottom) + 32px);
   text-align:center;
 }
 .login-logo{
-  width:76px;height:76px;border-radius:22px;background:var(--dark);
+  width:76px;height:76px;border-radius:22px;
+  background:linear-gradient(145deg,var(--primary) 0%,var(--primary-dk) 100%);
   display:flex;align-items:center;justify-content:center;
   font-size:34px;font-weight:900;color:#fff;
   margin:0 auto 20px;box-shadow:var(--shadow-lg);
@@ -60,7 +65,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   background:var(--bg);transition:border-color .15s;
   -webkit-appearance:none;
 }
-.id-input:focus{border-color:var(--dark);background:var(--card)}
+.id-input:focus{border-color:var(--primary);background:var(--card)}
 .id-input::placeholder{color:var(--light);font-size:14px;font-weight:400;letter-spacing:0}
 .login-err{color:var(--red);font-size:13px;text-align:center;margin-top:10px;display:none}
 .login-err.show{display:block}
@@ -74,22 +79,71 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   position:sticky;top:0;z-index:100;
 }
 .topbar-brand{display:flex;align-items:center;gap:8px}
-.tb-logo{width:30px;height:30px;background:var(--dark);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:13px}
+.tb-logo{width:30px;height:30px;background:linear-gradient(145deg,var(--primary),var(--primary-dk));border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:13px}
 .tb-name{font-weight:800;font-size:16px}
-.tb-btn{background:none;border:none;cursor:pointer;color:var(--light);font-size:15px;font-family:'Heebo',sans-serif;padding:8px;border-radius:8px}
+.tb-btn{
+  background:none;border:none;cursor:pointer;color:var(--light);font-size:15px;
+  font-family:'Heebo',sans-serif;padding:8px 12px;border-radius:var(--radius-xs);
+  transition:background .15s,color .15s,transform .1s;
+}
+.tb-btn:hover{background:var(--primary-soft);color:var(--primary-dk)}
+.tb-btn:active{transform:scale(.97)}
 .tb-back{display:flex;align-items:center;gap:5px;color:var(--dark);font-size:14px;font-weight:600;background:none;border:none;cursor:pointer;font-family:'Heebo',sans-serif;padding:8px;border-radius:8px}
 
 /* ══════════ CONTENT ══════════ */
 .content{padding:18px 16px calc(var(--safe-bottom) + 24px);flex:1;max-width:500px;width:100%;margin:0 auto}
 
+/* ══════════ STUDENT TOP TABS (under hero) ══════════ */
+.student-subnav{
+  display:flex;gap:8px;margin:0 0 14px;
+  padding:6px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+.student-nav-btn{
+  flex:1;padding:12px 10px;border:none;border-radius:var(--radius-sm);
+  font-family:'Heebo',sans-serif;font-size:14px;font-weight:800;
+  color:var(--mid);background:transparent;cursor:pointer;
+  transition:background .18s,color .18s,transform .1s;
+  text-align:center;
+}
+.student-nav-btn:hover{color:var(--primary-dk)}
+.student-nav-btn.active{
+  color:var(--primary-dk);
+  background:var(--primary-soft);
+  box-shadow:inset 0 0 0 1.5px var(--primary-border);
+}
+.student-nav-btn:active{transform:scale(.98)}
+.student-tab-panel{min-height:40vh}
+.btn-save-sticky{
+  display:block;width:auto;min-width:140px;max-width:220px;margin:12px auto 0;
+  padding:8px 22px;border:none;border-radius:999px;
+  background:var(--primary);color:#fff;font-family:'Heebo',sans-serif;
+  font-size:13px;font-weight:800;cursor:pointer;
+  transition:background .15s,transform .1s,opacity .15s;
+  box-shadow:0 2px 8px rgba(91,183,183,.25);
+}
+.btn-save-sticky:hover{background:var(--primary-dk)}
+.btn-save-sticky:active{transform:scale(.98)}
+.voice-review-box{
+  margin-top:14px;padding:16px;border-radius:var(--radius-sm);
+  background:var(--card);border:1.5px solid var(--primary-border);
+  box-shadow:var(--shadow);
+  text-align:center;
+}
+.voice-review-lbl{font-size:14px;font-weight:800;color:var(--primary-dk);margin-bottom:10px}
+.voice-review-actions{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+
 /* ══════════ BUTTONS ══════════ */
 .btn-primary{
-  display:block;width:100%;background:var(--dark);color:#fff;border:none;
+  display:block;width:100%;background:var(--primary);color:#fff;border:none;
   border-radius:var(--radius);padding:17px 20px;font-size:17px;font-weight:800;
   cursor:pointer;font-family:'Heebo',sans-serif;
-  transition:opacity .15s,transform .1s;min-height:54px;-webkit-appearance:none;
+  transition:opacity .15s,transform .1s,background .15s;min-height:54px;-webkit-appearance:none;
 }
-.btn-primary:hover{opacity:.88}
+.btn-primary:hover{opacity:.92;background:var(--primary-dk)}
 .btn-primary:active{transform:scale(.98)}
 .btn-primary:disabled{opacity:.35;cursor:not-allowed;transform:none}
 .btn-ghost{
@@ -99,7 +153,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   font-family:'Heebo',sans-serif;transition:border-color .12s;min-height:50px;
   -webkit-appearance:none;margin-top:10px;
 }
-.btn-ghost:hover{border-color:var(--dark)}
+.btn-ghost:hover{border-color:var(--primary);color:var(--primary-dk)}
 .btn-ghost:active{background:var(--bg)}
 .btn-save{
   display:block;width:100%;background:#ccc;color:#fff;border:none;
@@ -107,19 +161,152 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   cursor:not-allowed;margin-top:18px;font-family:'Heebo',sans-serif;
   transition:background .2s,transform .1s;min-height:54px;-webkit-appearance:none;
 }
-.btn-save.ready{background:var(--dark);cursor:pointer}
+.btn-save.ready{background:var(--primary);cursor:pointer}
+.btn-save.ready:hover{background:var(--primary-dk)}
 .btn-save.ready:active{transform:scale(.98)}
 
-/* ══════════ WELCOME BANNER ══════════ */
-.welcome{
-  background:var(--dark);color:#fff;border-radius:var(--radius);
-  padding:20px 20px 18px;margin-bottom:16px;
+/* ══════════ WEEK HERO — progress + greet ══════════ */
+.week-hero{
+  background:linear-gradient(145deg,var(--primary) 0%,var(--primary-dk) 100%);
+  color:#fff;border-radius:var(--radius);
+  padding:22px 20px 20px;margin-bottom:14px;
+  text-align:center;box-shadow:var(--shadow);
 }
-.welcome-name{font-size:20px;font-weight:800;margin-bottom:3px}
-.welcome-grade{color:rgba(255,255,255,.5);font-size:13px;margin-bottom:14px}
-.prog-track{background:rgba(255,255,255,.18);border-radius:10px;height:7px;overflow:hidden}
-.prog-fill{background:#fff;border-radius:10px;height:100%;transition:width .6s cubic-bezier(.4,0,.2,1)}
-.prog-lbl{font-size:12px;color:rgba(255,255,255,.65);margin-top:7px;font-weight:600}
+.week-hero-greet .welcome-name{font-size:20px;font-weight:800;margin-bottom:4px;color:#fff}
+.week-hero-greet .welcome-grade{color:rgba(255,255,255,.72);font-size:13px;margin-bottom:18px}
+.week-progress-visual{max-width:300px;margin:0 auto}
+.week-pct{font-size:40px;font-weight:900;letter-spacing:-2px;line-height:1;margin-bottom:10px}
+.week-hero .prog-track{background:rgba(255,255,255,.22);border-radius:999px;height:10px;overflow:hidden}
+.week-hero .prog-fill{
+  background:#fff;border-radius:999px;height:100%;
+  transition:width .6s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 0 12px rgba(255,255,255,.45);
+}
+.week-hero .prog-lbl{font-size:13px;color:rgba(255,255,255,.88);margin-top:10px;font-weight:600;line-height:1.45}
+
+/* ══════════ SUCCESS CARDS (הצלחות השבוע) ══════════ */
+.success-strip{
+  margin-bottom:14px;
+  padding:16px 14px 14px;
+  background:linear-gradient(180deg,rgba(255,255,255,.95) 0%,var(--primary-soft) 100%);
+  border:1px solid var(--primary-border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+.success-strip-head{
+  font-weight:800;font-size:15px;color:var(--primary-dk);text-align:center;margin-bottom:12px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.success-strip-head::before,.success-strip-head::after{
+  content:'';flex:1;max-width:48px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--primary));
+  opacity:.45;
+}
+.success-strip-head::after{background:linear-gradient(270deg,transparent,var(--primary))}
+.success-cards{display:flex;flex-direction:column;gap:10px}
+.success-card{
+  display:flex;align-items:flex-start;gap:12px;
+  background:var(--card);border:1px solid var(--primary-border);
+  border-radius:var(--radius-sm);padding:14px 16px;cursor:pointer;
+  box-shadow:var(--shadow);transition:transform .1s,border-color .15s,background .15s;
+}
+.success-card:active{transform:scale(.985)}
+.success-card:hover{border-color:var(--primary);background:var(--primary-soft)}
+.success-card-icon{
+  width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.95);
+  color:var(--primary-dk);display:flex;align-items:center;justify-content:center;
+  font-weight:900;flex-shrink:0;font-size:14px;border:1.5px solid var(--primary-border);
+}
+.success-card-body{flex:1;min-width:0;text-align:right}
+.success-card-title{font-size:15px;font-weight:700;color:var(--dark);line-height:1.35}
+.success-card-meta{font-size:12px;color:var(--mid);margin-top:4px;font-weight:600}
+.success-empty{
+  text-align:center;color:var(--mid);font-size:14px;line-height:1.55;
+  padding:20px 14px;background:var(--card);border:1px dashed var(--primary-border);
+  border-radius:var(--radius-sm);
+}
+.week-open-sec .sec-head{display:flex;align-items:center;justify-content:center;gap:8px}
+
+/* ══════════ PERSONAL NOTES (server-synced) ══════════ */
+.sticky-notes-sec{
+  margin-bottom:14px;padding:0;
+  border-radius:var(--radius);
+  border:1px solid var(--primary-border);
+  background:linear-gradient(180deg,#f4fbfb 0%,#eef5f5 100%);
+  box-shadow:var(--shadow);
+}
+.sticky-notes-inner{padding:20px 16px 18px;max-width:400px;margin:0 auto}
+.sticky-notes-head{
+  font-size:18px;font-weight:900;color:var(--dark);
+  margin-bottom:14px;text-align:center;
+}
+.sticky-subhead{
+  font-size:13px;font-weight:700;color:var(--mid);text-align:center;margin-bottom:8px;
+}
+.saved-notes-section{margin-top:16px}
+.saved-notes-section[hidden]{display:none!important}
+.saved-notes-subhead{margin-top:0}
+.saved-notes-list{display:flex;flex-direction:column;gap:12px;margin-top:10px}
+.saved-note-card{
+  position:relative;
+  background:linear-gradient(165deg,rgba(232,248,248,.95) 0%,rgba(245,250,250,.98) 100%);
+  border:1px solid rgba(91,183,183,.22);
+  border-radius:15px;
+  padding:36px 16px 14px 16px;text-align:right;
+  box-shadow:0 4px 14px rgba(0,0,0,.06),0 1px 3px rgba(91,183,183,.12);
+  transition:box-shadow .15s,transform .1s;
+}
+.saved-note-card:active{transform:scale(.995)}
+.saved-note-edit{
+  position:absolute;top:10px;inset-inline-end:10px;
+  width:32px;height:32px;padding:0;border:none;border-radius:10px;
+  background:rgba(255,255,255,.85);color:var(--mid);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);transition:background .15s,color .15s;
+}
+.saved-note-edit:hover{background:var(--primary-soft);color:var(--primary-dk)}
+.saved-note-edit svg{width:16px;height:16px;display:block}
+.saved-note-text{
+  font-size:14px;line-height:1.55;color:var(--dark);word-break:break-word;
+  padding-inline-end:4px;
+}
+.saved-note-meta{
+  display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;
+  border-top:1px solid rgba(91,183,183,.15);font-size:10px;color:#9aa8a8;font-weight:500;
+}
+.saved-note-meta .saved-note-date{opacity:.92}
+.saved-note-del{
+  border:none;background:transparent;color:var(--light);cursor:pointer;font-size:15px;line-height:1;
+  padding:4px 8px;border-radius:8px;font-family:inherit;
+}
+.saved-note-del:hover{background:var(--red-soft);color:var(--red)}
+.sticky-toolbar{display:flex;align-items:flex-start;gap:10px;margin-bottom:0}
+.sticky-textarea{
+  flex:1;min-height:140px;width:100%;
+  border:2px solid rgba(91,183,183,.35);border-radius:var(--radius-sm);
+  padding:14px 14px;font-size:15px;font-family:'Heebo',sans-serif;
+  resize:vertical;text-align:right;color:var(--dark);
+  background:var(--card);
+  outline:none;transition:border-color .15s,box-shadow .15s;
+}
+.sticky-textarea:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 4px var(--primary-soft);
+}
+.btn-sticky-mic{
+  flex-shrink:0;width:48px;height:48px;border-radius:14px;
+  border:2px solid var(--primary-border);background:#fff;
+  color:var(--primary-dk);font-size:22px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s,border-color .15s,transform .12s,box-shadow .15s;
+  font-family:inherit;line-height:1;
+}
+.btn-sticky-mic:hover{background:var(--primary-soft);border-color:var(--primary)}
+.btn-sticky-mic:active{transform:scale(.96)}
+.btn-sticky-mic.listening{
+  background:var(--red-soft);border-color:var(--red);color:var(--red);
+  animation:micpulse 1.1s ease-in-out infinite;
+}
+@keyframes micpulse{0%,100%{opacity:1}50%{opacity:.72}}
 
 /* ══════════ SECTIONS ══════════ */
 .sec{
@@ -147,10 +334,15 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   flex-shrink:0;margin-top:1px;background:var(--card);
   transition:border-color .15s,background .15s;
 }
-.t-circle.done{background:var(--green);border-color:var(--green)}
+.t-circle.done{background:var(--primary-dk);border-color:var(--primary-dk)}
 .t-circle.inprog{border-color:var(--yellow);border-width:2.5px}
-.t-circle svg{display:none}
-.t-circle.done svg{display:block}
+.t-circle .t-chk{display:none;color:#fff;font-size:13px;font-weight:800;line-height:1}
+.t-circle.done .t-chk{display:flex;align-items:center;justify-content:center}
+.t-pencil{
+  flex-shrink:0;width:18px;height:18px;opacity:.5;margin-top:3px;
+  pointer-events:none;user-select:none;color:var(--mid);
+}
+.t-pencil svg{display:block;width:100%;height:100%}
 
 .t-body{flex:1;min-width:0}
 .t-text{font-size:15px;line-height:1.45;font-weight:500;color:var(--dark)}
@@ -158,7 +350,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .t-hint{font-size:12px;color:var(--light);margin-top:3px;line-height:1.4}
 .t-hint.ok{color:var(--green-dk)}
 .t-hint.warn{color:var(--yellow-dk)}
-.t-hint.prog{color:var(--blue)}
+.t-hint.prog{color:var(--primary-dk)}
 .t-arrow{color:var(--border);font-size:18px;flex-shrink:0;margin-top:3px}
 
 /* Bank task row — slightly muted */
@@ -179,17 +371,17 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .sheet-sub{color:var(--light);font-size:13px;margin-bottom:20px}
 .sheet-status{
   display:inline-flex;align-items:center;gap:6px;
-  background:var(--blue-soft);color:var(--blue);
+  background:var(--primary-soft);color:var(--primary-dk);
   font-size:13px;font-weight:700;padding:5px 12px;border-radius:20px;margin-bottom:18px;
 }
 .sheet-status.done-st{background:var(--green-soft);color:var(--green-dk)}
 .btn-sheet-primary{
-  display:block;width:100%;background:var(--dark);color:#fff;border:none;
+  display:block;width:100%;background:var(--primary);color:#fff;border:none;
   border-radius:var(--radius);padding:16px;font-size:16px;font-weight:800;
   cursor:pointer;font-family:'Heebo',sans-serif;min-height:52px;
-  transition:opacity .15s;-webkit-appearance:none;
+  transition:opacity .15s,background .15s;-webkit-appearance:none;
 }
-.btn-sheet-primary:hover{opacity:.88}
+.btn-sheet-primary:hover{opacity:.92;background:var(--primary-dk)}
 .btn-sheet-secondary{
   display:block;width:100%;background:var(--card);color:var(--mid);border:none;
   border-radius:var(--radius);padding:14px;font-size:15px;font-weight:600;
@@ -237,7 +429,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   -webkit-appearance:none;
 }
 .emoji-btn .emo{font-size:24px}
-.emoji-btn.picked{border-color:var(--dark);background:#f0f0ee}
+.emoji-btn.picked{border-color:var(--primary);background:var(--primary-soft)}
 .emoji-btn:active{background:var(--bg)}
 .rep-textarea{
   width:100%;border:1.5px solid var(--border);border-radius:var(--radius-sm);
@@ -245,7 +437,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   resize:none;min-height:90px;outline:none;text-align:right;
   color:var(--dark);background:var(--card);-webkit-appearance:none;
 }
-.rep-textarea:focus{border-color:var(--dark)}
+.rep-textarea:focus{border-color:var(--primary)}
 
 /* audio box */
 .audio-box{margin-top:16px;background:var(--bg);border-radius:var(--radius-sm);border:1.5px solid var(--border);padding:14px 15px}
@@ -274,7 +466,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .view-time{color:var(--light);font-size:12px}
 
 /* ══════════ SUCCESS ══════════ */
-.success{display:none;position:fixed;inset:0;background:rgba(255,255,255,.97);z-index:300;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px 24px}
+.success{display:none;position:fixed;inset:0;background:rgba(245,249,249,.97);z-index:300;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px 24px}
 .success.show{display:flex}
 .success-emoji{font-size:72px;margin-bottom:18px;animation:pop .45s cubic-bezier(.34,1.56,.64,1)}
 @keyframes pop{0%{transform:scale(0)}100%{transform:scale(1)}}
@@ -285,15 +477,14 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .loading-box{display:flex;align-items:center;justify-content:center;height:200px;color:var(--light);font-size:14px;gap:10px}
 .spinner{
   width:18px;height:18px;border-radius:999px;
-  border:2.5px solid rgba(0,0,0,.08);
-  border-top-color:var(--dark);
-  border-right-color:var(--dark);
-  box-shadow:0 0 0 1px rgba(0,0,0,.02);
+  border:2.5px solid var(--primary-soft);
+  border-top-color:var(--primary);
+  border-right-color:var(--primary-dk);
   animation:spin .7s cubic-bezier(.4,0,.2,1) infinite;
   display:inline-block;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
-.toast{position:fixed;bottom:calc(var(--safe-bottom) + 20px);left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;padding:12px 22px;border-radius:30px;font-size:14px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
+.toast{position:fixed;bottom:calc(var(--safe-bottom) + 20px);left:50%;transform:translateX(-50%);background:var(--primary-dk);color:#fff;padding:12px 22px;border-radius:30px;font-size:14px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
 .toast.show{opacity:1}
 .mt10{margin-top:10px}
 </style>
@@ -330,26 +521,69 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     </div>
   </div>
   <div class="content">
-    <div class="welcome">
-      <div class="welcome-name" id="w-name">שלום!</div>
-      <div class="welcome-grade">כיתה <span id="w-grade"></span></div>
-      <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
-      <div class="prog-lbl" id="prog-lbl">טוען...</div>
-    </div>
-
-    <!-- Weekly tasks -->
-    <div class="sec" id="weekly-sec">
-      <div class="sec-head">
-        📅 המשימות השבועיות שלי
-        <span class="cnt-chip" id="weekly-chip"></span>
+    <div class="week-hero">
+      <div class="week-hero-greet">
+        <div class="welcome-name" id="w-name">שלום!</div>
+        <div class="welcome-grade">כיתה <span id="w-grade"></span></div>
       </div>
-      <div id="weekly-list"><div class="loading-box"><span class="spinner"></span></div></div>
+      <div class="week-progress-visual">
+        <div class="week-pct" id="week-pct-num">0%</div>
+        <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+        <div class="prog-lbl" id="prog-lbl">טוען...</div>
+      </div>
     </div>
 
-    <!-- Task bank -->
-    <div class="sec" id="bank-sec">
-      <div class="sec-head">📚 בנק משימות</div>
-      <div id="bank-list"></div>
+    <nav class="student-subnav" role="tablist" aria-label="ניווט">
+      <button type="button" class="student-nav-btn active" data-tab="tasks" role="tab" aria-selected="true"
+        onclick="setStudentTab('tasks')">המשימות שלי</button>
+      <button type="button" class="student-nav-btn" data-tab="notes" role="tab" aria-selected="false"
+        onclick="setStudentTab('notes')">הפתקים שלי</button>
+    </nav>
+
+    <div id="student-tab-tasks" class="student-tab-panel">
+      <div class="success-strip" id="success-strip">
+        <div class="success-strip-head">הצלחות השבוע</div>
+        <div id="success-cards" class="success-cards"><div class="loading-box" style="min-height:100px"><span class="spinner"></span></div></div>
+      </div>
+
+      <div class="sec week-open-sec" id="week-open-sec" style="display:none">
+        <div class="sec-head">נותרו השבוע</div>
+        <div id="weekly-open-list"></div>
+      </div>
+
+      <div class="sec" id="bank-sec">
+        <div class="sec-head">בנק משימות</div>
+        <div id="bank-list"></div>
+      </div>
+    </div>
+
+    <div id="student-tab-notes" class="student-tab-panel" style="display:none">
+      <section class="sticky-notes-sec" aria-label="הפתקים שלי">
+        <div class="sticky-notes-inner">
+          <div class="sticky-notes-head">הפתקים שלי</div>
+          <p class="sticky-subhead">פתק חדש</p>
+          <div class="sticky-toolbar">
+            <textarea class="sticky-textarea" id="private-sticky-ta"
+              placeholder="רשמו כאן..."></textarea>
+            <button type="button" class="btn-sticky-mic" id="btn-sticky-mic" title="דיבור לטקסט"
+              aria-label="הקלטת הערה קולית" onclick="event.stopPropagation();toggleStickyMic()">🎙️</button>
+          </div>
+          <div id="voice-transcript-review" class="voice-review-box" style="display:none">
+            <div class="voice-review-lbl">תמלול — ערכו ואשרו לפני שמירה</div>
+            <textarea class="sticky-textarea" id="voice-transcript-ta" style="min-height:88px;text-align:right" placeholder="התמלול יופיע כאן..."></textarea>
+            <div class="voice-review-actions">
+              <button type="button" class="btn-primary" onclick="approveVoiceTranscript()">אישור ושמירה</button>
+              <button type="button" class="btn-ghost" onclick="cancelVoiceTranscript()">ביטול</button>
+            </div>
+          </div>
+          <button type="button" class="btn-save-sticky" id="btn-save-sticky" onclick="saveStickyNoteManual()"
+            aria-label="שמירת פתק חדש">שמור פתק</button>
+          <div id="saved-notes-section" class="saved-notes-section" hidden>
+            <p class="sticky-subhead saved-notes-subhead" style="margin-top:18px">פתקים שמורים</p>
+            <div id="saved-notes-list" class="saved-notes-list" aria-live="polite"></div>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </div>
@@ -460,8 +694,11 @@ const API = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   : 'https://bridge-2-rhtw.onrender.com';
 
 let me           = null;   // { id, name, grade }
+let studentCode  = null;   // 4-digit login code (for /notes API only; not persisted)
 let myTasks      = [];     // all tasks from server
 let myReports    = [];
+let myNotes      = [];     // private notes from GET /notes/{code}
+let editingNoteId= null;   // when set, main save button updates this note (PATCH)
 
 // form state
 let fTaskId      = null;
@@ -486,6 +723,10 @@ let recSecs      = 0;
 // view
 let viewTaskId   = null;
 
+// private notes tab — server-synced via /notes
+let stickyRec           = null;
+let stickyRecListening  = false;
+
 /* ══════════ HTTP ══════════ */
 async function api(path, opts={}) {
   let res;
@@ -507,15 +748,269 @@ function fmtTime(iso){
   return d.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})+
     ' · '+d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
 }
+function fmtDateShort(iso){
+  if(!iso) return '';
+  try{
+    const d=new Date(iso);
+    return d.toLocaleDateString('he-IL',{day:'numeric',month:'short',year:'numeric'});
+  }catch(_){return '';}
+}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+const NOTE_EDIT_PEN_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
+function setSavedNotesSectionVisible(show){
+  const sec=document.getElementById('saved-notes-section');
+  if(sec) sec.hidden=!show;
+}
+function updateNotesSaveButton(){
+  const btn=document.getElementById('btn-save-sticky');
+  if(!btn) return;
+  if(editingNoteId){
+    btn.textContent='עדכן פתק';
+    btn.setAttribute('aria-label','עדכון פתק שמור');
+  }else{
+    btn.textContent='שמור פתק';
+    btn.setAttribute('aria-label','שמירת פתק חדש');
+  }
+}
+function clearNoteEditMode(){
+  editingNoteId=null;
+  updateNotesSaveButton();
+}
+function beginEditNote(id){
+  if(!id||!studentCode) return;
+  const n=myNotes.find(x=>String(x.id)===String(id));
+  if(!n) return;
+  editingNoteId=id;
+  const ta=document.getElementById('private-sticky-ta');
+  if(ta){
+    ta.value=n.content!=null?String(n.content):'';
+    ta.focus();
+  }
+  updateNotesSaveButton();
+  try{ta&&ta.scrollIntoView({behavior:'smooth',block:'center'});}catch(_){}
+}
 function toast(msg,ms=2500){
   const t=document.getElementById('toast');
   t.textContent=msg;t.classList.add('show');
   clearTimeout(t._tid);t._tid=setTimeout(()=>t.classList.remove('show'),ms);
 }
+
+function renderSavedNotesList(){
+  const host=document.getElementById('saved-notes-list');
+  if(!host) return;
+  const arr=Array.isArray(myNotes)?myNotes:[];
+  if(!arr.length){
+    host.innerHTML='';
+    setSavedNotesSectionVisible(false);
+    return;
+  }
+  setSavedNotesSectionVisible(true);
+  host.innerHTML=arr.map(n=>{
+    const safeId=String(n.id||'').replace(/[^a-fA-F0-9-]/g,'');
+    const body=esc(n.content||'').replace(/\n/g,'<br>');
+    const when=fmtDateShort(n.created_at);
+    return `<div class="saved-note-card">
+      <button type="button" class="saved-note-edit" title="עריכה" aria-label="עריכת פתק"
+        onclick="event.stopPropagation();beginEditNote('${safeId}')">${NOTE_EDIT_PEN_SVG}</button>
+      <div class="saved-note-text">${body}</div>
+      <div class="saved-note-meta">
+        <span class="saved-note-date">${esc(when)}</span>
+        <button type="button" class="saved-note-del" title="מחק" aria-label="מחק פתק" onclick="event.stopPropagation();deleteSavedNote('${safeId}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function deleteSavedNote(id){
+  if(!id||!studentCode) return;
+  if(!confirm('למחוק פתק זה?')) return;
+  try{
+    const q=`student_code=${encodeURIComponent(studentCode)}`;
+    await api(`/notes/${encodeURIComponent(id)}?${q}`,{method:'DELETE'});
+    myNotes=myNotes.filter(x=>String(x.id)!==String(id));
+    if(editingNoteId&&String(editingNoteId)===String(id)){
+      const ta=document.getElementById('private-sticky-ta');
+      if(ta) ta.value='';
+      clearNoteEditMode();
+    }
+    renderSavedNotesList();
+    toast('הפתק נמחק');
+  }catch(e){
+    toast(e.message||'שגיאה במחיקה');
+  }
+}
+async function loadPrivateNotesTab(){
+  const host=document.getElementById('saved-notes-list');
+  if(!me||!studentCode){
+    myNotes=[];
+    if(host) host.innerHTML='';
+    setSavedNotesSectionVisible(false);
+    return;
+  }
+  if(host) host.innerHTML='';
+  setSavedNotesSectionVisible(false);
+  try{
+    const rows=await api(`/notes/${encodeURIComponent(studentCode)}`);
+    myNotes=Array.isArray(rows)?rows:[];
+    renderSavedNotesList();
+  }catch(e){
+    myNotes=[];
+    toast(e.message||'שגיאה בטעינת פתקים');
+    if(host) host.innerHTML='';
+    setSavedNotesSectionVisible(false);
+  }
+}
+async function saveStickyNoteManual(){
+  const ta=document.getElementById('private-sticky-ta');
+  const text=ta&&ta.value!=null?String(ta.value).trim():'';
+  if(!text){
+    toast('נא לכתוב טקסט לפני שמירה');
+    return;
+  }
+  if(!studentCode){
+    toast('יש להתחבר מחדש');
+    return;
+  }
+  try{
+    if(editingNoteId){
+      const updated=await api(`/notes/${encodeURIComponent(editingNoteId)}`,{
+        method:'PATCH',
+        body:JSON.stringify({student_code:studentCode,content:text}),
+      });
+      if(ta) ta.value='';
+      const eid=editingNoteId;
+      editingNoteId=null;
+      updateNotesSaveButton();
+      myNotes=myNotes.map(n=>String(n.id)===String(eid)?updated:n);
+      myNotes.sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
+      renderSavedNotesList();
+      toast('עודכן בהצלחה');
+    }else{
+      const saved=await api('/notes',{method:'POST',body:JSON.stringify({student_code:studentCode,content:text})});
+      if(ta) ta.value='';
+      myNotes=[saved,...myNotes.filter(n=>n.id!==saved.id)];
+      renderSavedNotesList();
+      toast('נשמר בהצלחה');
+    }
+  }catch(e){
+    toast(e.message||'שגיאה בשמירה');
+  }
+}
+function hideVoiceTranscriptReview(){
+  const box=document.getElementById('voice-transcript-review');
+  const vta=document.getElementById('voice-transcript-ta');
+  if(box) box.style.display='none';
+  if(vta) vta.value='';
+}
+async function approveVoiceTranscript(){
+  const vta=document.getElementById('voice-transcript-ta');
+  if(!vta) return;
+  const add=(vta.value||'').trim();
+  if(!add){
+    toast('אין טקסט לאישור');
+    return;
+  }
+  if(!studentCode){
+    toast('יש להתחבר מחדש');
+    return;
+  }
+  try{
+    const saved=await api('/notes',{method:'POST',body:JSON.stringify({student_code:studentCode,content:add})});
+    clearNoteEditMode();
+    hideVoiceTranscriptReview();
+    myNotes=[saved,...myNotes.filter(n=>n.id!==saved.id)];
+    renderSavedNotesList();
+    toast('נשמר בהצלחה');
+  }catch(e){
+    toast(e.message||'שגיאה בשמירה');
+  }
+}
+function cancelVoiceTranscript(){
+  hideVoiceTranscriptReview();
+  stopStickyMic();
+}
+function updateStickyMicUi(){
+  const b=document.getElementById('btn-sticky-mic');
+  if(b) b.classList.toggle('listening',stickyRecListening);
+}
+function stopStickyMic(){
+  stickyRecListening=false;
+  updateStickyMicUi();
+  try{
+    if(stickyRec) stickyRec.stop();
+  }catch(_){}
+  stickyRec=null;
+}
+function toggleStickyMic(){
+  const Ctor=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!Ctor){
+    toast('דיבור לטקסט אינו נתמך בדפדפן זה');
+    return;
+  }
+  if(stickyRecListening){
+    stopStickyMic();
+    return;
+  }
+  const ta=document.getElementById('private-sticky-ta');
+  const vta=document.getElementById('voice-transcript-ta');
+  const review=document.getElementById('voice-transcript-review');
+  if(!ta) return;
+  hideVoiceTranscriptReview();
+  stickyRec=new Ctor();
+  stickyRec.lang='he-IL';
+  stickyRec.continuous=false;
+  stickyRec.interimResults=false;
+  stickyRec.onresult=function(ev){
+    let text='';
+    for(let i=ev.resultIndex;i<ev.results.length;i++){
+      if(ev.results[i].isFinal) text+=ev.results[i][0].transcript;
+    }
+    text=(text||'').trim();
+    if(text&&vta&&review){
+      vta.value=text;
+      review.style.display='block';
+      vta.focus();
+    }else if(!text){
+      toast('לא זוהה דיבור — נסו שוב');
+    }
+  };
+  stickyRec.onerror=function(){
+    toast('שגיאה בהקלטה — נסו שוב');
+    stopStickyMic();
+  };
+  stickyRec.onend=function(){
+    stickyRecListening=false;
+    updateStickyMicUi();
+    stickyRec=null;
+  };
+  try{
+    stickyRec.start();
+    stickyRecListening=true;
+    updateStickyMicUi();
+    toast('מקשיבים... דברו עכשיו (עצירה: לחצו שוב על המיקרופון)');
+  }catch(_){
+    toast('לא ניתן להתחיל הקלטה');
+    stickyRec=null;
+    stickyRecListening=false;
+    updateStickyMicUi();
+  }
+}
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function setStudentTab(tab){
+  const tasks=document.getElementById('student-tab-tasks');
+  const notes=document.getElementById('student-tab-notes');
+  const isTasks=tab==='tasks';
+  if(tasks) tasks.style.display=isTasks?'block':'none';
+  if(notes) notes.style.display=isTasks?'none':'block';
+  document.querySelectorAll('.student-nav-btn').forEach(b=>{
+    const on=b.getAttribute('data-tab')===tab;
+    b.classList.toggle('active',on);
+    b.setAttribute('aria-selected',on?'true':'false');
+  });
+  if(!isTasks) void loadPrivateNotesTab();
   window.scrollTo(0,0);
 }
 function getReport(task){
@@ -531,19 +1026,38 @@ async function doLogin(){
   }
   try{
     // GET /students/login/{code} — login by 4-digit code
+    studentCode=code;
     me=await api(`/students/login/${code}`);
     document.getElementById('w-name').textContent=`שלום, ${me.name}! 👋`;
     document.getElementById('w-grade').textContent=me.grade;
     showScreen('sc-home');
+    setStudentTab('tasks');
     loadHome();
+    const pta=document.getElementById('private-sticky-ta');
+    if(pta) pta.value='';
+    clearNoteEditMode();
+    void loadPrivateNotesTab();
   }catch{
+    studentCode=null;
+    myNotes=[];
     document.getElementById('login-err').classList.add('show');
   }
 }
 
 function doLogout(){
+  stopStickyMic();
+  hideVoiceTranscriptReview();
+  clearNoteEditMode();
+  const ta=document.getElementById('private-sticky-ta');
+  if(ta) ta.value='';
+  const sl=document.getElementById('saved-notes-list');
+  if(sl) sl.innerHTML='';
+  setSavedNotesSectionVisible(false);
+  studentCode=null;
+  myNotes=[];
   me=null;
   document.getElementById('student-id-input').value='';
+  setStudentTab('tasks');
   showScreen('sc-login');
 }
 
@@ -554,7 +1068,9 @@ async function loadHome(){
     [myTasks,myReports]=await Promise.all([api(`/tasks/${me.id}`),api(`/reports/${me.id}`)]);
     renderHome();
   }catch(e){
-    document.getElementById('weekly-list').innerHTML=`<div class="sec-empty">שגיאה: ${esc(e.message)}</div>`;
+    document.getElementById('success-cards').innerHTML=`<div class="sec-empty">שגיאה: ${esc(e.message)}</div>`;
+    document.getElementById('weekly-open-list').innerHTML='';
+    document.getElementById('week-open-sec').style.display='none';
   }
 }
 
@@ -566,18 +1082,48 @@ function renderHome(){
   const pct        =total?Math.round(doneCount/total*100):0;
 
   document.getElementById('prog-fill').style.width=`${pct}%`;
-  document.getElementById('prog-lbl').textContent=`${doneCount} מתוך ${total} משימות שבועיות הושלמו`;
-  document.getElementById('weekly-chip').textContent=`${doneCount}/${total}`;
+  const pctNum=document.getElementById('week-pct-num');
+  if(pctNum) pctNum.textContent=`${pct}%`;
+  document.getElementById('prog-lbl').textContent=total
+    ?`${doneCount} מתוך ${total} משימות שבועיות הושלמו`
+    :'עדיין אין משימות לשבוע — בחר/י מבנק המשימות למטה';
 
-  // weekly section
-  document.getElementById('weekly-list').innerHTML=weeklyTasks.length
-    ?weeklyTasks.map(t=>weeklyTaskRow(t)).join('')
-    :'<div class="sec-empty">עדיין לא בחרת משימות לשבוע זה<br><span style="font-size:13px;color:var(--light)">בחר/י מבנק המשימות למטה</span></div>';
+  const doneWeekly=weeklyTasks.filter(t=>t.done);
+  const openWeekly=weeklyTasks.filter(t=>!t.done);
+  const sc=document.getElementById('success-cards');
+  if(!weeklyTasks.length){
+    sc.innerHTML='<div class="success-empty">בחר/י משימות מבנק המשימות למטה כדי לבנות את השבוע שלך</div>';
+  }else if(!doneWeekly.length){
+    sc.innerHTML='<div class="success-empty">כאן יופיעו ההצלחות שלך — אחרי שתסמנ/י משימה כהושלמה, נחגוג יחד</div>';
+  }else{
+    sc.innerHTML=doneWeekly.map(t=>successCardRow(t)).join('');
+  }
 
-  // bank section
+  const openSec=document.getElementById('week-open-sec');
+  const openList=document.getElementById('weekly-open-list');
+  if(openWeekly.length){
+    openSec.style.display='';
+    openList.innerHTML=openWeekly.map(t=>weeklyTaskRow(t)).join('');
+  }else{
+    openSec.style.display='none';
+    openList.innerHTML='';
+  }
+
   document.getElementById('bank-list').innerHTML=bankTasks.length
     ?bankTasks.map(t=>bankTaskRow(t)).join('')
     :'<div class="sec-empty">כל המשימות נבחרו לשבוע ✓</div>';
+}
+
+function successCardRow(t){
+  const rep=getReport(t);
+  const sub=rep?fmtTime(rep.created_at):'';
+  return `<div class="success-card" onclick="openTaskSheet('${t.id}')">
+    <div class="success-card-icon">✓</div>
+    <div class="success-card-body">
+      <div class="success-card-title">${esc(t.text)}</div>
+      ${sub?`<div class="success-card-meta">${esc(sub)}</div>`:''}
+    </div>
+  </div>`;
 }
 
 function weeklyTaskRow(t){
@@ -588,23 +1134,22 @@ function weeklyTaskRow(t){
   else if(done && !rep){hint='⚠️ דיווח נדרש';hintCls='warn';}
   else                  {hint='בתהליך — לחץ/י להמשיך';hintCls='prog';}
 
-  return `<div class="t-row" onclick="openTaskSheet('${t.id}')">
-    <div class="t-circle${done?' done':' inprog'}">
-      <svg width="12" height="9" viewBox="0 0 12 9" fill="none">
-        <path d="M1 4.5L4.5 8L11 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+  return `<div class="t-row t-row-weekly" role="button" tabindex="0" onclick="openTaskSheet('${t.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openTaskSheet('${t.id}');}">
+    <div class="t-circle${done?' done':' inprog'}" aria-hidden="true">
+      <span class="t-chk">✓</span>
     </div>
     <div class="t-body">
       <div class="t-text">${esc(t.text)}</div>
       <div class="t-hint ${hintCls}">${hint}</div>
     </div>
-    <span class="t-arrow">›</span>
+    <span class="t-arrow" aria-hidden="true">›</span>
+    <span class="t-pencil" title="צפייה/עריכת דוח" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
   </div>`;
 }
 
 function bankTaskRow(t){
   return `<div class="t-row bank-row" onclick="selectFromBank('${t.id}')">
-    <div class="t-circle" style="border-style:dashed;border-color:#ccc;flex-shrink:0"></div>
+    <div class="t-circle" style="border-style:dashed;border-color:var(--primary-border);flex-shrink:0"></div>
     <div class="t-body">
       <div class="t-text">${esc(t.text)}</div>
       <div class="t-hint">לחץ/י לבחירה לשבוע שלך</div>

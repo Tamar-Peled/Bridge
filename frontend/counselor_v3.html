@@ -6,17 +6,28 @@
 <title>BRIDGE – יועצת</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-/* ══════════ TOKENS — light, clean, friendly ══════════ */
+/* ══════════ TOKENS — teal + charcoal ══════════ */
 :root{
-  --bg:#f4f4f2; --card:#ffffff; --dark:#1a1a1a; --mid:#666; --light:#aaa;
-  --border:#e8e8e4;
+  --primary:#5BB7B7;
+  --primary-dk:#449494;
+  --primary-soft:rgba(91,183,183,.12);
+  --primary-border:rgba(91,183,183,.42);
+  --bg:#f5f9f9;
+  --card:#ffffff;
+  --dark:#333333;
+  --mid:#5c6566;
+  --light:#94a0a1;
+  --border:#dde8e8;
   --green:#27ae60; --green-soft:#eafaf1; --green-dk:#1a7a42;
   --red:#e74c3c;   --red-soft:#fdecea;   --red-dk:#c0392b;
   --yellow:#f39c12;--yellow-soft:#fef9e7;--yellow-dk:#b7770d;
   --blue:#2980b9;  --blue-soft:#eaf4fd;
+  --case-muted:#f0f7f7;
+  --case-border:#d0e4e4;
+  --case-ink:var(--dark);
   --radius:18px; --radius-sm:12px; --radius-xs:8px;
-  --shadow:0 2px 12px rgba(0,0,0,.06);
-  --shadow-lg:0 8px 32px rgba(0,0,0,.13);
+  --shadow:0 2px 12px rgba(51,51,51,.06);
+  --shadow-lg:0 8px 32px rgba(51,51,51,.1);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh;direction:rtl}
@@ -25,13 +36,14 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .screen{display:none;min-height:100vh;flex-direction:column}
 .screen.active{display:flex}
 
-/* landing — light */
+/* landing — gateway */
 #screen-landing{
   align-items:center;justify-content:center;padding:48px 24px;
-  text-align:center;background:var(--bg);
+  text-align:center;
+  background:linear-gradient(180deg,#ffffff 0%,#E6F4F4 55%,var(--bg) 100%);
 }
 .logo-box{
-  width:84px;height:84px;background:var(--dark);border-radius:24px;
+  width:84px;height:84px;background:linear-gradient(145deg,var(--primary) 0%,var(--primary-dk) 100%);border-radius:24px;
   display:flex;align-items:center;justify-content:center;
   color:#fff;font-size:38px;font-weight:900;
   margin:0 auto 24px;box-shadow:var(--shadow-lg);
@@ -45,13 +57,13 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 /* buttons */
 .btn-primary{
   display:block;width:100%;max-width:420px;
-  background:var(--dark);color:#fff;border:none;
+  background:var(--primary);color:#fff;border:none;
   border-radius:var(--radius);padding:18px;
   font-size:17px;font-weight:700;cursor:pointer;
   font-family:'Heebo',sans-serif;
-  transition:opacity .15s,transform .15s;margin:0 auto;
+  transition:opacity .15s,transform .15s,background .15s;margin:0 auto;
 }
-.btn-primary:hover{opacity:.88;transform:translateY(-2px)}
+.btn-primary:hover{opacity:.92;background:var(--primary-dk);transform:translateY(-2px)}
 .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
 .btn-cancel{
   flex:1;background:var(--border);color:var(--dark);
@@ -59,10 +71,11 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   font-size:15px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;
 }
 .btn-sm{
-  background:var(--dark);color:#fff;border:none;
+  background:var(--primary);color:#fff;border:none;
   border-radius:var(--radius-sm);padding:10px 16px;
   font-size:14px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;
 }
+.btn-sm:hover{opacity:.92;background:var(--primary-dk)}
 .ai-reason-tip{
   margin-top:8px;font-size:12px;line-height:1.45;color:var(--mid);
   background:var(--bg);border:1px dashed var(--border);border-radius:var(--radius-sm);
@@ -78,7 +91,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   color:var(--light);font-size:15px;font-family:'Heebo',sans-serif;
   width:100%;margin-top:6px;transition:border-color .15s,color .15s;
 }
-.btn-add:hover{border-color:var(--dark);color:var(--dark)}
+.btn-add:hover{border-color:var(--primary);color:var(--primary-dk)}
 
 /* topbar */
 .topbar{
@@ -89,19 +102,19 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 }
 .topbar-brand{display:flex;align-items:center;gap:10px}
 .topbar-logo{
-  width:34px;height:34px;background:var(--dark);border-radius:10px;
+  width:34px;height:34px;background:linear-gradient(145deg,var(--primary),var(--primary-dk));border-radius:10px;
   display:flex;align-items:center;justify-content:center;
   color:#fff;font-weight:900;font-size:15px;
 }
-.topbar-name{font-weight:800;font-size:17px}
+.topbar-name{font-weight:800;font-size:17px;color:var(--dark)}
 .topbar-back{
   background:none;border:none;cursor:pointer;
   color:var(--mid);font-size:16px;font-family:'Heebo',sans-serif;padding:4px 8px;
 }
 
 .content{padding:22px 20px;flex:1;max-width:540px;width:100%;margin:0 auto}
-.page-title{font-size:26px;font-weight:900;margin-bottom:4px}
-.page-sub{color:var(--light);font-size:14px;margin-bottom:18px}
+.page-title{font-size:26px;font-weight:900;margin-bottom:4px;color:var(--dark)}
+.page-sub{color:var(--mid);font-size:14px;margin-bottom:18px;line-height:1.45}
 
 /* search */
 .search-box{
@@ -116,6 +129,399 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 }
 .search-box input::placeholder{color:var(--light)}
 .count-lbl{color:var(--light);font-size:13px;margin-bottom:10px;text-align:left}
+
+/* list tabs — active vs completed */
+.list-tabs{
+  display:flex;gap:8px;margin-bottom:14px;
+  background:var(--card);padding:6px;border-radius:var(--radius);
+  border:1px solid var(--border);box-shadow:var(--shadow);
+}
+.list-tab{
+  flex:1;border:none;border-radius:var(--radius-sm);
+  padding:12px 10px;font-size:14px;font-weight:700;
+  font-family:'Heebo',sans-serif;cursor:pointer;
+  background:transparent;color:var(--mid);
+  transition:background .15s,color .15s;
+}
+.list-tab:hover{color:var(--primary-dk);background:var(--primary-soft)}
+.list-tab.active{
+  background:var(--primary);color:#fff;
+  box-shadow:0 2px 10px rgba(91,183,183,.35);
+}
+.detail-link-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;margin-top:12px;padding:14px 16px;
+  background:var(--card);border:1.5px solid var(--primary-border);
+  border-radius:var(--radius-sm);font-size:15px;font-weight:700;
+  font-family:'Heebo',sans-serif;color:var(--primary-dk);cursor:pointer;
+  transition:border-color .15s,background .15s,color .15s;
+}
+.detail-link-btn:hover{border-color:var(--primary);background:var(--primary-soft);color:var(--dark)}
+.detail-link-btn.detail-link-btn-centered{
+  width:auto;max-width:min(100%,380px);
+  margin-left:auto;margin-right:auto;
+  display:flex;
+}
+.s-code-muted{
+  font-size:10px;color:#b8bcc4;font-weight:500;
+  letter-spacing:0.5px;margin:0;
+}
+.d-info-case{
+  display:flex;flex-direction:column;align-items:center;
+  text-align:center;
+}
+.d-info-case .d-name{
+  width:100%;text-align:center;margin-bottom:4px;font-size:18px;font-weight:800;
+}
+.d-meta-muted{
+  display:flex;flex-direction:column;align-items:center;gap:0;
+  margin-bottom:8px;
+}
+.d-info-case .d-grade{
+  font-size:12px;color:#9ca3af;font-weight:500;margin:0;
+}
+.student-bg-stack{
+  width:100%;max-width:420px;margin-left:auto;margin-right:auto;
+  display:flex;flex-direction:column;align-items:center;
+  gap:10px;margin-top:2px;
+}
+.student-bg-stack .status-row{
+  flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;margin-bottom:0;width:100%;
+}
+.student-bg-stack .status-lbl{font-size:13px;color:var(--mid);font-weight:600}
+.student-bg-stack .status-select{min-width:220px;max-width:100%}
+.detail-status-inline{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  flex-wrap:wrap;width:100%;margin:0 auto 8px;
+}
+.detail-status-inline .status-lbl-sm{
+  font-size:12px;font-weight:700;color:var(--mid);white-space:nowrap;
+}
+.status-select-sm{
+  padding:4px 10px;font-size:12px;font-weight:600;
+  min-width:140px;max-width:min(280px,92vw);
+}
+.detail-subtabs{
+  display:flex;gap:8px;margin:12px 0 14px;
+  padding:6px;background:var(--card);
+  border:1px solid var(--case-border);border-radius:var(--radius-sm);
+  box-shadow:0 1px 3px rgba(91,183,183,.08);
+}
+.detail-subtab{
+  flex:1;padding:11px 8px;border:none;border-radius:var(--radius-xs);
+  font-family:'Heebo',sans-serif;font-size:13px;font-weight:800;
+  color:var(--mid);background:transparent;cursor:pointer;
+  text-align:center;transition:background .15s,color .15s;
+}
+.detail-subtab:hover{color:var(--primary-dk)}
+.detail-subtab.active{
+  color:var(--primary-dk);
+  background:var(--primary-soft);
+  box-shadow:inset 0 0 0 1.5px var(--primary-border);
+}
+.detail-unified-card{
+  background:#fff;border-radius:var(--radius);
+  padding:14px 16px;margin-bottom:12px;
+  border:1px solid var(--case-border);
+  box-shadow:0 1px 4px rgba(91,183,183,.07);
+}
+.detail-unified-inner{
+  display:flex;gap:14px;align-items:flex-start;
+  direction:rtl;
+}
+.detail-unified-text{flex:1;min-width:0;text-align:center}
+.detail-unified-text .d-name{margin-bottom:6px}
+.d-meta-highlight{
+  display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;
+  font-size:13px;color:#8b9399;margin-bottom:8px;
+}
+.d-meta-highlight .meta-strong{
+  font-weight:500;font-size:13px;color:#8b9399;letter-spacing:0;
+}
+.detail-unified-text .student-bg-heading{margin-top:4px;margin-bottom:8px}
+.meeting-summaries-head-row{
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  flex-wrap:wrap;margin-bottom:8px;
+}
+.meeting-summaries-head-row .sec-title{margin-bottom:0}
+.btn-add-meeting{
+  flex-shrink:0;width:40px;height:40px;border-radius:50%;
+  border:1.5px solid var(--primary);background:var(--primary-soft);
+  color:var(--primary-dk);font-size:24px;font-weight:900;line-height:1;
+  cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  font-family:'Heebo',sans-serif;padding:0;transition:background .15s,transform .1s;
+}
+.btn-add-meeting:hover{background:var(--primary);color:#fff}
+.btn-add-meeting:active{transform:scale(.96)}
+.meeting-inline-add-panel{
+  margin-top:14px;padding-top:14px;border-top:1px dashed var(--primary-border);
+}
+.meeting-inline-add-panel .new-meeting-attach-row{justify-content:center}
+.meeting-inline-add-panel .add-row{justify-content:center;flex-wrap:wrap}
+.meeting-inline-add-panel .add-input{max-width:100%}
+#screen-detail .content{scroll-behavior:smooth}
+.meeting-history-embedded{padding-bottom:12px}
+.meeting-summaries-head-toolbar{
+  display:inline-flex;align-items:center;gap:5px;flex-shrink:0;
+}
+.btn-add-meeting-minimal{
+  width:26px;height:26px;border-radius:8px;
+  border:1px solid var(--primary-border);background:var(--card);
+  color:var(--primary-dk);font-size:16px;font-weight:700;line-height:1;
+  cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  font-family:'Heebo',sans-serif;padding:0;
+  transition:background .15s,border-color .15s,transform .1s;
+}
+.btn-add-meeting-minimal:hover{background:var(--primary-soft);border-color:var(--primary)}
+.btn-add-meeting-minimal:active{transform:scale(.96)}
+.btn-attach.btn-attach--minimal{
+  width:24px;height:24px;font-size:12px;border-radius:8px;
+  border:1px solid var(--primary-border);
+}
+.btn-attach--panel-mini{
+  width:28px;height:28px;font-size:13px;border-radius:8px;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.meeting-acc-toggle{
+  width:100%;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+  padding:8px 2px;margin:0 -2px;border:none;background:transparent;cursor:pointer;
+  font:inherit;text-align:right;border-radius:var(--radius-xs);transition:background .12s;
+}
+.meeting-acc-toggle:hover{background:rgba(91,183,183,.07)}
+.meeting-preview-col{flex:1;min-width:0;text-align:right}
+.meeting-preview{
+  font-size:14px;line-height:1.55;color:var(--dark);white-space:pre-wrap;word-break:break-word;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+}
+.meeting-acc-hint{font-size:11px;color:var(--light);margin-top:6px;font-weight:600}
+.meeting-acc-chevron{flex-shrink:0;color:var(--mid);font-size:11px;margin-top:4px;opacity:.85}
+.meeting-acc-panel{padding-top:10px;margin-top:6px;border-top:1px dashed var(--border)}
+.meeting-full-text{font-size:14px;line-height:1.55;color:var(--dark);text-align:right;word-break:break-word}
+.meeting-ai-insights{margin-top:12px;padding:12px 14px;background:rgba(91,183,183,.1);border-radius:12px;text-align:right;border:1px solid rgba(91,183,183,.2)}
+.meeting-ai-insights h4{font-size:12px;font-weight:700;color:var(--mid);margin:0 0 8px}
+.meeting-ai-insights .meeting-ai-body{font-size:13px;line-height:1.5;color:var(--dark)}
+.meeting-session-card.is-expanded .meeting-preview-col .meeting-preview,
+.meeting-session-card.is-expanded .meeting-acc-hint{display:none!important}
+.general-files-head-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+.general-files-head-row .sec-title{margin-bottom:0!important}
+.btn-attach--header{padding:6px 10px;border-radius:10px;border:1px solid var(--primary-border);background:var(--card);cursor:pointer;font-size:18px;line-height:1}
+.btn-attach--header:hover{background:var(--primary-soft)}
+.student-bg-stack .desc-block{
+  width:100%;max-width:400px;margin:0 auto;
+  text-align:right;justify-content:flex-start;
+}
+.new-meeting-attach-row{
+  display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;
+}
+.new-meeting-attach-hint{
+  font-size:12px;color:var(--light);font-weight:600;
+}
+.meeting-entry-hdr{
+  font-size:14px;font-weight:800;color:var(--dark);
+  margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;
+}
+.meeting-entry-hdr span:last-child{font-size:13px;font-weight:600;color:var(--mid)}
+.case-file-hero{
+  margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--case-border);
+}
+.case-file-hero .page-title{color:var(--case-ink)}
+.case-file-hero .page-sub{color:var(--mid);font-size:13px}
+.insights-section{
+  background:var(--card);
+  border:1px solid var(--case-border);
+  border-radius:var(--radius-sm);
+  padding:18px 18px 16px;
+  margin-bottom:16px;
+  box-shadow:0 1px 3px rgba(91,183,183,.08);
+}
+.insights-section > h2{
+  font-size:17px;font-weight:800;color:var(--case-ink);
+  margin-bottom:12px;letter-spacing:-.2px;
+}
+.system-trends--minimal{
+  background:var(--primary-soft);
+  border:1px solid var(--primary-border);
+  border-radius:var(--radius-xs);
+  padding:12px 16px;margin-bottom:14px;
+  font-size:14px;line-height:1.55;color:var(--dark);font-weight:600;text-align:center;
+}
+.insights-workspace{
+  background:var(--card);
+  border:1px solid var(--case-border);
+  border-radius:var(--radius-xs);
+  padding:14px;
+}
+.insights-workspace .workspace-hint{
+  font-size:12px;color:var(--mid);line-height:1.5;margin-bottom:10px;text-align:right;
+}
+.key-points-ta-wrap{position:relative;width:100%}
+.key-points-ta-wrap #key-points-ta{
+  width:100%;min-height:120px;border:1px solid var(--case-border);border-radius:var(--radius-xs);
+  padding:12px 14px 44px 14px;font-size:14px;font-family:'Heebo',sans-serif;
+  resize:vertical;text-align:right;background:#fff;color:var(--dark);outline:none;
+}
+#key-points-ta:focus{border-color:var(--primary)}
+.btn-kp-ai-wand{
+  position:absolute;bottom:10px;inset-inline-start:10px;top:auto;z-index:2;
+  width:34px;height:34px;border-radius:10px;border:1.5px solid var(--primary-border);
+  background:var(--card);cursor:pointer;font-size:16px;line-height:1;color:var(--primary-dk);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 4px rgba(91,183,183,.12);transition:background .15s,border-color .15s;
+}
+.btn-kp-ai-wand:hover:not(:disabled){background:var(--primary-soft);border-color:var(--primary)}
+.btn-kp-ai-wand:disabled{opacity:.45;cursor:not-allowed}
+.kp-ai-loading{margin-top:6px}
+.meeting-summary-lbl{font-size:14px;font-weight:800;color:var(--case-ink);text-align:right;margin:0 0 4px}
+.meeting-summary-ta-wrap{position:relative;width:100%;flex:1;min-width:0}
+.meeting-summary-ta-wrap #note-draft-manual{
+  min-height:120px;padding:12px 14px 44px 14px!important;
+}
+.meeting-summary-ta-wrap .btn-kp-ai-wand{bottom:10px;inset-inline-start:10px;top:auto}
+.insights-actions{
+  display:flex;flex-direction:column;gap:10px;margin-top:12px;
+}
+.btn-insights-save{
+  width:100%;padding:14px 16px;font-size:15px;font-weight:700;border:none;border-radius:var(--radius-sm);
+  background:var(--primary);color:#fff;font-family:'Heebo',sans-serif;cursor:pointer;
+  transition:opacity .15s,background .15s;
+}
+.btn-insights-save:hover:not(:disabled){background:var(--primary-dk)}
+.btn-insights-save:disabled{opacity:.42;cursor:not-allowed}
+.insights-archive{
+  margin-top:14px;padding-top:12px;border-top:1px solid var(--case-border);
+}
+.key-points-ul{list-style:none;padding:0;margin:0 0 14px}
+.key-point-row{
+  display:flex;align-items:flex-start;gap:12px;justify-content:space-between;
+  padding:10px 12px;margin-bottom:8px;background:var(--card);
+  border:1.5px solid var(--primary-border);border-radius:var(--radius-sm);
+  box-shadow:0 1px 4px rgba(91,183,183,.1);
+}
+.key-point-row::before{content:'•';color:var(--primary-dk);font-weight:900;margin-inline-end:6px;flex-shrink:0}
+.kp-text{flex:1;font-weight:600;font-size:15px;line-height:1.45;text-align:right;color:var(--dark)}
+.kp-date{font-size:11px;color:#9aa5a6;flex-shrink:0;min-width:76px;text-align:left}
+.key-points-empty{font-size:13px;color:var(--light);text-align:center;padding:8px 0}
+.meeting-expanded-toolbar{
+  display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;
+  border-bottom:1px dashed var(--border);flex-wrap:wrap;
+}
+.meeting-expanded-toolbar .btn-attach--panel-mini{margin:0}
+.note-att-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.note-att-btn{
+  width:32px;height:32px;border:none;background:transparent;border-radius:8px;
+  cursor:pointer;color:var(--mid);display:inline-flex;align-items:center;justify-content:center;
+  font-size:16px;line-height:1;font-family:inherit;padding:0;
+}
+.note-att-btn:hover{background:var(--case-muted);color:var(--primary-dk)}
+.note-att-btn.danger:hover{background:var(--red-soft);color:var(--red)}
+.session-att-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.modal-teal{border:2px solid var(--primary-border)!important;box-shadow:0 8px 32px rgba(91,183,183,.15)!important}
+.modal-confirm-msg{color:var(--mid);line-height:1.55;margin:12px 0;font-size:15px}
+#file-modal-name{width:100%;padding:10px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);font-family:inherit;font-size:15px}
+.insight-archive-row{
+  font-size:12px;color:var(--mid);padding:8px 0;border-bottom:1px solid var(--border);
+  line-height:1.45;
+}
+.insight-archive-row:last-child{border-bottom:none}
+.meeting-session-card .meeting-card-actions{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;flex-wrap:wrap;
+}
+.btn-attach{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:40px;height:40px;border-radius:var(--radius-xs);
+  border:1px solid var(--case-border);background:#fff;cursor:pointer;
+  font-size:18px;line-height:1;transition:background .12s,border-color .12s;
+}
+.btn-attach:hover{background:var(--case-muted);border-color:#c5cad3}
+.btn-attach--tiny{width:32px;height:32px;font-size:15px;border-radius:10px}
+.note-attachments{
+  display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:10px;
+  border-top:1px dashed var(--border);
+}
+.note-attachments-cards{margin-top:10px;padding-top:12px;border-top:1px dashed var(--border)}
+.note-attachments-cards .attachments-head{font-size:13px;font-weight:800;color:var(--dark);margin-bottom:8px}
+.note-att-card{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 10px 10px 12px;border:1px solid var(--primary-border);
+  border-radius:var(--radius-xs);background:var(--card);
+}
+.note-att-link{
+  display:flex;align-items:center;gap:10px;flex:1;min-width:0;
+  text-decoration:none;color:inherit;cursor:pointer;
+}
+.note-att-icon{
+  width:36px;height:36px;border-radius:var(--radius-xs);
+  background:var(--primary-soft);color:var(--primary-dk);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:900;flex-shrink:0;
+}
+.note-att-icon.img{font-size:18px;line-height:1}
+.note-att-body{min-width:0;text-align:right}
+.note-att-name{font-size:13px;font-weight:700;color:var(--dark);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.note-att-remove{
+  width:32px;height:32px;border:none;background:transparent;
+  color:var(--light);font-size:20px;line-height:1;cursor:pointer;
+  border-radius:8px;flex-shrink:0;font-family:inherit;
+}
+.note-att-remove:hover{background:var(--red-soft);color:var(--red)}
+.attachments-panel{margin-top:12px}
+.attachments-panel-inner .attachments-head{font-size:13px;font-weight:800;color:var(--dark);margin-bottom:8px}
+.attachments-empty{font-size:12px;color:var(--mid);font-weight:600;line-height:1.5;margin-bottom:4px}
+.attachment-cards{display:flex;flex-direction:column;gap:8px}
+.session-att-card{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border:1px solid var(--primary-border);
+  border-radius:var(--radius-xs);background:var(--card);
+}
+.session-att-icon{
+  width:36px;height:36px;border-radius:var(--radius-xs);
+  background:var(--primary-soft);color:var(--primary-dk);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:900;flex-shrink:0;
+}
+.session-att-icon.img{font-size:18px;line-height:1}
+.session-att-body{flex:1;min-width:0;text-align:right}
+.session-att-name{font-size:13px;font-weight:700;color:var(--dark);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.session-att-remove{
+  width:32px;height:32px;border:none;background:transparent;
+  color:var(--light);font-size:20px;line-height:1;cursor:pointer;
+  border-radius:8px;flex-shrink:0;font-family:inherit;
+}
+.session-att-remove:hover{background:var(--red-soft);color:var(--red)}
+.new-meeting-upload-status{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:40px;
+}
+.upload-progress-wrap{flex:1;min-width:120px;max-width:220px}
+.upload-progress-bar{
+  height:6px;border-radius:999px;background:var(--primary-soft);overflow:hidden;
+}
+.upload-progress-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--primary),var(--primary-dk));
+  border-radius:999px;transition:width .22s ease;
+}
+.upload-inline-spinner{display:inline-flex;align-items:center}
+.upload-success-badge{
+  font-size:12px;font-weight:800;color:var(--green-dk);
+  background:var(--green-soft);padding:5px 12px;border-radius:999px;
+  white-space:nowrap;
+}
+.meeting-attach-status{min-height:24px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mid)}
+.spinner-teal{
+  border-color:rgba(91,183,183,.22);
+  border-top-color:var(--primary);
+  border-right-color:var(--primary-dk);
+}
+.att-chip{
+  display:inline-flex;align-items:center;max-width:100%;
+  font-size:12px;font-weight:600;padding:6px 10px;border-radius:999px;
+  background:var(--case-muted);color:var(--case-ink);border:1px solid var(--case-border);
+  text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.att-chip:hover{background:#eef0f3}
+.sec-case-title{font-size:15px;font-weight:800;color:var(--case-ink)}
+.sec-case-note{font-size:12px;color:var(--light);font-weight:600;margin-top:2px}
 
 /* student card */
 .student-card{
@@ -188,31 +594,87 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 /* detail header */
 .detail-header{
   background:var(--card);border-radius:var(--radius);
-  padding:20px;margin-bottom:14px;
-  display:flex;gap:16px;align-items:flex-start;
+  padding:10px 12px;margin-bottom:12px;
+  display:flex;gap:12px;align-items:center;
   border:1px solid var(--border);box-shadow:var(--shadow);
+}
+.detail-header.case-file-card{
+  border:1px solid var(--case-border);
+  box-shadow:0 1px 4px rgba(91,183,183,.07);
+  background:linear-gradient(180deg,#fff 0%,var(--case-muted) 100%);
+  padding:8px 10px 10px;
 }
 .d-avatar-wrap{position:relative;flex-shrink:0;cursor:pointer}
 .d-avatar{
-  width:72px;height:72px;border-radius:18px;
+  width:48px;height:48px;border-radius:12px;
   display:flex;align-items:center;justify-content:center;
-  font-size:28px;font-weight:700;overflow:hidden;
+  font-size:20px;font-weight:700;overflow:hidden;
   border:2px solid var(--border);
 }
-.d-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:16px}
+.d-avatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:10px}
 .d-avatar-badge{
-  position:absolute;bottom:-5px;left:-5px;
-  background:var(--dark);color:#fff;border-radius:50%;
-  width:22px;height:22px;display:flex;align-items:center;
-  justify-content:center;font-size:11px;
-  box-shadow:0 1px 4px rgba(0,0,0,.3);border:2px solid var(--card);
+  position:absolute;bottom:-4px;left:-4px;
+  background:var(--primary-dk);color:#fff;border-radius:50%;
+  width:20px;height:20px;display:flex;align-items:center;
+  justify-content:center;font-size:10px;
+  box-shadow:0 1px 4px rgba(0,0,0,.2);border:2px solid var(--card);
 }
 .d-info{flex:1;min-width:0}
-.d-name{font-size:22px;font-weight:800;margin-bottom:2px}
-.d-grade{color:var(--mid);font-size:14px;font-weight:600;margin-bottom:8px}
+.d-name{font-size:20px;font-weight:800;margin-bottom:4px}
+.d-meta-line{
+  display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;
+  font-size:12px;color:var(--light);font-weight:600;margin-bottom:10px;
+}
+.d-meta-line .meta-dot{opacity:.4;font-weight:400}
+.student-bg-heading{
+  font-size:17px;font-weight:900;color:var(--dark);
+  margin:0 0 8px 0;text-align:center;letter-spacing:-.2px;line-height:1.2;
+}
+
+/* pending file staging */
+.pending-uploads-panel{margin:12px 0}
+.pending-panel-hint{font-size:12px;color:var(--mid);font-weight:600;margin:0 0 10px;line-height:1.45}
+.pending-card{
+  display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px;
+  padding:14px;border:1.5px solid var(--primary-border);
+  border-radius:var(--radius-sm);background:var(--card);margin-bottom:10px;
+  box-shadow:var(--shadow);
+}
+.pending-card-fields{flex:1;min-width:160px;text-align:right}
+.pending-label{font-size:11px;font-weight:800;color:var(--mid);display:block;margin-top:8px}
+.pending-label:first-child{margin-top:0}
+.pending-filename-inp{
+  width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid var(--border);
+  border-radius:var(--radius-xs);font-family:'Heebo',sans-serif;font-size:14px;
+  color:var(--dark);outline:none;transition:border-color .15s,box-shadow .15s;
+}
+.pending-filename-inp:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.pending-target-sel{
+  width:100%;margin-top:4px;padding:10px 12px;border-radius:var(--radius-xs);
+  border:1.5px solid var(--primary-border);font-family:'Heebo',sans-serif;font-size:13px;
+  font-weight:600;background:var(--card);color:var(--dark);cursor:pointer;outline:none;
+}
+.pending-target-sel:focus{border-color:var(--primary)}
+.pending-remove{
+  width:34px;height:34px;border:none;background:transparent;
+  color:var(--light);font-size:22px;line-height:1;cursor:pointer;border-radius:8px;
+  flex-shrink:0;font-family:inherit;align-self:flex-start;
+}
+.pending-remove:hover{background:var(--red-soft);color:var(--red)}
+.btn-commit-pending{
+  display:block;width:100%;padding:13px 16px;border-radius:var(--radius-sm);
+  background:var(--primary);color:#fff;font-family:'Heebo',sans-serif;font-size:15px;
+  font-weight:800;border:none;cursor:pointer;margin-top:10px;
+  transition:background .15s,opacity .15s,transform .1s;
+}
+.btn-commit-pending:hover:not(:disabled){background:var(--primary-dk)}
+.btn-commit-pending:active:not(:disabled){transform:scale(.99)}
+.btn-commit-pending:disabled{opacity:.55;cursor:not-allowed}
+.btn-meeting-save{min-width:88px;transition:opacity .15s,transform .1s}
+.btn-meeting-save:disabled{opacity:.65;cursor:wait}
 
 /* status */
-.status-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.status-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .status-lbl{color:var(--mid);font-size:13px}
 .status-select{
   border:1.5px solid var(--border);border-radius:var(--radius-sm);
@@ -220,7 +682,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   background:var(--card);color:var(--dark);cursor:pointer;outline:none;
   transition:border-color .15s;font-weight:600;
 }
-.status-select:focus{border-color:var(--dark)}
+.status-select:focus{border-color:var(--primary)}
 .status-select.s-g{border-color:var(--green);color:var(--green-dk)}
 .status-select.s-r{border-color:var(--red);color:var(--red-dk)}
 .status-select.s-y{border-color:var(--yellow);color:var(--yellow-dk)}
@@ -254,32 +716,31 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 /* task rows — counselor view:
    ✅ NO strikethrough, only a checkmark indicator */
 .task-row{
-  display:flex;align-items:center;gap:10px;
+  display:flex;align-items:center;gap:12px;
   padding:10px 0;border-bottom:1px solid var(--border);
   cursor:pointer;transition:background .1s;
 }
 .task-row:last-child{border-bottom:none}
 .task-row:hover{background:#f8f8f6;margin:0 -8px;padding:10px 8px;border-radius:8px}
+/* RTL: first flex item = inline-start = right; icon sits on the right */
 .task-chk-icon{
-  width:22px;height:22px;border-radius:50%;
+  width:24px;height:24px;border-radius:50%;
   border:2px solid var(--border);
+  background:var(--card);
   display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;font-size:12px;
+  flex-shrink:0;font-size:13px;font-weight:700;
+  color:transparent;
 }
-.task-chk-icon.done{background:var(--green);border-color:var(--green);color:#fff}
-/* NO done-txt class — text stays normal */
-.task-text{flex:1;font-size:14px;line-height:1.4;color:var(--dark)}
-.task-status-chip{
-  font-size:11px;padding:2px 8px;border-radius:8px;font-weight:700;flex-shrink:0;
+.task-chk-icon.done{background:var(--primary-dk);border-color:var(--primary-dk);color:#fff}
+.task-pencil-c{
+  flex-shrink:0;width:18px;height:18px;opacity:.55;margin-top:2px;color:var(--mid);
+  pointer-events:none;user-select:none;
 }
-.chip-done{background:var(--green-soft);color:var(--green-dk)}
-.chip-rep{background:var(--blue-soft);color:var(--blue)}
-.chip-week{background:var(--yellow-soft);color:var(--yellow-dk)}
-.task-del-btn{
-  font-size:15px;color:var(--light);background:none;border:none;
-  cursor:pointer;flex-shrink:0;padding:3px;transition:color .12s;
+.task-pencil-c svg{display:block;width:100%;height:100%}
+.task-text{
+  flex:1;min-width:0;
+  font-size:14px;line-height:1.45;color:var(--dark);
 }
-.task-del-btn:hover{color:var(--red)}
 
 /* add row */
 .add-row{display:flex;gap:8px;margin-top:10px}
@@ -291,7 +752,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .add-input:focus{border-color:var(--dark)}
 
 /* AI */
-.ai-panel{background:#f7f7f5;border-radius:var(--radius-sm);padding:16px}
 .ai-hint{color:var(--mid);font-size:14px;margin-bottom:12px;text-align:center}
 .btn-ai{
   background:var(--dark);color:#fff;border:none;border-radius:var(--radius-sm);
@@ -375,7 +835,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   display:inline-block;vertical-align:middle;
 }
 .spinner-dk{
-  border-color:rgba(0,0,0,.08);
+  border-color:rgba(51,51,51,.12);
   border-top-color:var(--dark);
   border-right-color:var(--dark);
 }
@@ -392,8 +852,8 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   <div class="logo-box">B</div>
   <div class="landing-title">BRIDGE</div>
   <div class="landing-sub">עוזרת AI ליועצות בית ספר</div>
-  <div class="landing-welcome">!ברוכה הבאה</div>
-  <div class="landing-desc">כניסה לממשק הייעוץ המקצועי</div>
+  <div class="landing-welcome">ברוכים הבאים ל-BRIDGE</div>
+  <div class="landing-desc">כניסת יועצת — ניהול תלמידים ותיעוד מקצועי</div>
   <button class="btn-primary" onclick="enterCounselor()">כניסה למערכת</button>
   <div class="footer-txt">BRIDGE © 2026 — כל הזכויות שמורות</div>
 </div>
@@ -409,7 +869,11 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   </div>
   <div class="content">
     <div class="page-title">התלמידים שלי</div>
-    <div class="page-sub">תלמידים הנמצאים בתהליך ליווי פעיל</div>
+    <div class="page-sub" id="page-sub-main">בחרי מצב תצוגה: ליווי פעיל או ארכיון ליווים שהסתיימו. ברירת המחדל מציגה תלמידים בליווי, לפי דחיפות.</div>
+    <div class="list-tabs" role="tablist">
+      <button type="button" class="list-tab active" id="tab-active" role="tab" aria-selected="true" onclick="setListTab('active')">בליווי פעיל</button>
+      <button type="button" class="list-tab" id="tab-completed" role="tab" aria-selected="false" onclick="setListTab('completed')">ליווים שהסתיימו</button>
+    </div>
     <div class="search-box">
       <input type="text" id="search-input" placeholder="חפש לפי שם, כיתה..." oninput="filterStudents()">
       <span>🔍</span>
@@ -457,7 +921,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
       maxlength="4" inputmode="numeric" pattern="[0-9]{4}"
       oninput="this.value=this.value.replace(/[^0-9]/g,'')"
       style="letter-spacing:8px;font-size:20px;font-weight:700;text-align:center">
-    <label class="modal-lbl">סטטוס</label>
+    <label class="modal-lbl">רקע התלמיד</label>
     <select id="new-status">
       <option value="בתהליך">בתהליך</option>
       <option value="סיים תהליך">סיים תהליך</option>
@@ -507,8 +971,9 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     <h3 id="mtr-title"></h3>
     <div class="modal-note" id="mtr-status"></div>
     <div id="mtr-body"></div>
-    <div class="modal-btns" style="margin-top:16px">
-      <button class="btn-cancel" onclick="closeModal('modal-task-rep')" style="flex:1">סגור</button>
+    <div class="modal-btns" style="margin-top:16px;flex-wrap:wrap">
+      <button type="button" class="btn-cancel" onclick="deleteTaskFromModal()" style="border-color:#f5c6c2;color:var(--red-dk)">מחק משימה</button>
+      <button type="button" class="btn-cancel" onclick="closeModal('modal-task-rep')" style="flex:1">סגור</button>
     </div>
   </div>
 </div>
@@ -520,6 +985,41 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     <div class="modal-note" id="ai-alert-note"></div>
     <div id="ai-alert-body"></div>
     <div class="modal-btns" id="ai-alert-btns"></div>
+  </div>
+</div>
+
+<!-- App confirm (replaces window.confirm) -->
+<div class="overlay" id="modal-app-confirm">
+  <div class="modal modal-teal">
+    <h3 id="app-confirm-title">אישור</h3>
+    <p id="app-confirm-msg" class="modal-confirm-msg"></p>
+    <div class="modal-btns">
+      <button type="button" class="btn-cancel" onclick="closeModal('modal-app-confirm')">ביטול</button>
+      <button type="button" class="btn-primary" style="flex:1;margin:0" onclick="appConfirmExecute()">אישור</button>
+    </div>
+  </div>
+</div>
+<!-- File name before upload -->
+<div class="overlay" id="modal-file-upload">
+  <div class="modal modal-teal">
+    <h3>צירוף קובץ</h3>
+    <label class="modal-lbl">שם הקובץ</label>
+    <input type="text" id="file-modal-name" autocomplete="off">
+    <div class="modal-btns" style="margin-top:16px">
+      <button type="button" class="btn-cancel" onclick="closeFileUploadModal()">ביטול</button>
+      <button type="button" class="btn-primary" style="flex:1;margin:0" id="file-modal-upload-btn" onclick="confirmFileModalUpload()">העלה</button>
+    </div>
+  </div>
+</div>
+<div class="overlay" id="modal-rename">
+  <div class="modal modal-teal">
+    <h3 id="rename-modal-title">שינוי שם</h3>
+    <label class="modal-lbl" for="rename-modal-input">שם</label>
+    <input type="text" id="rename-modal-input" autocomplete="off">
+    <div class="modal-btns" style="margin-top:16px">
+      <button type="button" class="btn-cancel" onclick="closeModal('modal-rename')">ביטול</button>
+      <button type="button" class="btn-primary" style="flex:1;margin:0" onclick="renameModalExecute()">שמירה</button>
+    </div>
   </div>
 </div>
 
@@ -548,12 +1048,12 @@ async function setStatusForStudentById(studentId,newStatus){
   s.status=newStatus;
   try{
     await apiFetch(`/students/${studentId}`,{method:'PATCH',body:JSON.stringify({status:newStatus})});
-    showToast('סטטוס עודכן ✓');
+    showToast('רקע התלמיד עודכן ✓');
   }catch(e){
     s.status=prev;
     showToast(`שגיאה: ${e.message}`);
   }finally{
-    renderList(allStudents);
+    filterStudents();
   }
 }
 function statusBadgeCls(s){
@@ -578,6 +1078,21 @@ let _descSid       = null;
 let _aiSummaryLast = '';
 let _noteIsAi      = false;
 let _editingNoteId = null;
+let listTab        = 'active'; // 'active' | 'completed'
+let _keyPointsAiUsed = false;
+let _keyPointsUserEdited = false;
+let _fileUploadQueue = [];
+let _pendingFileForModal = null;
+let _fileUploadContext = 'draft'; // 'draft' | 'edit' | 'general'
+let _appConfirmAction = null;
+let _renameModalOk = null;
+let _mtrTaskId     = null;
+let draftSessionAttachments   = []; // new meeting — until POST save
+let editingSessionAttachments = []; // when editing an existing session note
+let _newMeetingUploadToken    = 0;  // ignore stale progress UI
+let pendingFileUploads        = []; // staged files: { _id, data, mime, originalName, displayName, target }
+let currentGeneralDocuments   = []; // from GET /students/{id}/documents (table + legacy)
+let _counselorDetailTab       = 'tasks'; // 'tasks' | 'history' — restored after renderDetail
 // dashboard proactive alerts (per student id)
 let proactiveById  = {}; // { [id]: computeProactiveAlert(...) }
 
@@ -593,6 +1108,691 @@ async function apiFetch(path, opts={}){
     throw new Error(d);
   }
   return res.json();
+}
+
+async function reloadStudentDocuments(){
+  if(!currentSid){currentGeneralDocuments=[];return;}
+  try{
+    const docs=await apiFetch(`/students/${currentSid}/documents`);
+    currentGeneralDocuments=Array.isArray(docs)?docs:[];
+  }catch(_){
+    currentGeneralDocuments=[];
+  }
+}
+
+function isImageFile(f){
+  if(!f) return false;
+  const t=String(f.type||'').toLowerCase();
+  if(t.startsWith('image/')) return true;
+  const n=String(f.name||'').toLowerCase();
+  return /\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(n);
+}
+
+function genLocalAttId(){
+  return 'a'+((typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():`${Date.now()}-${Math.random().toString(36).slice(2,9)}`);
+}
+function readFileAsDataUrl(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result);
+    r.onerror=()=>rej(new Error('read'));
+    r.readAsDataURL(file);
+  });
+}
+function guessMimeFromName(name){
+  const n=String(name||'').toLowerCase();
+  if(n.endsWith('.pdf')) return 'application/pdf';
+  if(n.endsWith('.docx')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  if(n.endsWith('.png')) return 'image/png';
+  if(n.endsWith('.jpg')||n.endsWith('.jpeg')) return 'image/jpeg';
+  if(n.endsWith('.webp')) return 'image/webp';
+  if(n.endsWith('.gif')) return 'image/gif';
+  return 'application/octet-stream';
+}
+function attachmentKind(name,mime){
+  const m=String(mime||'').toLowerCase();
+  const n=String(name||'').toLowerCase();
+  if(m.startsWith('image/')||/\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(n)) return 'image';
+  if(m.includes('pdf')||n.endsWith('.pdf')) return 'pdf';
+  if(m.includes('wordprocessing')||m.endsWith('.docx')) return 'word';
+  return 'file';
+}
+function attachmentsForApi(list){
+  return (list||[]).map(a=>({
+    name:a.name||'קובץ',
+    mime:a.mime||guessMimeFromName(a.name),
+    data:String(a.data||''),
+  }));
+}
+function counselorDetailHistoryActive(){
+  const d=document.getElementById('screen-detail');
+  const h=document.getElementById('counselor-panel-history');
+  return !!(d&&d.classList.contains('active')&&h&&h.style.display!=='none');
+}
+function getNoteDraftTa(){
+  if(!counselorDetailHistoryActive()) return null;
+  return document.getElementById('note-draft-manual');
+}
+function getSessionSaveBtn(){
+  if(!counselorDetailHistoryActive()) return null;
+  return document.getElementById('btn-meeting-save');
+}
+function snapshotMeetingHistoryDraft(){
+  return{
+    keyPoints:document.getElementById('key-points-ta')?.value||'',
+    ai:_keyPointsAiUsed,
+    ue:_keyPointsUserEdited,
+    noteTa:getNoteDraftTa()?.value||'',
+    editingId:_editingNoteId,
+  };
+}
+function restoreMeetingHistoryDraft(s){
+  if(!s) return;
+  const ti=document.getElementById('key-points-ta');
+  if(ti){
+    const stu=allStudents.find(x=>x.id===currentSid);
+    const dbLines=keyPointsLinesFromStudent(stu);
+    if(s.clearKeyPointsComposer){
+      ti.value='';
+      _keyPointsAiUsed=false;
+      _keyPointsUserEdited=false;
+    }else{
+      const draft=s.keyPoints!=null?String(s.keyPoints):'';
+      ti.value=draft.trim()?draft:dbLines;
+      _keyPointsAiUsed=s.ai;
+      _keyPointsUserEdited=s.ue;
+    }
+    syncKeyPointsSaveBtn();
+  }
+  _editingNoteId=s.editingId;
+  const nta=getNoteDraftTa();
+  if(nta) nta.value=s.noteTa;
+  renderSessionAttachmentsUi();
+}
+function parseKeyPointsFromStudent(stu){
+  if(!stu) return [];
+  const k=stu.key_points;
+  if(!k) return [];
+  if(Array.isArray(k)) return k.filter(x=>x&&String(x.text||'').trim());
+  if(typeof k==='string'){
+    try{
+      const p=JSON.parse(k);
+      return Array.isArray(p)?p.filter(x=>x&&String(x.text||'').trim()):[];
+    }catch(_){return [];}
+  }
+  return [];
+}
+function keyPointsLinesFromStudent(stu){
+  return parseKeyPointsFromStudent(stu).map(p=>String(p.text||'').trim()).filter(Boolean).join('\n');
+}
+function renderKeyPointsBulletsHtml(stu){
+  const pts=parseKeyPointsFromStudent(stu);
+  if(!pts.length) return '<p class="key-points-empty">אין נקודות שמורות — הזיני ידנית או לחצי על יצירת נקודות AI.</p>';
+  return `<ul class="key-points-ul">${pts.map(p=>{
+    const d=fmtDateOnly(p.at)||'';
+    return `<li class="key-point-row"><span class="kp-text">${escH(String(p.text||''))}</span><span class="kp-date">${escH(d)}</span></li>`;
+  }).join('')}</ul>`;
+}
+function parseTextareaToKeyPoints(text){
+  const now=new Date().toISOString();
+  return String(text||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(t=>({text:t,at:now}));
+}
+function showAppConfirm(title,message,onOk){
+  document.getElementById('app-confirm-title').textContent=title;
+  document.getElementById('app-confirm-msg').textContent=message;
+  _appConfirmAction=onOk;
+  document.getElementById('modal-app-confirm').classList.add('show');
+}
+function appConfirmExecute(){
+  const fn=_appConfirmAction;
+  _appConfirmAction=null;
+  closeModal('modal-app-confirm');
+  if(fn) fn();
+}
+function showRenameModal(title,initial,onOk){
+  document.getElementById('rename-modal-title').textContent=title;
+  const inp=document.getElementById('rename-modal-input');
+  if(inp) inp.value=initial!=null?String(initial):'';
+  _renameModalOk=onOk;
+  document.getElementById('modal-rename').classList.add('show');
+  setTimeout(()=>{try{inp.focus();inp.select();}catch(_){}},80);
+}
+function renameModalExecute(){
+  const inp=document.getElementById('rename-modal-input');
+  const v=inp&&inp.value!=null?String(inp.value).trim():'';
+  const fn=_renameModalOk;
+  _renameModalOk=null;
+  closeModal('modal-rename');
+  if(fn) fn(v);
+}
+function closeFileUploadModal(){
+  _pendingFileForModal=null;
+  _fileUploadContext='draft';
+  closeModal('modal-file-upload');
+}
+async function confirmFileModalUpload(){
+  const f=_pendingFileForModal;
+  const nameInp=document.getElementById('file-modal-name');
+  const displayName=(nameInp&&nameInp.value.trim())||(f&&f.name)||'קובץ';
+  if(!f){
+    closeFileUploadModal();
+    openNextFileFromQueue();
+    return;
+  }
+  const maxB=4*1024*1024;
+  if(f.size>maxB){
+    showToast('הקובץ גדול מדי (מקס׳ 4MB)');
+    closeFileUploadModal();
+    openNextFileFromQueue();
+    return;
+  }
+  if(!isImageFile(f)&&!isDocExtractFile(f)){
+    showToast('נא לבחור PDF, Word (DOCX) או תמונה');
+    closeFileUploadModal();
+    openNextFileFromQueue();
+    return;
+  }
+  const btn=document.getElementById('file-modal-upload-btn');
+  if(btn){btn.disabled=true;btn.textContent=_fileUploadContext==='general'?'שומר...':'מעלה...';}
+  try{
+    const data=await readFileAsDataUrl(f);
+    const mime=f.type||guessMimeFromName(displayName);
+    if(_fileUploadContext==='edit'&&_editingNoteId){
+      editingSessionAttachments.push({
+        _id:genLocalAttId(),
+        name:displayName,
+        mime,
+        data:String(data),
+      });
+      closeFileUploadModal();
+      renderSessionAttachmentsUi();
+      flashNewMeetingUploadSuccess();
+      openNextFileFromQueue();
+      return;
+    }
+    if(_fileUploadContext==='general'){
+      const stu=allStudents.find(x=>x.id===currentSid);
+      if(!stu){
+        closeFileUploadModal();
+        openNextFileFromQueue();
+        return;
+      }
+      const snap=snapshotMeetingHistoryDraft();
+      let up;
+      try{
+        up=await apiFetch(`/students/${currentSid}/documents/upload`,{
+          method:'POST',
+          body:JSON.stringify({
+            name:displayName,
+            mime:mime||guessMimeFromName(displayName),
+            data:String(data),
+          }),
+        });
+      }catch(e){
+        showToast(e.message||String(e));
+        closeFileUploadModal();
+        openNextFileFromQueue();
+        return;
+      }
+      if(up.general_files) stu.general_files=up.general_files;
+      await reloadStudentDocuments();
+      closeFileUploadModal();
+      renderCounselorDetailHistoryIfMounted();
+      restoreMeetingHistoryDraft(snap);
+      showToast('מסמך נוסף לתיק ✓');
+      openNextFileFromQueue();
+      return;
+    }
+    pendingFileUploads.push({
+      _id:genLocalAttId(),
+      data:String(data),
+      mime,
+      originalName:f.name,
+      displayName,
+      target:'draft',
+    });
+    closeFileUploadModal();
+    ensureMeetingAddPanelOpen();
+    renderPendingUploadsPanel();
+    flashNewMeetingUploadSuccess();
+    openNextFileFromQueue();
+  }catch(_){
+    showToast('שגיאה בקריאת קובץ');
+    closeFileUploadModal();
+    openNextFileFromQueue();
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='העלה';}
+  }
+}
+function openNextFileFromQueue(){
+  if(!_fileUploadQueue.length){
+    _pendingFileForModal=null;
+    _fileUploadContext='draft';
+    return;
+  }
+  _pendingFileForModal=_fileUploadQueue.shift();
+  const inp=document.getElementById('file-modal-name');
+  if(inp) inp.value=_pendingFileForModal.name||'קובץ';
+  document.getElementById('modal-file-upload').classList.add('show');
+}
+function onNewMeetingFileInput(input){
+  const files=input&&input.files;
+  if(!files||!files.length) return;
+  const arr=[...files];
+  for(const f of arr){
+    if(!isImageFile(f)&&!isDocExtractFile(f)){
+      showToast('נא לבחור PDF, Word (DOCX) או תמונה בלבד');
+      if(input) input.value='';
+      return;
+    }
+  }
+  _fileUploadContext=_editingNoteId?'edit':'draft';
+  _fileUploadQueue=arr;
+  if(input) input.value='';
+  openNextFileFromQueue();
+}
+function onGeneralDocumentsFileInput(input){
+  const files=input&&input.files;
+  if(!files||!files.length||!currentSid) return;
+  const arr=[...files];
+  for(const f of arr){
+    if(!isImageFile(f)&&!isDocExtractFile(f)){
+      showToast('נא לבחור PDF, Word (DOCX) או תמונה בלבד');
+      if(input) input.value='';
+      return;
+    }
+  }
+  _fileUploadContext='general';
+  _fileUploadQueue=arr;
+  if(input) input.value='';
+  openNextFileFromQueue();
+}
+function onKeyPointsTaInput(){
+  _keyPointsUserEdited=true;
+  syncKeyPointsSaveBtn();
+}
+function syncKeyPointsSaveBtn(){
+  const ta=document.getElementById('key-points-ta');
+  const b=document.getElementById('btn-key-points-save');
+  if(!ta||!b) return;
+  b.disabled=!ta.value.trim();
+}
+async function runKeyPointsAI(){
+  const wand=document.getElementById('btn-key-points-wand');
+  const loading=document.getElementById('key-points-loading');
+  const ta=document.getElementById('key-points-ta');
+  if(wand) wand.disabled=true;
+  if(loading) loading.classList.add('show');
+  try{
+    const data=await apiFetch(`/key-points-draft/${currentSid}`,{method:'POST'});
+    const pts=(data&&data.points)||[];
+    if(!pts.length) throw new Error('לא התקבלו נקודות מהשרת');
+    const block=pts.join('\n');
+    if(ta){
+      const cur=(ta.value||'').trim();
+      const hadUserBefore=!!cur;
+      if(cur) ta.value=cur+'\n\n— — —\nטיוטת AI:\n'+block;
+      else ta.value=block;
+      _keyPointsAiUsed=true;
+      _keyPointsUserEdited=hadUserBefore;
+    }
+  }catch(e){
+    showToast(e.message||String(e));
+  }finally{
+    if(loading) loading.classList.remove('show');
+    if(wand) wand.disabled=false;
+    syncKeyPointsSaveBtn();
+  }
+}
+async function runMeetingSummaryAI(){
+  const wand=document.getElementById('btn-meeting-summary-ai');
+  const loading=document.getElementById('meeting-summary-ai-loading');
+  const ta=document.getElementById('note-draft-manual');
+  if(!currentSid){showToast('לא נבחר תלמיד');return;}
+  if(wand) wand.disabled=true;
+  if(loading) loading.classList.add('show');
+  try{
+    const data=await apiFetch(`/analyze-student/${currentSid}`,{method:'POST'});
+    const s=(data&&data.sentiment_summary)?String(data.sentiment_summary).trim():'';
+    if(!s) throw new Error('לא התקבל סיכום מהשרת');
+    if(ta){
+      const cur=(ta.value||'').trim();
+      if(cur) ta.value=cur+'\n\n— — —\nטיוטת AI (סיכום שבועי):\n'+s;
+      else ta.value=s;
+    }
+  }catch(e){
+    showToast(e.message||String(e));
+  }finally{
+    if(loading) loading.classList.remove('show');
+    if(wand) wand.disabled=false;
+  }
+}
+async function saveKeyPointsToStudent(){
+  const ta=document.getElementById('key-points-ta');
+  if(!ta||!currentSid) return;
+  const newPts=parseTextareaToKeyPoints(ta.value);
+  if(!newPts.length){showToast('נא להזין לפחות נקודה אחת לפני שמירה');return;}
+  const stu=allStudents.find(x=>x.id===currentSid);
+  const existing=parseKeyPointsFromStudent(stu);
+  const merged=[...newPts,...existing];
+  const snap=snapshotMeetingHistoryDraft();
+  ta.value='';
+  syncKeyPointsSaveBtn();
+  try{
+    const updated=await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({key_points:merged})});
+    if(stu) stu.key_points=updated.key_points!=null?updated.key_points:merged;
+    snap.keyPoints='';
+    snap.ai=false;
+    snap.ue=false;
+    snap.clearKeyPointsComposer=true;
+    await renderCounselorDetailHistory(snap);
+    showToast('נקודות חשובות נשמרו ✓');
+  }catch(e){
+    showToast(`שגיאה: ${e.message}`);
+    ta.value=newPts.map(p=>p.text).join('\n');
+    restoreMeetingHistoryDraft(snap);
+  }
+}
+function setNewMeetingUploadBusy(busy){
+  const sp=document.getElementById('new-meeting-spinner');
+  const pg=document.getElementById('new-meeting-progress');
+  const fill=document.getElementById('new-meeting-progress-fill');
+  if(sp) sp.style.display=busy?'inline-flex':'none';
+  if(pg) pg.style.display=busy?'block':'none';
+  if(fill) fill.style.width='0%';
+}
+function flashNewMeetingUploadSuccess(){
+  const badge=document.getElementById('new-meeting-success-badge');
+  if(!badge) return;
+  badge.style.display='inline-flex';
+  clearTimeout(badge._tid);
+  badge._tid=setTimeout(()=>{badge.style.display='none';},2200);
+}
+function ensureMeetingAddPanelOpen(){
+  const p=document.getElementById('detail-meeting-add-panel');
+  if(p&&(p.style.display==='none'||!p.style.display)){
+    p.style.display='block';
+    renderPendingUploadsPanel();
+    renderSessionAttachmentsUi();
+  }
+}
+function setNoteAttachBusy(noteId,busy){
+  const el=document.getElementById('attach-status-'+noteId);
+  if(!el) return;
+  if(busy){
+    el.innerHTML='<span class="upload-inline-spinner"><span class="spinner spinner-teal"></span></span><span>מעבד קבצים...</span>';
+    return;
+  }
+  el.innerHTML='';
+}
+function flashNoteAttachSuccess(noteId){
+  const el=document.getElementById('attach-status-'+noteId);
+  if(!el) return;
+  el.innerHTML='<span class="upload-success-badge">✓ צורף</span>';
+  clearTimeout(el._tid);
+  el._tid=setTimeout(()=>{el.innerHTML='';},2000);
+}
+
+function isDocExtractFile(f){
+  if(!f||!f.name) return false;
+  const n=f.name.toLowerCase();
+  const t=(f.type||'').toLowerCase();
+  return n.endsWith('.pdf')||n.endsWith('.docx')||
+    t==='application/pdf'||t.includes('wordprocessingml');
+}
+
+async function reloadMeetingNotes(){
+  if(!currentSid) return;
+  try{
+    const n=await apiFetch(`/meeting-notes/${currentSid}`);
+    if(Array.isArray(n)) currentNotes=n;
+  }catch(_){/* keep currentNotes */}
+}
+
+function meetingTargetOptionsForPending(selected){
+  const notesSorted=[...(currentNotes||[])].filter(meetingNoteIsSession).sort((a,b)=>(parseIsoMs(a.created_at)||0)-(parseIsoMs(b.created_at)||0));
+  const addOpt=(v,lab,sel)=>`<option value="${escAttr(v)}"${sel===v?' selected':''}>${escH(lab)}</option>`;
+  let html=addOpt('draft','עם סיכום חדש (טיוטה)',selected);
+  notesSorted.forEach((n,i)=>{
+    const v=n.id;
+    html+=`<option value="${escAttr(v)}"${selected===v?' selected':''}>שיוך לפגישה מס׳ ${i+1}</option>`;
+  });
+  return html;
+}
+function setPendingDisplayName(id,val){
+  const p=pendingFileUploads.find(x=>x._id===id);
+  if(p) p.displayName=val;
+}
+function setPendingTarget(id,val){
+  const p=pendingFileUploads.find(x=>x._id===id);
+  if(p) p.target=val;
+}
+function removePendingItem(id){
+  pendingFileUploads=pendingFileUploads.filter(x=>x._id!==id);
+  renderPendingUploadsPanel();
+}
+function pendingCardHtml(p){
+  const kid=attachmentKind(p.displayName,p.mime);
+  const icn=kid==='pdf'?'PDF':kid==='word'?'W':kid==='image'?'🖼':'קובץ';
+  const icls=kid==='image'?'session-att-icon img':'session-att-icon';
+  const id=p._id;
+  const opts=meetingTargetOptionsForPending(p.target);
+  return `<div class="pending-card">
+    <div class="${icls}">${icn}</div>
+    <div class="pending-card-fields">
+      <label class="pending-label">שם הקובץ</label>
+      <input type="text" class="pending-filename-inp" value="${escAttr(p.displayName)}" oninput="setPendingDisplayName('${id}',this.value)">
+      <label class="pending-label">שיוך</label>
+      <select class="pending-target-sel" onchange="setPendingTarget('${id}',this.value)">${opts}</select>
+    </div>
+    <button type="button" class="pending-remove" title="הסר" aria-label="הסר מהרשימה" onclick="removePendingItem('${id}')">×</button>
+  </div>`;
+}
+function renderPendingUploadsPanel(){
+  const inner=pendingFileUploads.length
+    ?('<p class="pending-panel-hint">תצוגה מקדימה — ניתן לערוך שם ולבחור שיוך לפני העלאה</p>'+
+      pendingFileUploads.map(pendingCardHtml).join(''))
+    :'';
+  const host=document.getElementById('pending-uploads-panel');
+  if(host){
+    if(!pendingFileUploads.length){
+      host.style.display='none';
+      host.innerHTML='';
+    }else{
+      host.style.display='block';
+      host.innerHTML=inner;
+    }
+  }
+  const b=document.getElementById('btn-commit-pending');
+  if(b) b.style.display=pendingFileUploads.length?'block':'none';
+}
+
+function mapNoteAttachmentRow(a){
+  return{
+    name:a.name||'קובץ',
+    mime:a.mime||guessMimeFromName(a.name),
+    data:String(a.data||a.url||''),
+  };
+}
+
+async function commitPendingUploads(){
+  if(!pendingFileUploads.length||!currentSid) return;
+  const btn=document.getElementById('btn-commit-pending');
+  if(btn){
+    btn.disabled=true;
+    btn.dataset._pl=btn.textContent;
+    btn.innerHTML='<span class="spinner spinner-teal" style="vertical-align:middle;margin-left:8px"></span> מעלה...';
+  }
+  const snap=snapshotMeetingHistoryDraft();
+  try{
+    const noteAdds={};
+    const general=[];
+    const draftNew=[];
+    for(const p of pendingFileUploads){
+      const name=(p.displayName||'').trim()||p.originalName||'קובץ';
+      const att={name,mime:p.mime||guessMimeFromName(name),data:String(p.data)};
+      const t=p.target;
+      if(t==='general') general.push(att);
+      else if(t==='draft'){
+        draftNew.push({_id:genLocalAttId(),name:att.name,mime:att.mime,data:att.data});
+      }else{
+        noteAdds[t]=noteAdds[t]||[];
+        noteAdds[t].push(att);
+      }
+    }
+    for(const noteId of Object.keys(noteAdds)){
+      const note=(currentNotes||[]).find(n=>n.id===noteId);
+      if(!note){showToast('סיכום פגישה לא נמצא');continue;}
+      const existing=normalizeAttachments(note.attachments).map(mapNoteAttachmentRow);
+      const merged=[...existing,...noteAdds[noteId]];
+      const saved=await apiFetch(`/meeting-notes/${noteId}`,{method:'PATCH',body:JSON.stringify({attachments:merged})});
+      currentNotes=(currentNotes||[]).map(n=>n.id===noteId?saved:n);
+      if(_editingNoteId===noteId){
+        editingSessionAttachments=normalizeAttachments(saved.attachments).map((a,i)=>({
+          _id:'e'+String(noteId).replace(/-/g,'').slice(0,10)+i,
+          name:a.name||'קובץ',
+          mime:a.mime||guessMimeFromName(a.name||''),
+          data:String(a.data||a.url||''),
+        }));
+      }
+    }
+    if(general.length){
+      const stu=allStudents.find(x=>x.id===currentSid);
+      for(const att of general){
+        const up=await apiFetch(`/students/${currentSid}/documents/upload`,{
+          method:'POST',
+          body:JSON.stringify({name:att.name,mime:att.mime,data:String(att.data)}),
+        });
+        if(stu&&up.general_files) stu.general_files=up.general_files;
+      }
+      await reloadStudentDocuments();
+    }
+    if(draftNew.length){
+      draftSessionAttachments=draftSessionAttachments.concat(draftNew);
+      renderSessionAttachmentsUi();
+    }
+    pendingFileUploads=[];
+    renderPendingUploadsPanel();
+    await reloadMeetingNotes();
+    renderCounselorDetailHistoryIfMounted();
+    restoreMeetingHistoryDraft(snap);
+    showToast('קבצים נשמרו בתיק ✓');
+  }catch(e){
+    showToast(`שגיאה: ${e.message}`);
+  }finally{
+    if(btn){
+      btn.disabled=false;
+      btn.textContent=btn.dataset._pl||'העלאה לאוסף';
+      delete btn.dataset._pl;
+    }
+  }
+}
+
+function openAttachmentPreview(url,ev){
+  if(ev) ev.preventDefault();
+  const u=String(url||'').trim();
+  if(!u||u==='#'){showToast('קישור לא זמין');return false;}
+  const w=window.open(u,'_blank','noopener,noreferrer');
+  if(!w) location.href=u;
+  return false;
+}
+function renderGeneralFilesBlock(){
+  const list=currentGeneralDocuments||[];
+  if(!list.length){
+    return '<div class="sec-empty" style="padding:8px 0">אין מסמכים בתיק</div>';
+  }
+  return `<div class="attachment-cards">${list.map((a,i)=>{
+    const href=String(a.file_url||a.embedded_data||'');
+    const dispName=a.file_name||a.name||'קובץ';
+    const nm=shortFileName(dispName,42);
+    const kid=attachmentKind(dispName,a.mime);
+    const icn=kid==='pdf'?'PDF':kid==='word'?'W':kid==='image'?'🖼':'קובץ';
+    const icls=kid==='image'?'note-att-icon img':'note-att-icon';
+    return `<div class="note-att-card">
+      <a class="note-att-link" href="${escAttr(href||'#')}" target="_blank" rel="noopener noreferrer" onclick="return openAttachmentPreview(this.href,event)">
+        <div class="${icls}">${icn}</div>
+        <div class="note-att-body"><div class="note-att-name" title="${escAttr(dispName)}">${escH(nm)}</div></div>
+      </a>
+      <div class="note-att-actions">
+        <button type="button" class="note-att-btn" title="שינוי שם" aria-label="שינוי שם" onclick="renameGeneralFile(${i})">✎</button>
+        <button type="button" class="note-att-btn danger" title="מחק" aria-label="מחק" onclick="deleteGeneralFile(${i})">🗑</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function renameGeneralFile(idx){
+  const stu=allStudents.find(x=>x.id===currentSid);
+  if(!stu) return;
+  const list=currentGeneralDocuments||[];
+  if(idx<0||idx>=list.length) return;
+  const item=list[idx];
+  const cur=item.file_name||item.name||'קובץ';
+  showRenameModal('שינוי שם מסמך',cur,(newName)=>{
+    if(!newName||!newName.trim()) return;
+    void (async()=>{
+      const snap=snapshotMeetingHistoryDraft();
+      try{
+        if(item.id){
+          await apiFetch(`/students/${currentSid}/documents/${item.id}`,{
+            method:'PATCH',
+            body:JSON.stringify({file_name:newName.trim()}),
+          });
+          if(Array.isArray(stu.general_files)){
+            stu.general_files=stu.general_files.map(x=>{
+              if(!x||typeof x!=='object') return x;
+              if(String(x.document_id||'')===String(item.id)) return {...x,name:newName.trim()};
+              return x;
+            });
+          }
+          await reloadStudentDocuments();
+        }else{
+          const li=normalizeAttachments(stu.general_files).map(mapNoteAttachmentRow);
+          const ix=item.legacy_index!=null?item.legacy_index:idx;
+          if(ix<0||ix>=li.length) throw new Error('אינדקס לא תקין');
+          const next=li.map((a,j)=>j===ix?{...a,name:newName.trim()}:a);
+          const updated=await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({general_files:next})});
+          stu.general_files=updated.general_files!=null?updated.general_files:next;
+          await reloadStudentDocuments();
+        }
+        renderCounselorDetailHistoryIfMounted();
+        restoreMeetingHistoryDraft(snap);
+        showToast('שם עודכן');
+      }catch(e){showToast(`שגיאה: ${e.message}`);}
+    })();
+  });
+}
+
+function deleteGeneralFile(idx){
+  const stu=allStudents.find(x=>x.id===currentSid);
+  if(!stu) return;
+  const list=currentGeneralDocuments||[];
+  if(idx<0||idx>=list.length) return;
+  const item=list[idx];
+  showAppConfirm('הסרת קובץ','להסיר קובץ זה מתיק התלמיד?',()=>{
+    void (async()=>{
+      const snap=snapshotMeetingHistoryDraft();
+      try{
+        if(item.id){
+          const res=await apiFetch(`/students/${currentSid}/documents/${item.id}`,{method:'DELETE'});
+          if(res.general_files) stu.general_files=res.general_files;
+          await reloadStudentDocuments();
+        }else{
+          const li=normalizeAttachments(stu.general_files).map(mapNoteAttachmentRow);
+          const ix=item.legacy_index!=null?item.legacy_index:idx;
+          if(ix<0||ix>=li.length) throw new Error('אינדקס לא תקין');
+          const next=li.slice();
+          next.splice(ix,1);
+          const updated=await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({general_files:next})});
+          stu.general_files=updated.general_files!=null?updated.general_files:next;
+          await reloadStudentDocuments();
+        }
+        renderCounselorDetailHistoryIfMounted();
+        restoreMeetingHistoryDraft(snap);
+        showToast('קובץ הוסר');
+      }catch(e){showToast(`שגיאה: ${e.message}`);}
+    })();
+  });
 }
 
 /* ════════════════ PROACTIVE ALERTS (DASHBOARD) ════════════════ */
@@ -792,8 +1992,228 @@ function fmtTime(iso){
   return d.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})+
     ' · '+d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
 }
+function fmtDateOnly(iso){
+  if(!iso) return '';
+  const d=new Date(iso);
+  try{
+    return d.toLocaleDateString('he-IL',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+  }catch(_){
+    return fmtTime(iso);
+  }
+}
+function isCompletedStudent(s){
+  return canonicalStatus(s.status)==='סיים תהליך';
+}
+function matchesListTab(s){
+  if(listTab==='completed') return isCompletedStudent(s);
+  return !isCompletedStudent(s);
+}
+function sortStudentsPinned(list){
+  return list.slice().sort((a,b)=>{
+    const sa=canonicalStatus(a.status), sb=canonicalStatus(b.status);
+    const pa=proactiveById[a.id]||{};
+    const pb=proactiveById[b.id]||{};
+    const silA=isSystemFlagSilenced(a.id, pa.silenceFingerprint||'');
+    const silB=isSystemFlagSilenced(b.id, pb.silenceFingerprint||'');
+    const pinA=(sa==='נדרש מעקב צמוד')||(!!pa.aiStillDetected&&!silA);
+    const pinB=(sb==='נדרש מעקב צמוד')||(!!pb.aiStillDetected&&!silB);
+    if(pinA!==pinB) return pinA?-1:1;
+    return String(a.name||'').localeCompare(String(b.name||''),'he',{sensitivity:'base'});
+  });
+}
+function setListTab(tab){
+  listTab=(tab==='completed')?'completed':'active';
+  const tA=document.getElementById('tab-active');
+  const tC=document.getElementById('tab-completed');
+  if(tA){
+    tA.classList.toggle('active',listTab==='active');
+    tA.setAttribute('aria-selected',listTab==='active'?'true':'false');
+  }
+  if(tC){
+    tC.classList.toggle('active',listTab==='completed');
+    tC.setAttribute('aria-selected',listTab==='completed'?'true':'false');
+  }
+  const sub=document.getElementById('page-sub-main');
+  if(sub){
+    sub.textContent=listTab==='completed'
+      ?'ארכיון: תלמידים שסומנו כסיימו ליווי — לצפייה בתיק ובהיסטוריה בלבד.'
+      :'ליווי פעיל: תלמידים שאינם בארכיון — הרשימה ממוינת לפי דחיפות (מעקב צמוד והתראות בראש).';
+  }
+  filterStudents();
+}
+
+/** שורה אחת — סיכום משימות שבועיות (מוצג בתיק) */
+function getWeeklyTaskSummaryLine(tasks){
+  const weekly=(tasks||[]).filter(t=>t&&t.selected);
+  const doneW=weekly.filter(t=>t.done).length;
+  const totalW=weekly.length;
+  return `בשבוע הנוכחי הוגדרו ${totalW} משימות; ${doneW} הושלמו`;
+}
 function escH(s){
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function escHBr(s){
+  return String(s||'').split(/\r?\n/).map(escH).join('<br>');
+}
+function meetingPreviewPlain(full,maxLines){
+  const t=String(full||'');
+  if(!t.trim()) return '';
+  const lines=t.split(/\r?\n/);
+  let out=lines.length>maxLines?lines.slice(0,maxLines).join('\n')+'…':t;
+  const approxPerLine=52;
+  const maxChars=approxPerLine*maxLines;
+  if(out.length>maxChars) out=out.slice(0,maxChars-1)+'…';
+  return out;
+}
+function toggleMeetingAccordion(noteId){
+  const panel=document.getElementById('meeting-acc-body-'+noteId);
+  const btn=document.getElementById('meeting-acc-t-'+noteId);
+  if(!panel||!btn) return;
+  const open=panel.hidden;
+  panel.hidden=!open;
+  btn.setAttribute('aria-expanded',open?'true':'false');
+  const card=btn.closest('.meeting-session-card');
+  if(card) card.classList.toggle('is-expanded',open);
+  const ch=btn.querySelector('.meeting-acc-chevron');
+  if(ch) ch.textContent=open?'▲':'▼';
+}
+function normalizeAttachments(raw){
+  if(!raw) return [];
+  if(Array.isArray(raw)) return raw;
+  if(typeof raw==='string'){
+    try{const p=JSON.parse(raw);return Array.isArray(p)?p:[];}catch(_){return[];}
+  }
+  return [];
+}
+function meetingNoteIsSession(n){
+  const t=n&&n.note_type;return !t||t==='session';
+}
+function shortFileName(name,maxLen){
+  const s=String(name||'קובץ');
+  if(s.length<=maxLen) return s;
+  return s.slice(0,maxLen-1)+'…';
+}
+function renderNoteAttachmentsBlock(noteId, n){
+  const list=normalizeAttachments(n&&n.attachments);
+  if(!list.length) return '';
+  const nid=String(noteId||'').replace(/'/g,'&#39;');
+  const cards=list.map((a,i)=>{
+    const href=String(a.data||a.url||'#');
+    const nm=shortFileName(a.name||'קובץ',40);
+    const kid=attachmentKind(a.name,a.mime);
+    const icn=kid==='pdf'?'PDF':kid==='word'?'W':kid==='image'?'🖼':'קובץ';
+    const icls=kid==='image'?'note-att-icon img':'note-att-icon';
+    return `<div class="note-att-card">
+      <a class="note-att-link" href="${escAttr(href)}" target="_blank" rel="noopener noreferrer" onclick="return openAttachmentPreview(this.href,event)">
+        <div class="${icls}">${icn}</div>
+        <div class="note-att-body"><div class="note-att-name" title="${escAttr(a.name||'')}">${escH(nm)}</div></div>
+      </a>
+      <div class="note-att-actions">
+        <button type="button" class="note-att-btn" title="שינוי שם" aria-label="שינוי שם" onclick="renameNoteAttachmentName('${nid}',${i})">✎</button>
+        <button type="button" class="note-att-btn danger" title="מחק" aria-label="מחק" onclick="deleteNoteAttachment('${nid}',${i})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="note-attachments note-attachments-cards"><div class="attachments-head">קבצים מצורפים</div><div class="attachment-cards">${cards}</div></div>`;
+}
+function sessionAttCardHtml(a,idx){
+  const kid=attachmentKind(a.name,a.mime);
+  const icn=kid==='pdf'?'PDF':kid==='word'?'W':kid==='image'?'🖼':'קובץ';
+  const icls=kid==='image'?'session-att-icon img':'session-att-icon';
+  const rid=String(a._id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  return `<div class="session-att-card">
+    <div class="${icls}">${icn}</div>
+    <div class="session-att-body"><div class="session-att-name" title="${escAttr(a.name)}">${escH(shortFileName(a.name,42))}</div></div>
+    <div class="session-att-actions">
+      <button type="button" class="note-att-btn" title="שינוי שם" aria-label="שינוי שם" onclick="renameSessionAttachmentAt(${idx})">✎</button>
+      <button type="button" class="note-att-btn danger" title="מחק" aria-label="מחק" onclick="removeSessionAttachment('${rid}')">🗑</button>
+    </div>
+  </div>`;
+}
+function renderSessionAttachmentsUi(){
+  const list=_editingNoteId?editingSessionAttachments:draftSessionAttachments;
+  const cards=(list&&list.length)?list.map((a,i)=>sessionAttCardHtml(a,i)).join(''):'';
+  const inner=`<div class="attachments-panel-inner">
+    <div class="attachments-head">קבצים מצורפים</div>
+    ${cards?`<div class="attachment-cards">${cards}</div>`:'<div class="attachments-empty"></div>'}
+  </div>`;
+  const host=document.getElementById('session-attachments-panel');
+  if(host) host.innerHTML=inner;
+}
+function removeSessionAttachment(id){
+  if(_editingNoteId) editingSessionAttachments=editingSessionAttachments.filter(x=>x._id!==id);
+  else draftSessionAttachments=draftSessionAttachments.filter(x=>x._id!==id);
+  renderSessionAttachmentsUi();
+}
+function renameSessionAttachmentAt(idx){
+  const list=_editingNoteId?editingSessionAttachments:draftSessionAttachments;
+  const a=list&&list[idx];
+  if(!a) return;
+  showRenameModal('שינוי שם קובץ',a.name||'קובץ',(v)=>{
+    if(!v||!v.trim()) return;
+    a.name=v.trim();
+    renderSessionAttachmentsUi();
+  });
+}
+function renameNoteAttachmentName(noteId, idx){
+  const note=(currentNotes||[]).find(n=>n.id===noteId);
+  if(!note) return;
+  const raw=normalizeAttachments(note.attachments).map(mapNoteAttachmentRow);
+  if(idx<0||idx>=raw.length) return;
+  const cur=raw[idx].name||'קובץ';
+  showRenameModal('שינוי שם קובץ',cur,(newName)=>{
+    if(!newName||!newName.trim()) return;
+    void (async()=>{
+      const next=raw.map((a,i)=>i===idx?{...a,name:newName.trim()}:a);
+      const snap=snapshotMeetingHistoryDraft();
+      try{
+        const saved=await apiFetch(`/meeting-notes/${noteId}`,{method:'PATCH',body:JSON.stringify({attachments:next})});
+        currentNotes=(currentNotes||[]).map(n=>n.id===noteId?saved:n);
+        if(_editingNoteId===noteId){
+          editingSessionAttachments=normalizeAttachments(saved.attachments).map((a,i)=>({
+            _id:'e'+String(noteId).replace(/-/g,'').slice(0,10)+i,
+            name:a.name||'קובץ',
+            mime:a.mime||guessMimeFromName(a.name||''),
+            data:String(a.data||a.url||''),
+          }));
+        }
+        renderCounselorDetailHistoryIfMounted();
+        restoreMeetingHistoryDraft(snap);
+        showToast('שם עודכן');
+      }catch(e){showToast(`שגיאה: ${e.message}`);}
+    })();
+  });
+}
+function deleteNoteAttachment(noteId, idx){
+  const note=(currentNotes||[]).find(n=>n.id===noteId);
+  if(!note) return;
+  const list=attachmentsForApi(normalizeAttachments(note.attachments));
+  if(idx<0||idx>=list.length) return;
+  showAppConfirm('הסרת צרופה','להסיר קובץ זה מהסיכום?',()=>{
+    void (async()=>{
+      const next=list.slice();
+      next.splice(idx,1);
+      const snap=snapshotMeetingHistoryDraft();
+      try{
+        const saved=await apiFetch(`/meeting-notes/${noteId}`,{method:'PATCH',body:JSON.stringify({attachments:next})});
+        currentNotes=(currentNotes||[]).map(n=>n.id===noteId?saved:n);
+        if(_editingNoteId===noteId){
+          editingSessionAttachments=normalizeAttachments(saved.attachments).map((a,i)=>({
+            _id:'e'+String(noteId).replace(/-/g,'').slice(0,10)+i,
+            name:a.name||'קובץ',
+            mime:a.mime||guessMimeFromName(a.name||''),
+            data:String(a.data||a.url||''),
+          }));
+        }
+        renderCounselorDetailHistoryIfMounted();
+        restoreMeetingHistoryDraft(snap);
+        showToast('צרופה הוסרה');
+      }catch(e){showToast(`שגיאה: ${e.message}`);}
+    })();
+  });
 }
 function showToast(msg,ms=2600){
   const t=document.getElementById('toast');
@@ -810,9 +2230,13 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);
 }
-function closeModal(id){document.getElementById(id).classList.remove('show');}
+function closeModal(id){
+  const el=document.getElementById(id);
+  if(el) el.classList.remove('show');
+  if(id==='modal-rename') _renameModalOk=null;
+}
 document.querySelectorAll('.overlay').forEach(ov=>
-  ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.remove('show');})
+  ov.addEventListener('click',e=>{if(e.target===ov) closeModal(ov.id);})
 );
 
 /* ════════════════ PHOTO ════════════════ */
@@ -856,14 +2280,15 @@ async function loadList(){
       }
     });
 
-    renderList(allStudents);
+    filterStudents();
   }catch(e){
     el.innerHTML=`<div class="loading-box">שגיאה: ${escH(e.message)}</div>`;
   }
 }
 
 function renderList(list){
-  document.getElementById('count-lbl').textContent=`${list.length} תלמידים`;
+  const tabLbl=listTab==='completed'?'ליווים שהסתיימו':'בליווי פעיל';
+  document.getElementById('count-lbl').textContent=`${list.length} תלמידים · ${tabLbl}`;
   const el=document.getElementById('students-list');
   if(!list.length){el.innerHTML='<div class="sec-empty" style="padding:20px">לא נמצאו תלמידים</div>';return;}
   el.innerHTML=list.map(s=>{
@@ -904,36 +2329,54 @@ function renderList(list){
 }
 
 function filterStudents(){
-  const q=document.getElementById('search-input').value.trim().toLowerCase();
-  renderList(allStudents.filter(s=>
-    s.name.toLowerCase().includes(q)||(s.grade||'').toLowerCase().includes(q)||(s.reason||'').toLowerCase().includes(q)
-  ));
+  const q=(document.getElementById('search-input')&&document.getElementById('search-input').value||'').trim().toLowerCase();
+  let base=allStudents.filter(matchesListTab);
+  if(q){
+    base=base.filter(s=>
+      s.name.toLowerCase().includes(q)||
+      (s.grade||'').toLowerCase().includes(q)||
+      (s.reason||'').toLowerCase().includes(q)
+    );
+  }
+  base=sortStudentsPinned(base);
+  renderList(base);
 }
 
 /* ════════════════ DETAIL ════════════════ */
 async function openStudent(id){
-  currentSid=id;showScreen('screen-detail');
+  currentSid=id;_counselorDetailTab='tasks';showScreen('screen-detail');
   document.getElementById('detail-content').innerHTML='<div class="loading-box"><span class="spinner spinner-dk"></span> טוען...</div>';
   try{
-    const [tasks,reports,notes]=await Promise.all([
+    const [tasks,reports,notes,docs]=await Promise.all([
       apiFetch(`/tasks/${id}`),
       apiFetch(`/reports/${id}`),
-      apiFetch(`/meeting-notes/${id}`).catch(()=>[])
+      apiFetch(`/meeting-notes/${id}`).catch(e=>{
+        showToast(`סיכומי פגישות: ${e.message}`);
+        return [];
+      }),
+      apiFetch(`/students/${id}/documents`).catch(()=>[]),
     ]);
     apiFetch(`/reports/${id}/mark-seen`,{method:'PATCH'}).catch(()=>{});
     currentTasks=tasks;currentReports=reports;currentNotes=notes||[];
-    renderDetail(allStudents.find(x=>x.id===id));
+    currentGeneralDocuments=Array.isArray(docs)?docs:[];
+    await renderDetail(allStudents.find(x=>x.id===id));
   }catch(e){
     document.getElementById('detail-content').innerHTML=`<div class="loading-box">שגיאה: ${escH(e.message)}</div>`;
   }
 }
 
-function renderDetail(s){
+function noteSourceLabel(n){
+  const st=(n.edit_status)|| (n.is_ai_generated?'ai_generated':'manual');
+  if(st==='manual') return 'נכתב על ידך';
+  if(st==='ai_edited') return 'נכתב על ידי AI ונערך על ידך';
+  return 'נכתב על ידי AI ✨';
+}
+
+async function renderDetail(s){
   if(!s) return;
   const status=canonicalStatus(s.status);
   const selCls=statusSelCls(status);
   const desc=(s.description||'').trim();
-  _aiSummaryLast='';
 
   const weeklyTasks=currentTasks.filter(t=>t.selected);
   const bankTasks  =currentTasks.filter(t=>!t.selected);
@@ -947,120 +2390,309 @@ function renderDetail(s){
 
   const statusOpts=STATUSES.map(v=>`<option value="${v}"${v===status?' selected':''}>${v}</option>`).join('');
 
-  function taskRow(t){
-    const rep=currentReports.find(r=>r.task_id===t.id||r.task_name===t.text);
-    // chips: done indicator + report indicator + weekly indicator
-    const chips=[];
-    if(t.done)     chips.push('<span class="task-status-chip chip-done">✓ הושלם</span>');
-    if(rep)        chips.push('<span class="task-status-chip chip-rep">📝 דיווח</span>');
-    if(t.selected) chips.push('<span class="task-status-chip chip-week">📅 שבועי</span>');
-    return `<div class="task-row" onclick="openTaskModal('${t.id}')">
-      <div class="task-chk-icon${t.done?' done':''}">
-        ${t.done?'✓':''}
-      </div>
+  function taskRowWeekly(t){
+    return `<div class="task-row" onclick="openTaskModal('${t.id}')" role="button" tabindex="0">
+      <div class="task-chk-icon${t.done?' done':''}" aria-label="${t.done?'הושלמה':'לא הושלמה'}">${t.done?'✓':''}</div>
       <span class="task-text">${escH(t.text)}</span>
-      ${chips.join('')}
-      <button class="task-del-btn" onclick="event.stopPropagation();delTask('${t.id}')">🗑️</button>
+      <span class="task-pencil-c" title="צפייה/עריכת דוח" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
+    </div>`;
+  }
+  function taskRowBank(t){
+    return `<div class="task-row" onclick="openTaskModal('${t.id}')" role="button" tabindex="0">
+      <div class="task-chk-icon${t.done?' done':''}" aria-label="${t.done?'הושלמה':'לא הושלמה'}">${t.done?'✓':''}</div>
+      <span class="task-text">${escH(t.text)}</span>
     </div>`;
   }
 
   const weeklyHtml=weeklyTasks.length
-    ?weeklyTasks.map(taskRow).join('')
+    ?weeklyTasks.map(taskRowWeekly).join('')
     :'<div class="sec-empty">התלמיד טרם בחר משימות שבועיות</div>';
   const bankHtml=bankTasks.length
-    ?bankTasks.map(taskRow).join('')
+    ?bankTasks.map(taskRowBank).join('')
     :'<div class="sec-empty">כל המשימות נבחרו לשבוע</div>';
 
-  function noteSourceLabel(n){
-    const status=(n.edit_status)|| (n.is_ai_generated?'ai_generated':'manual');
-    if(status==='manual') return 'נכתב על ידך';
-    if(status==='ai_edited') return 'נכתב על ידי AI ונערך על ידך';
-    return 'נכתב על ידי AI ✨';
-  }
-
-  const notesHtml=(currentNotes&&currentNotes.length)
-    ?currentNotes.map(n=>`<div class="rep-card" style="margin:8px 0">
-        <div class="rep-top">
-          <span class="rep-mood">${n.is_ai_generated?'🤖':'🗓️'}</span>
-          <span class="rep-time">${fmtTime(n.created_at)}</span>
-        </div>
-        <div class="rep-body">${escH(n.content||'')}</div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
-          <span class="note-meta">${escH(noteSourceLabel(n))}</span>
-          <button class="btn-icon" onclick="startEditNote('${n.id}')">✏️ עריכה</button>
-        </div>
-      </div>`).join('')
-    :'<div class="sec-empty">אין עדיין סיכומי פגישות</div>';
-
+  const tabRestore=_counselorDetailTab||'tasks';
   document.getElementById('detail-content').innerHTML=`
-    <div class="detail-header">
-      <div class="d-avatar-wrap" onclick="openPhotoModal()" title="שנה תמונה">
-        <div class="d-avatar" style="background:${avBg}">${avInner}</div>
-        <div class="d-avatar-badge">📷</div>
-      </div>
-      <div class="d-info">
-        <div class="d-name">${escH(s.name)}</div>
-        <div class="d-grade">כיתה ${escH(s.grade)}</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;background:var(--bg);border-radius:var(--radius-sm);padding:8px 12px;border:1px solid var(--border)">
-          <span style="font-size:12px;color:var(--light);font-weight:600">קוד כניסה לתלמיד</span>
-          <span style="font-size:18px;font-weight:800;letter-spacing:4px;color:var(--dark);margin-right:auto">${escH(s.code||'—')}</span>
+    <div class="detail-unified-card case-file-card">
+      <div class="detail-unified-inner">
+        <div class="d-avatar-wrap" onclick="openPhotoModal()" title="שנה תמונה">
+          <div class="d-avatar" style="background:${avBg}">${avInner}</div>
+          <div class="d-avatar-badge">📷</div>
         </div>
-        <div class="status-row">
-          <span class="status-lbl">סטטוס</span>
-          <select class="status-select ${selCls}" id="status-sel" onchange="updateStatus(this.value)">
-            ${statusOpts}
-          </select>
-        </div>
-        <div class="desc-block" onclick="openDescModal()" title="לחצי לעריכה">
-          <span class="desc-txt${desc?'':' desc-empty'}" id="desc-span">${desc?escH(desc):'לחצי להוספת תיאור רקע...'}</span>
-          <button class="btn-icon" tabindex="-1">✏️</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="sec">
-      <div class="sec-title">
-        📅 משימות שבועיות
-        <span class="prog-badge">${doneCount} מתוך ${weeklyTasks.length} הושלמו</span>
-      </div>
-      ${weeklyHtml}
-    </div>
-
-    <div class="sec">
-      <div class="sec-title">📚 בנק משימות</div>
-      ${bankHtml}
-      <div class="add-row">
-        <input class="add-input" id="task-inp" placeholder="הוסף משימה לבנק..."
-          onkeydown="if(event.key==='Enter')addTask()">
-        <button class="btn-sm" id="btn-task-ai" title="הצעת משימה חכמה מהבנק לפי הקשר המלא" onclick="getAiTaskRecommendation()">✨</button>
-        <button class="btn-sm" onclick="addTask()">+</button>
-      </div>
-      <div class="ai-reason-tip" id="task-ai-reason" title="AI Reasoning"></div>
-    </div>
-
-    <div class="sec">
-      <div class="sec-title">✨ ניתוח AI</div>
-      <div class="ai-panel">
-        <div class="ai-hint">ניתוח מבוסס דפוסי דיווח ומשימות התלמיד</div>
-        <button class="btn-ai" id="btn-ai" onclick="runAI()">✦ צור תובנות AI</button>
-        <div class="ai-loading" id="ai-loading">מנתח... <span class="spinner"></span></div>
-        <div class="ai-result" id="ai-result"></div>
-        <div style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">
-          <button class="btn-sm" id="btn-ai-to-history" style="display:none" onclick="aiToHistory()">📄 הוסף להיסטוריה</button>
+        <div class="detail-unified-text d-info-case">
+          <div class="d-name">${escH(s.name)}</div>
+          <div class="d-meta-line d-meta-highlight">
+            <span class="meta-strong">כיתה ${escH(s.grade)}</span>
+            <span class="meta-dot" aria-hidden="true">·</span>
+            <span class="meta-strong" title="קוד כניסה לתלמיד">קוד ${escH(s.code||'—')}</span>
+          </div>
+          <h2 class="student-bg-heading">רקע התלמיד</h2>
+          <div class="detail-status-inline">
+            <span class="status-lbl-sm">סטטוס טיפול</span>
+            <select class="status-select status-select-sm ${selCls}" id="status-sel" onchange="updateStatus(this.value)">
+              ${statusOpts}
+            </select>
+          </div>
+          <div class="desc-block" onclick="openDescModal()" title="לחצי לעריכה">
+            <span class="desc-txt${desc?'':' desc-empty'}" id="desc-span">${desc?escH(desc):'לחצי להוספת תיאור רקע...'}</span>
+            <button class="btn-icon" tabindex="-1">✏️</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="sec">
-      <div class="sec-title">היסטוריה וסיכומי פגישות</div>
-      <div id="notes-list">
-        ${notesHtml}
+    <nav class="detail-subtabs" role="tablist" aria-label="תיק תלמיד">
+      <button type="button" class="detail-subtab" data-dtab="tasks" role="tab" onclick="setCounselorDetailTab('tasks')">משימות</button>
+      <button type="button" class="detail-subtab" data-dtab="history" role="tab" onclick="setCounselorDetailTab('history')">היסטוריה וסיכומי פגישות</button>
+    </nav>
+
+    <div id="counselor-panel-tasks">
+      <div class="sec">
+        <div class="sec-title" style="text-align:center">
+          📅 משימות שבועיות
+          <span class="prog-badge">${doneCount} מתוך ${weeklyTasks.length} הושלמו</span>
+        </div>
+        ${weeklyHtml}
       </div>
-      <div class="add-row" style="align-items:stretch;gap:10px">
-        <textarea class="add-input" id="note-draft" style="height:88px;resize:vertical;padding:10px 12px" placeholder="כתבי כאן סיכום פגישה..."></textarea>
-        <button class="btn-sm" style="height:42px" onclick="saveNote()">שמור</button>
+
+      <div class="sec">
+        <div class="sec-title" style="text-align:center">📚 בנק משימות</div>
+        ${bankHtml}
+        <div class="add-row" style="justify-content:center">
+          <input class="add-input" id="task-inp" placeholder="הוסף משימה לבנק..."
+            onkeydown="if(event.key==='Enter')addTask()">
+          <button class="btn-sm" id="btn-task-ai" title="הצעת משימה חכמה מהבנק לפי הקשר המלא" onclick="getAiTaskRecommendation()">✨</button>
+          <button class="btn-sm" onclick="addTask()">+</button>
+        </div>
+        <div class="ai-reason-tip" id="task-ai-reason" title="AI Reasoning"></div>
+      </div>
+    </div>
+
+    <div id="counselor-panel-history" style="display:none">
+      <div id="detail-history-content"></div>
+    </div>`;
+  await setCounselorDetailTab(tabRestore);
+}
+
+function buildSessionNotesCardsHtml(){
+  const notesSorted=[...(currentNotes||[])].filter(meetingNoteIsSession).sort((a,b)=>(parseIsoMs(a.created_at)||0)-(parseIsoMs(b.created_at)||0));
+  if(!notesSorted.length) return '<div class="sec-empty">אין עדיין סיכומי פגישות מתועדים</div>';
+  return notesSorted.map((n,idx)=>{
+    const num=idx+1;
+    const nid=String(n.id||'').replace(/[^a-fA-F0-9-]/g,'');
+    const fullText=(n.content!=null?n.content:'')||(n.summary_text!=null?n.summary_text:'')||'';
+    const prevPlain=meetingPreviewPlain(fullText,3);
+    const attBlock=renderNoteAttachmentsBlock(n.id,n);
+    const aiRaw=(n.ai_insights!=null?String(n.ai_insights):'').trim();
+    const aiBlock=aiRaw?`<div class="meeting-ai-insights"><h4>תובנות AI</h4><div class="meeting-ai-body">${escHBr(aiRaw)}</div></div>`:'';
+    const noteIdJson=JSON.stringify(String(n.id||''));
+    return `<div class="rep-card meeting-session-card" style="margin:12px 0">
+      <div class="meeting-entry-hdr"><span>סיכום פגישה #${num}</span><span>${escH(fmtDateOnly(n.created_at))}</span></div>
+      <button type="button" class="meeting-acc-toggle" id="meeting-acc-t-${nid}" aria-expanded="false" aria-controls="meeting-acc-body-${nid}" onclick="toggleMeetingAccordion('${nid}')">
+        <div class="meeting-preview-col">
+          <div class="meeting-preview">${escH(prevPlain)}</div>
+          <div class="meeting-acc-hint">הקישי להרחבה — סיכום מלא וקבצים</div>
+        </div>
+        <span class="meeting-acc-chevron" aria-hidden="true">▼</span>
+      </button>
+      <div class="meeting-acc-panel" id="meeting-acc-body-${nid}" hidden>
+        <div class="meeting-expanded-toolbar">
+          <label class="btn-attach btn-attach--panel-mini" title="צרף קובץ לפגישה זו" aria-label="צרף קובץ">
+            <input type="file" multiple accept=".pdf,.docx,image/jpeg,image/png,image/jpg,image/webp,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none" onchange="attachFilesToMeetingNote(${noteIdJson},this)">
+            📎
+          </label>
+          <span class="meeting-expanded-toolbar-hint" style="font-size:12px;color:var(--mid);font-weight:600">צירוף לסיכום זה</span>
+        </div>
+        <div class="meeting-full-text">${escHBr(fullText)}</div>
+        ${aiBlock}
+        ${attBlock}
+      </div>
+      <div class="meeting-card-actions">
+        <div class="meeting-attach-status" id="attach-status-${n.id}"></div>
+        <button type="button" class="btn-icon" onclick="startEditNote('${n.id}')">✏️ עריכה</button>
       </div>
     </div>`;
+  }).join('');
+}
+
+function renderCounselorDetailHistoryIfMounted(){
+  if(document.getElementById('detail-history-content')) void renderCounselorDetailHistory();
+}
+
+function toggleDetailMeetingAddForm(){
+  const w=document.getElementById('detail-meeting-add-panel');
+  if(!w) return;
+  const open=w.style.display==='none'||!w.style.display;
+  w.style.display=open?'block':'none';
+  if(open){
+    renderPendingUploadsPanel();
+    renderSessionAttachmentsUi();
+  }
+}
+
+async function setCounselorDetailTab(tab){
+  _counselorDetailTab=tab==='history'?'history':'tasks';
+  const tasks=document.getElementById('counselor-panel-tasks');
+  const hist=document.getElementById('counselor-panel-history');
+  const isTasks=tab!=='history';
+  if(tasks) tasks.style.display=isTasks?'block':'none';
+  if(hist) hist.style.display=isTasks?'none':'block';
+  document.querySelectorAll('.detail-subtab').forEach(b=>{
+    const on=b.getAttribute('data-dtab')===_counselorDetailTab;
+    b.classList.toggle('active',on);
+  });
+  if(!isTasks) await renderCounselorDetailHistory();
+  try{window.scrollTo({top:0,behavior:'smooth'});}catch(_){window.scrollTo(0,0);}
+}
+
+async function renderCounselorDetailHistory(preSnap){
+  const host=document.getElementById('detail-history-content');
+  if(!host||!currentSid) return;
+  const snap=preSnap===undefined?snapshotMeetingHistoryDraft():preSnap;
+  const stu=allStudents.find(x=>x.id===currentSid);
+  await reloadMeetingNotes();
+  const taskLine=escH(getWeeklyTaskSummaryLine(currentTasks));
+  const notesHtml=buildSessionNotesCardsHtml();
+  const kpBullets=renderKeyPointsBulletsHtml(stu);
+
+  host.innerHTML=`
+    <div class="meeting-history-embedded">
+    <section class="insights-section" aria-label="נקודות חשובות">
+      <h2 style="text-align:center">נקודות חשובות</h2>
+      <div class="system-trends--minimal">${taskLine}</div>
+      ${kpBullets}
+      <div class="insights-workspace">
+        <div class="key-points-ta-wrap">
+          <textarea id="key-points-ta" placeholder=""
+            oninput="onKeyPointsTaInput()"></textarea>
+          <button type="button" class="btn-kp-ai-wand" id="btn-key-points-wand" onclick="runKeyPointsAI()" title="יצירת נקודות AI" aria-label="יצירת נקודות AI">✨</button>
+          <div class="ai-loading kp-ai-loading" id="key-points-loading">מנתח... <span class="spinner spinner-dk"></span></div>
+        </div>
+        <div class="insights-actions">
+          <button type="button" class="btn-insights-save" id="btn-key-points-save" disabled onclick="saveKeyPointsToStudent()">שמירה</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="sec">
+      <div class="meeting-summaries-head-row" style="align-items:center">
+        <div class="sec-title sec-case-title" style="text-align:center;flex:1;min-width:0;margin-bottom:0">סיכומי פגישות</div>
+        <div class="meeting-summaries-head-toolbar">
+          <button type="button" class="btn-add-meeting-minimal" onclick="toggleDetailMeetingAddForm()" title="הוסף סיכום" aria-label="הוסף סיכום">+</button>
+        </div>
+      </div>
+      <p class="sec-case-note" style="text-align:center">תיעוד מהלך השיחה והמפגש</p>
+      ${notesHtml}
+      <div id="detail-meeting-add-panel" class="meeting-inline-add-panel" style="display:none">
+        <div class="new-meeting-upload-status" style="justify-content:center;display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px" aria-live="polite">
+          <div class="upload-inline-spinner" id="new-meeting-spinner" style="display:none"><span class="spinner spinner-teal"></span></div>
+          <div class="upload-progress-wrap" id="new-meeting-progress" style="display:none;flex:1;min-width:120px;max-width:280px">
+            <div class="upload-progress-bar"><div class="upload-progress-fill" id="new-meeting-progress-fill"></div></div>
+          </div>
+          <span class="upload-success-badge" id="new-meeting-success-badge" style="display:none">✓ נוספו לתור</span>
+        </div>
+        <div id="pending-uploads-panel" class="pending-uploads-panel" style="display:none"></div>
+        <button type="button" class="btn-commit-pending" id="btn-commit-pending" style="display:none" onclick="commitPendingUploads()">העלאה לאוסף</button>
+        <div class="add-row" style="align-items:flex-start;gap:10px;margin-top:12px;max-width:100%;justify-content:center">
+          <label class="btn-attach btn-attach--tiny" title="צרף קובץ" aria-label="צרף קובץ">
+            <input type="file" id="new-meeting-file-input" multiple accept=".pdf,.docx,image/jpeg,image/png,image/jpg,image/webp,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none" onchange="onNewMeetingFileInput(this)">
+            📎
+          </label>
+          <div class="meeting-summary-ta-wrap">
+            <label class="meeting-summary-lbl" for="note-draft-manual">כתבי את סיכום הפגישה</label>
+            <textarea class="add-input" id="note-draft-manual" style="height:auto;resize:vertical;max-width:100%;width:100%" placeholder=""></textarea>
+            <button type="button" class="btn-kp-ai-wand" id="btn-meeting-summary-ai" onclick="runMeetingSummaryAI()" title="סיכום שבועי ותובנות (AI)" aria-label="סיכום שבועי ותובנות AI">✨</button>
+            <div class="ai-loading kp-ai-loading" id="meeting-summary-ai-loading">מנתח... <span class="spinner spinner-dk"></span></div>
+          </div>
+          <button type="button" class="btn-sm btn-meeting-save" id="btn-meeting-save" style="height:42px;align-self:flex-start;margin-top:22px" onclick="saveManualHistoryNote()">שמור</button>
+        </div>
+        <div id="session-attachments-panel" class="attachments-panel"></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="general-files-head-row">
+        <h3 class="sec-title sec-case-title" style="text-align:right;font-size:17px;margin-bottom:0;flex:1">מסמכים</h3>
+        <label class="btn-attach btn-attach--header" title="צרף מסמך לתיק" aria-label="צרף מסמך לתיק">
+          <input type="file" id="general-student-file-input" multiple
+            accept=".pdf,.doc,.docx,image/jpeg,image/png,image/jpg,image/webp,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            style="display:none" onchange="onGeneralDocumentsFileInput(this)">
+          📎
+        </label>
+      </div>
+      ${renderGeneralFilesBlock()}
+    </div>
+    </div>`;
+  syncKeyPointsSaveBtn();
+  restoreMeetingHistoryDraft(snap);
+  renderPendingUploadsPanel();
+  renderSessionAttachmentsUi();
+}
+
+async function attachFilesToMeetingNote(noteId, input){
+  const files=input&&input.files;
+  if(!files||!files.length) return;
+  const arr=[...files];
+  if(input) input.value='';
+  const note=(currentNotes||[]).find(n=>n.id===noteId);
+  if(!note){showToast('סיכום לא נמצא');return;}
+  const snap=snapshotMeetingHistoryDraft();
+  const existingRaw=normalizeAttachments(note.attachments);
+  const existing=existingRaw.map(a=>({
+    name:a.name||'קובץ',
+    mime:a.mime||guessMimeFromName(a.name),
+    data:String(a.data||a.url||''),
+  }));
+  const maxB=4*1024*1024;
+  const additions=[];
+  setNoteAttachBusy(noteId,true);
+  try{
+    for(const f of arr){
+      if(f.size>maxB){showToast(`הקובץ ${f.name} גדול מדי (מקס׳ 4MB)`);continue;}
+      if(isDocExtractFile(f)){
+        if(f.name&&f.name.toLowerCase().endsWith('.doc')&&!f.name.toLowerCase().endsWith('.docx')){
+          showToast('קובץ .doc ישן אינו נתמך — DOCX או PDF');
+          continue;
+        }
+      }
+      if(!isImageFile(f)&&!isDocExtractFile(f)){
+        showToast(`לא נתמך: ${f.name||'קובץ'}`);
+        continue;
+      }
+      try{
+        const data=await readFileAsDataUrl(f);
+        additions.push({
+          name:f.name||'קובץ',
+          mime:f.type||guessMimeFromName(f.name),
+          data:String(data),
+        });
+      }catch(_){showToast('שגיאה בקריאת קובץ');}
+    }
+    if(!additions.length){
+      setNoteAttachBusy(noteId,false);
+      return;
+    }
+    const merged=[...existing,...additions];
+    const saved=await apiFetch(`/meeting-notes/${noteId}`,{method:'PATCH',body:JSON.stringify({attachments:merged})});
+    currentNotes=(currentNotes||[]).map(n=>n.id===noteId?saved:n);
+    if(_editingNoteId===noteId){
+      editingSessionAttachments=normalizeAttachments(saved.attachments).map((a,i)=>({
+        _id:'e'+String(noteId).replace(/-/g,'').slice(0,10)+i,
+        name:a.name||'קובץ',
+        mime:a.mime||guessMimeFromName(a.name||''),
+        data:String(a.data||a.url||''),
+      }));
+    }
+    renderCounselorDetailHistoryIfMounted();
+    restoreMeetingHistoryDraft(snap);
+    setNoteAttachBusy(noteId,false);
+    flashNoteAttachSuccess(noteId);
+    showToast('קבצים צורפו ✓');
+  }catch(e){
+    showToast(`שגיאה: ${e.message}`);
+    renderCounselorDetailHistoryIfMounted();
+    restoreMeetingHistoryDraft(snap);
+    setNoteAttachBusy(noteId,false);
+  }
 }
 
 /* ════════════════ STATUS ════════════════ */
@@ -1069,13 +2701,13 @@ async function updateStatus(newStatus){
   const prev=s.status;
   s.status=newStatus;
   const sel=document.getElementById('status-sel');
-  if(sel){sel.className=`status-select ${statusSelCls(newStatus)}`;}
+  if(sel){sel.className=`status-select status-select-sm ${statusSelCls(newStatus)}`;}
   try{
     await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({status:newStatus})});
-    showToast('סטטוס עודכן ✓');
+    showToast('רקע התלמיד עודכן ✓');
   }catch(e){
     s.status=prev;
-    if(sel){sel.value=canonicalStatus(prev);sel.className=`status-select ${statusSelCls(canonicalStatus(prev))}`;}
+    if(sel){sel.value=canonicalStatus(prev);sel.className=`status-select status-select-sm ${statusSelCls(canonicalStatus(prev))}`;}
     showToast(`שגיאה: ${e.message}`);
   }
 }
@@ -1119,7 +2751,7 @@ async function savePhoto(){
     const s=allStudents.find(x=>x.id===_photoSid);
     if(s) s.photo=b64;
     closeModal('modal-photo');showToast('תמונה עודכנה ✓');
-    renderDetail(allStudents.find(x=>x.id===_photoSid));
+    await renderDetail(allStudents.find(x=>x.id===_photoSid));
   }catch(e){showToast(`שגיאה: ${e.message}`);}
   finally{setBusy('btn-photo-save',false,'שמור תמונה');}
 }
@@ -1127,10 +2759,10 @@ async function savePhoto(){
 /* ════════════════ TASK REPORT MODAL ════════════════ */
 function openTaskModal(taskId){
   const task=currentTasks.find(t=>t.id===taskId);if(!task)return;
+  _mtrTaskId=taskId;
   const rep=currentReports.find(r=>r.task_id===taskId||r.task_name===task.text);
   document.getElementById('mtr-title').textContent=task.text;
-  const statusTxt=task.done?'✅ הושלם':task.selected?'⏳ בתהליך':'📚 בנק משימות';
-  document.getElementById('mtr-status').textContent=statusTxt;
+  document.getElementById('mtr-status').textContent=rep?'דיווח מהתלמיד':'';
   let body;
   if(rep){
     const confH=rep.confidence_score?`<div class="rep-conf">⭐ ביטחון עצמי: ${rep.confidence_score}/5</div>`:'';
@@ -1150,6 +2782,13 @@ function openTaskModal(taskId){
   document.getElementById('modal-task-rep').classList.add('show');
 }
 
+function deleteTaskFromModal(){
+  const id=_mtrTaskId;
+  closeModal('modal-task-rep');
+  _mtrTaskId=null;
+  if(id) delTask(id);
+}
+
 /* ════════════════ TASKS ════════════════ */
 async function addTask(){
   const inp=document.getElementById('task-inp');
@@ -1157,7 +2796,7 @@ async function addTask(){
   try{
     const t=await apiFetch('/tasks',{method:'POST',body:JSON.stringify({student_id:currentSid,text})});
     inp.value='';currentTasks.push(t);
-    renderDetail(allStudents.find(x=>x.id===currentSid));
+    await renderDetail(allStudents.find(x=>x.id===currentSid));
     showToast('משימה נוספה לבנק ✓');
   }catch(e){showToast(`שגיאה: ${e.message}`);}
 }
@@ -1188,15 +2827,18 @@ async function getAiTaskRecommendation(){
   finally{setBusy('btn-task-ai',false,'✨');}
 }
 
-async function delTask(taskId){
-  if(!confirm('למחוק משימה זו?'))return;
-  try{
-    await apiFetch(`/tasks/${taskId}`,{method:'DELETE'});
-    currentTasks=currentTasks.filter(t=>t.id!==taskId);
-    currentReports=currentReports.filter(r=>r.task_id!==taskId);
-    renderDetail(allStudents.find(x=>x.id===currentSid));
-    showToast('משימה נמחקה');
-  }catch(e){showToast(`שגיאה: ${e.message}`);}
+function delTask(taskId){
+  showAppConfirm('מחיקת משימה','למחוק משימה זו?',()=>{
+    void (async()=>{
+      try{
+        await apiFetch(`/tasks/${taskId}`,{method:'DELETE'});
+        currentTasks=currentTasks.filter(t=>t.id!==taskId);
+        currentReports=currentReports.filter(r=>r.task_id!==taskId);
+        await renderDetail(allStudents.find(x=>x.id===currentSid));
+        showToast('משימה נמחקה');
+      }catch(e){showToast(`שגיאה: ${e.message}`);}
+    })();
+  });
 }
 
 /* ════════════════ ADD STUDENT ════════════════ */
@@ -1225,96 +2867,153 @@ async function doAddStudent(){
   finally{setBusy('btn-add-submit',false,'הוסף');}
 }
 
-/* ════════════════ AI ════════════════ */
-async function runAI(){
-  const btn=document.getElementById('btn-ai');
-  const loading=document.getElementById('ai-loading');
-  const result=document.getElementById('ai-result');
-  const btnToHist=document.getElementById('btn-ai-to-history');
-  btn.style.display='none';loading.classList.add('show');result.classList.remove('show');
-  if(btnToHist) btnToHist.style.display='none';
-  try{
-    const data=await apiFetch(`/analyze-student/${currentSid}`,{method:'POST'});
-    _aiSummaryLast = (data.sentiment_summary||'').trim();
-    result.innerHTML=`
-      <div class="ai-block">
-        <h4>סיכום קצר</h4>
-        <p>${escH(_aiSummaryLast)}</p>
-      </div>
-    `;
-    result.classList.add('show');
-    if(btnToHist && _aiSummaryLast) btnToHist.style.display='inline-flex';
-  }catch(e){
-    result.innerHTML=`<div class="ai-block" style="border-color:var(--red)"><h4>שגיאה</h4><p>${escH(e.message)}</p></div>`;
-    result.classList.add('show');
+/* ════════════════ AI + meeting notes ════════════════ */
+async function refreshAfterNoteSave(opts={}){
+  const preserve=!!opts.preserveKeyPointsDraft;
+  const prev=preserve?(document.getElementById('key-points-ta')?.value||''):'';
+  const prevAi=_keyPointsAiUsed;
+  const prevEd=_keyPointsUserEdited;
+  await renderDetail(allStudents.find(x=>x.id===currentSid));
+  if(preserve && prev){
+    const t=document.getElementById('key-points-ta');
+    if(t){
+      t.value=prev;
+      _keyPointsAiUsed=prevAi;
+      _keyPointsUserEdited=prevEd;
+      syncKeyPointsSaveBtn();
+    }
   }
-  loading.classList.remove('show');btn.style.display='flex';
 }
 
-function aiToHistory(){
-  const ta=document.getElementById('note-draft');
-  if(!ta) return;
-  ta.value=_aiSummaryLast||'';
-  _noteIsAi=!!_aiSummaryLast;
-  _editingNoteId=null;
-  ta.focus();
-}
-
-async function saveNote(){
-  const ta=document.getElementById('note-draft');
-  const text=(ta&&ta.value||'').trim();
-  if(!text){showToast('נא לכתוב סיכום לפני שמירה');return;}
-   const isAi=_noteIsAi;
-   let editStatus;
-   if(_editingNoteId){
-     const existing=(currentNotes||[]).find(n=>n.id===_editingNoteId);
-     if(existing && (existing.is_ai_generated || existing.edit_status==='ai_generated' || existing.edit_status==='ai_edited')){
-       editStatus='ai_edited';
-     }else{
-       editStatus='manual';
-     }
-   }else{
-     editStatus=isAi?'ai_generated':'manual';
-   }
+async function saveNoteCore(text, isAiFlow, opts={}){
+  if(!text||!String(text).trim()){showToast('נא לכתוב סיכום לפני שמירה');return;}
+  const noteType=opts.noteType||'session';
+  const forceEditStatus=opts.forceEditStatus||null;
+  let editStatus;
+  let flagAi;
+  if(_editingNoteId){
+    const existing=(currentNotes||[]).find(n=>n.id===_editingNoteId);
+    if(existing && (existing.is_ai_generated || existing.edit_status==='ai_generated' || existing.edit_status==='ai_edited')){
+      editStatus='ai_edited';
+      flagAi=true;
+    }else{
+      editStatus='manual';
+      flagAi=false;
+    }
+  }else{
+    if(forceEditStatus) editStatus=forceEditStatus;
+    else editStatus=isAiFlow?'ai_generated':'manual';
+    flagAi=(editStatus==='ai_generated'||editStatus==='ai_edited');
+  }
+  const attPayload=noteType==='session'
+    ?attachmentsForApi(_editingNoteId?editingSessionAttachments:draftSessionAttachments)
+    :[];
+  const saveBtnSession=noteType==='session'?getSessionSaveBtn():null;
+  if(saveBtnSession){
+    saveBtnSession.disabled=true;
+    saveBtnSession.dataset._prevHtml=saveBtnSession.innerHTML;
+    saveBtnSession.innerHTML='<span class="spinner" style="width:16px;height:16px;border-width:2px;border-color:rgba(255,255,255,.4);border-top-color:#fff;border-right-color:#fff;display:inline-block;vertical-align:middle;margin-left:6px"></span> שומר...';
+  }
   try{
     let saved;
     if(_editingNoteId){
       saved=await apiFetch(`/meeting-notes/${_editingNoteId}`,{
         method:'PATCH',
-        body:JSON.stringify({content:text,is_ai_generated:isAi,edit_status:editStatus})
+        body:JSON.stringify({
+          content:text,
+          is_ai_generated:flagAi,
+          edit_status:editStatus,
+          attachments:attPayload,
+        })
       });
       currentNotes=(currentNotes||[]).map(n=>n.id===_editingNoteId?saved:n);
     }else{
       saved=await apiFetch(`/meeting-notes/${currentSid}`,{
         method:'POST',
-        body:JSON.stringify({content:text,is_ai_generated:isAi,edit_status:editStatus})
+        body:JSON.stringify({
+          content:text,
+          is_ai_generated:flagAi,
+          edit_status:editStatus,
+          note_type:noteType,
+          attachments:attPayload,
+        })
       });
       currentNotes=[saved,...(currentNotes||[])];
     }
-    if(ta) ta.value='';
+    draftSessionAttachments=[];
+    editingSessionAttachments=[];
+    const taM=getNoteDraftTa();
+    if(taM) taM.value='';
     _noteIsAi=false;
     _editingNoteId=null;
-    renderDetail(allStudents.find(x=>x.id===currentSid));
-    showToast('נשמר להיסטוריה ✓');
+    await refreshAfterNoteSave({preserveKeyPointsDraft:noteType==='session'});
+    showToast('נשמר בתיק התלמיד ✓');
   }catch(e){showToast(`שגיאה: ${e.message}`);}
+  finally{
+    if(saveBtnSession){
+      saveBtnSession.disabled=false;
+      if(saveBtnSession.dataset._prevHtml!=null){
+        saveBtnSession.innerHTML=saveBtnSession.dataset._prevHtml;
+        delete saveBtnSession.dataset._prevHtml;
+      }else{
+        saveBtnSession.textContent='שמור';
+      }
+    }
+  }
 }
 
-function startEditNote(id){
+async function saveManualHistoryNote(){
+  const ta=getNoteDraftTa();
+  const text=ta&&ta.value!=null?String(ta.value).trim():'';
+  await saveNoteCore(text, false, {noteType:'session'});
+}
+
+async function startEditNote(id){
   const note=(currentNotes||[]).find(n=>n.id===id);
-  const ta=document.getElementById('note-draft');
-  if(!note||!ta)return;
+  let ta=getNoteDraftTa();
+  if(!note||!meetingNoteIsSession(note)) return;
+  if(!ta){
+    _counselorDetailTab='history';
+    await renderDetail(allStudents.find(x=>x.id===currentSid));
+    const p=document.getElementById('detail-meeting-add-panel');
+    if(p) p.style.display='block';
+    ta=getNoteDraftTa();
+    if(!ta) return;
+  }else{
+    const wrap=document.getElementById('detail-meeting-add-panel');
+    if(wrap) wrap.style.display='block';
+  }
   ta.value=note.content||'';
   _editingNoteId=id;
   _noteIsAi=!!note.is_ai_generated;
+  draftSessionAttachments=[];
+  editingSessionAttachments=normalizeAttachments(note.attachments).map((a,i)=>({
+    _id:'e'+String(id).replace(/-/g,'').slice(0,10)+i,
+    name:a.name||'קובץ',
+    mime:a.mime||guessMimeFromName(a.name||''),
+    data:String(a.data||a.url||''),
+  }));
+  renderSessionAttachmentsUi();
+  renderPendingUploadsPanel();
   ta.focus();
+  try{ta.scrollIntoView({behavior:'smooth',block:'center'});}catch(_){}
 }
-function editSug(i){const el=document.getElementById(`sg-t-${i}`);const v=prompt('ערכי את המשימה:',window._sug[i]);if(v&&v.trim()){window._sug[i]=v.trim();el.textContent=v.trim();}}
+function editSug(i){
+  const el=document.getElementById(`sg-t-${i}`);
+  if(!el) return;
+  showRenameModal('עריכת משימה',window._sug[i]||'',(v)=>{
+    if(v&&v.trim()){
+      window._sug[i]=v.trim();
+      el.textContent=v.trim();
+    }
+  });
+}
 function remSug(i){document.getElementById(`sg-${i}`).remove();window._sug[i]=null;}
 async function addSug(i){
   const text=window._sug[i];if(!text)return;
   try{
     const t=await apiFetch('/tasks',{method:'POST',body:JSON.stringify({student_id:currentSid,text})});
-    currentTasks.push(t);renderDetail(allStudents.find(x=>x.id===currentSid));
+    currentTasks.push(t);await renderDetail(allStudents.find(x=>x.id===currentSid));
     document.getElementById(`sg-${i}`).style.opacity='.4';
     document.querySelector(`#sg-${i} .sug-btn.add`).textContent='✓ נוסף';
     showToast('משימה נוספה לבנק ✓');

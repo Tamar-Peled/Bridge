@@ -6,7 +6,8 @@
 -- ── 1. students: add missing columns ────────────────────────
 ALTER TABLE public.students
   ADD COLUMN IF NOT EXISTS description  text          DEFAULT '',
-  ADD COLUMN IF NOT EXISTS photo        text          DEFAULT '';   -- base64 or storage URL
+  ADD COLUMN IF NOT EXISTS photo        text          DEFAULT '',   -- base64 or storage URL
+  ADD COLUMN IF NOT EXISTS general_files jsonb       DEFAULT '[]'::jsonb;  -- counselor file cabinet (not shown to student app)
 
 -- ── 2. reports: add task_id FK + audio + confidence ─────────
 ALTER TABLE public.reports
@@ -50,9 +51,14 @@ CREATE POLICY "Allow audio upload" ON storage.objects
 -- The backend uses service_role key → bypasses RLS anyway.
 -- If you ever enable RLS, add policies here.
 
--- ── 8. Verify columns exist ─────────────────────────────────
+-- ── 8. meeting_notes: session vs insight + attachments ─────
+ALTER TABLE public.meeting_notes
+  ADD COLUMN IF NOT EXISTS note_type   text DEFAULT 'session',
+  ADD COLUMN IF NOT EXISTS attachments jsonb DEFAULT '[]'::jsonb;
+
+-- ── 9. Verify columns exist ─────────────────────────────────
 SELECT column_name, data_type
 FROM information_schema.columns
-WHERE table_name IN ('students','tasks','reports','logs')
+WHERE table_name IN ('students','tasks','reports','logs','meeting_notes')
   AND table_schema = 'public'
 ORDER BY table_name, column_name;
