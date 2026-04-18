@@ -869,7 +869,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   </div>
   <div class="content">
     <div class="page-title">התלמידים שלי</div>
-    <div class="page-sub" id="page-sub-main">בחרי מצב תצוגה: ליווי פעיל או ארכיון ליווים שהסתיימו. ברירת המחדל מציגה תלמידים בליווי, לפי דחיפות.</div>
     <div class="list-tabs" role="tablist">
       <button type="button" class="list-tab active" id="tab-active" role="tab" aria-selected="true" onclick="setListTab('active')">בליווי פעיל</button>
       <button type="button" class="list-tab" id="tab-completed" role="tab" aria-selected="false" onclick="setListTab('completed')">ליווים שהסתיימו</button>
@@ -2061,10 +2060,6 @@ function setListTab(tab){
   if(tC){
     tC.classList.toggle('active',listTab==='completed');
     tC.setAttribute('aria-selected',listTab==='completed'?'true':'false');
-  }
-  const sub=document.getElementById('page-sub-main');
-  if(sub){
-    sub.textContent='';
   }
   filterStudents();
 }
