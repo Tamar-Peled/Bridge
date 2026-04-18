@@ -13,6 +13,7 @@ import re
 import json
 import uuid
 import base64
+import hashlib
 from difflib import SequenceMatcher
 
 from langchain_openai import ChatOpenAI
@@ -97,6 +98,12 @@ class StudentPatch(BaseModel):
     engagement_level: Optional[str] = None
     general_files:    Optional[List[dict]] = None  # [{name, mime, data}] counselor-only file cabinet
     key_points:       Optional[List[dict]] = None  # [{text, at}] counselor "נקודות חשובות"
+
+class KeyPointDelete(BaseModel):
+    """Delete a single counselor key point by id or (at+text)."""
+    id: Optional[str] = None
+    at: Optional[str] = None
+    text: Optional[str] = None
 
 class TaskCreate(BaseModel):
     student_id:       str
@@ -577,6 +584,40 @@ def patch_student(student_id: str, data: StudentPatch):
     if not res.data:
         raise HTTPException(status_code=404, detail="תלמיד לא נמצא")
     return res.data[0]
+
+
+def _key_point_matches(p: dict, target: KeyPointDelete) -> bool:
+    pid = str(p.get("id") or "").strip()
+    if target.id and pid and pid == target.id:
+        return True
+    at = str(p.get("at") or "").strip()
+    txt = str(p.get("text") or "").strip()
+    if target.at and target.text and at == (target.at or "").strip() and txt == (target.text or "").strip():
+        return True
+    if target.id and (at or txt):
+        derived = hashlib.md5(f"{at}|{txt}".encode("utf-8")).hexdigest()[:16]
+        if target.id == derived:
+            return True
+    return False
+
+
+@app.delete("/students/{student_id}/key-points")
+def delete_key_point(student_id: str, body: KeyPointDelete):
+    """Delete one key point from students.key_points (counselor UI)."""
+    st = db.table("students").select("key_points").eq("id", student_id).execute()
+    if not st.data:
+        raise HTTPException(status_code=404, detail="תלמיד לא נמצא")
+    cur = st.data[0].get("key_points") or []
+    if not isinstance(cur, list):
+        cur = []
+    before = [p for p in cur if isinstance(p, dict)]
+    after = [p for p in before if not _key_point_matches(p, body)]
+    if len(after) == len(before):
+        raise HTTPException(status_code=404, detail="נקודה לא נמצאה")
+    res = db.table("students").update({"key_points": after}).eq("id", student_id).execute()
+    if not res.data:
+        raise HTTPException(status_code=500, detail="מחיקה נכשלה")
+    return {"deleted": True, "key_points": res.data[0].get("key_points")}
 
 
 @app.post("/students/{student_id}/files/upload")

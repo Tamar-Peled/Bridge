@@ -1190,15 +1190,14 @@ function restoreMeetingHistoryDraft(s){
   if(!s) return;
   const ti=document.getElementById('key-points-ta');
   if(ti){
-    const stu=allStudents.find(x=>x.id===currentSid);
-    const dbLines=keyPointsLinesFromStudent(stu);
     if(s.clearKeyPointsComposer){
       ti.value='';
       _keyPointsAiUsed=false;
       _keyPointsUserEdited=false;
     }else{
+      // Composer is one-way: only restore in-session draft from snapshot — never hydrate from saved key_points.
       const draft=s.keyPoints!=null?String(s.keyPoints):'';
-      ti.value=draft.trim()?draft:dbLines;
+      ti.value=draft.trim()?draft:'';
       _keyPointsAiUsed=s.ai;
       _keyPointsUserEdited=s.ue;
     }
@@ -1222,20 +1221,28 @@ function parseKeyPointsFromStudent(stu){
   }
   return [];
 }
-function keyPointsLinesFromStudent(stu){
-  return parseKeyPointsFromStudent(stu).map(p=>String(p.text||'').trim()).filter(Boolean).join('\n');
-}
 function renderKeyPointsBulletsHtml(stu){
   const pts=parseKeyPointsFromStudent(stu);
   if(!pts.length) return '<p class="key-points-empty">אין נקודות שמורות — הזיני ידנית או לחצי על יצירת נקודות AI.</p>';
   return `<ul class="key-points-ul">${pts.map(p=>{
     const d=fmtDateOnly(p.at)||'';
-    return `<li class="key-point-row"><span class="kp-text">${escH(String(p.text||''))}</span><span class="kp-date">${escH(d)}</span></li>`;
+    const pid=escAttr(String(p.id||'')); // optional
+    const txt=escAttr(String(p.text||'')); // for legacy match
+    const at=escAttr(String(p.at||''));   // for legacy match
+    return `<li class="key-point-row">
+      <span class="kp-text">${escH(String(p.text||''))}</span>
+      <span class="kp-date">${escH(d)}</span>
+      <button type="button" class="kp-del" title="מחק" aria-label="מחק" onclick="deleteKeyPoint('${pid}','${at}','${txt}')">🗑</button>
+    </li>`;
   }).join('')}</ul>`;
 }
 function parseTextareaToKeyPoints(text){
   const now=new Date().toISOString();
-  return String(text||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(t=>({text:t,at:now}));
+  return String(text||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(t=>({
+    id: (typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():('kp'+Date.now()+'-'+Math.random().toString(36).slice(2,8)),
+    text:t,
+    at:now
+  }));
 }
 function showAppConfirm(title,message,onOk){
   document.getElementById('app-confirm-title').textContent=title;
@@ -1476,8 +1483,6 @@ async function saveKeyPointsToStudent(){
   const existing=parseKeyPointsFromStudent(stu);
   const merged=[...newPts,...existing];
   const snap=snapshotMeetingHistoryDraft();
-  ta.value='';
-  syncKeyPointsSaveBtn();
   try{
     const updated=await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({key_points:merged})});
     if(stu) stu.key_points=updated.key_points!=null?updated.key_points:merged;
@@ -1485,6 +1490,8 @@ async function saveKeyPointsToStudent(){
     snap.ai=false;
     snap.ue=false;
     snap.clearKeyPointsComposer=true;
+    ta.value='';
+    syncKeyPointsSaveBtn();
     await renderCounselorDetailHistory(snap);
     showToast('נקודות חשובות נשמרו ✓');
   }catch(e){
@@ -1492,6 +1499,28 @@ async function saveKeyPointsToStudent(){
     ta.value=newPts.map(p=>p.text).join('\n');
     restoreMeetingHistoryDraft(snap);
   }
+}
+
+function deleteKeyPoint(id, at, text){
+  if(!currentSid) return;
+  showAppConfirm('מחיקת נקודה','האם את בטוחה שברצונך למחוק נקודה זו?',()=>{
+    void (async()=>{
+      const stu=allStudents.find(x=>x.id===currentSid);
+      const snap=snapshotMeetingHistoryDraft();
+      try{
+        const res=await apiFetch(`/students/${currentSid}/key-points`,{
+          method:'DELETE',
+          body:JSON.stringify({id:id||null,at:at||null,text:text||null}),
+        });
+        if(stu) stu.key_points=res.key_points!=null?res.key_points:(stu.key_points||[]);
+        await renderCounselorDetailHistory(snap);
+        showToast('נקודה נמחקה');
+      }catch(e){
+        showToast(`שגיאה: ${e.message}`);
+        restoreMeetingHistoryDraft(snap);
+      }
+    })();
+  });
 }
 function setNewMeetingUploadBusy(busy){
   const sp=document.getElementById('new-meeting-spinner');
@@ -2035,9 +2064,7 @@ function setListTab(tab){
   }
   const sub=document.getElementById('page-sub-main');
   if(sub){
-    sub.textContent=listTab==='completed'
-      ?'ארכיון: תלמידים שסומנו כסיימו ליווי — לצפייה בתיק ובהיסטוריה בלבד.'
-      :'ליווי פעיל: תלמידים שאינם בארכיון — הרשימה ממוינת לפי דחיפות (מעקב צמוד והתראות בראש).';
+    sub.textContent='';
   }
   filterStudents();
 }
@@ -2344,7 +2371,10 @@ function filterStudents(){
 
 /* ════════════════ DETAIL ════════════════ */
 async function openStudent(id){
-  currentSid=id;_counselorDetailTab='tasks';showScreen('screen-detail');
+  currentSid=id;
+  _keyPointsAiUsed=false;
+  _keyPointsUserEdited=false;
+  _counselorDetailTab='tasks';showScreen('screen-detail');
   document.getElementById('detail-content').innerHTML='<div class="loading-box"><span class="spinner spinner-dk"></span> טוען...</div>';
   try{
     const [tasks,reports,notes,docs]=await Promise.all([
