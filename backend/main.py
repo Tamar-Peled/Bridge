@@ -66,7 +66,7 @@ app.add_middleware(
         "http://127.0.0.1:5500",
         "http://localhost:5500",
         "https://bridge-git-main-tamar-peleds-projects.vercel.app",
-        "https://bridge-five-tau.vercel.app/",
+        "https://bridge-five-tau.vercel.app",
     ],
     # Live Server, Vite, etc. on any localhost port
     allow_origin_regex=r"^http://(localhost|127\.0\.0\.1)(:\d+)?$",
