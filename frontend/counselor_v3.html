@@ -2335,7 +2335,7 @@ function renderList(list){
         </div>`
       : '';
 
-    const statusBadgeHtml = status === 'בתהליך' ? '' : `<div class="s-badges"><span class="badge ${statusBadgeCls(status)}">${escH(status)}</span></div>`;
+    const statusBadgeHtml = (status === 'בתהליך' || status === 'סיים תהליך') ? '' : `<div class="s-badges"><span class="badge ${statusBadgeCls(status)}">${escH(status)}</span></div>`;
 
     return `<div class="${cardCls}" onclick="openStudent('${s.id}')">
       ${av}
