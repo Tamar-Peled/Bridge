@@ -1954,7 +1954,7 @@ function openAiAlertModal(studentId, ev){
   const bodyEl=document.getElementById('ai-alert-body');
   const btnsEl=document.getElementById('ai-alert-btns');
   const reason=pa.reasonHebrew||'המערכת זיהתה דפוס שמצריך תשומת לב.';
-  if(noteEl) noteEl.textContent='התראה זו נוצרה אוטומטית לפי דפוסי דיווח ומשימות.';
+  if(noteEl) noteEl.textContent='התראה זו נוצרה אוטומטית לפי דפוסי שיתוף ומשימות.';
   if(bodyEl){
     bodyEl.innerHTML=`<div style="font-size:14px;color:var(--mid);line-height:1.6;margin-top:6px">
       ${escH(reason)}
@@ -2329,19 +2329,20 @@ function renderList(list){
       ?`<div class="s-badges" style="margin-top:6px">${pa.tags.map(t=>`<span class="reason-tag">${escH(t)}</span>`).join('')}</div>`
       :'';
     const tip=escH(pa.reasonHebrew||'');
-    const sysLbl=showAiLabel
-      ?`<div class="dashboard-alert-row">
+    const sysLbl = showAiLabel
+      ? `<div class="dashboard-alert-row">
           <button type="button" class="system-flag-label" title="${tip}" onclick="openAiAlertModal('${s.id}',event)">⚠️ אזהרה לתשומת לב</button>
         </div>`
-      :'';
+      : '';
+
+    const statusBadgeHtml = status === 'בתהליך' ? '' : `<div class="s-badges"><span class="badge ${statusBadgeClass}">${status}</span></div>`;
+
     return `<div class="${cardCls}" onclick="openStudent('${s.id}')">
       ${av}
       <div class="s-info">
-        <div class="s-name">${isStatusAlert?'⚠️ ':''}${escH(s.name)}</div>
+        <div class="s-name">${isStatusAlert ? '⚠️ ' : ''}${escH(s.name)}</div>
         <div class="s-meta">כיתה ${escH(s.grade)}</div>
-        <div class="s-badges">
-          <span class="badge ${statusBadgeCls(status)}">${status}</span>
-        </div>
+        ${statusBadgeHtml}
         ${sysLbl}
         ${reasonTags}
       </div>
@@ -2349,6 +2350,8 @@ function renderList(list){
     </div>`;
   }).join('');
 }
+    
+  
 
 function filterStudents(){
   const q=(document.getElementById('search-input')&&document.getElementById('search-input').value||'').trim().toLowerCase();
@@ -2787,7 +2790,7 @@ function openTaskModal(taskId){
   _mtrTaskId=taskId;
   const rep=currentReports.find(r=>r.task_id===taskId||r.task_name===task.text);
   document.getElementById('mtr-title').textContent=task.text;
-  document.getElementById('mtr-status').textContent=rep?'דיווח מהתלמיד':'';
+  document.getElementById('mtr-status').textContent=rep?'שיתוף מהתלמיד':'';
   let body;
   if(rep){
     const confH=rep.confidence_score?`<div class="rep-conf">⭐ ביטחון עצמי: ${rep.confidence_score}/5</div>`:'';
@@ -2801,7 +2804,7 @@ function openTaskModal(taskId){
       ${audioH}${confH}
     </div>`;
   }else{
-    body='<div class="sec-empty" style="padding:14px 0">התלמיד טרם דיווח על משימה זו</div>';
+    body='<div class="sec-empty" style="padding:14px 0">אין עדיין שיתוף מהתלמיד על משימה זו</div>';
   }
   document.getElementById('mtr-body').innerHTML=body;
   document.getElementById('modal-task-rep').classList.add('show');

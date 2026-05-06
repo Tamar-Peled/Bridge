@@ -523,7 +523,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   <div class="content">
     <div class="week-hero">
       <div class="week-hero-greet">
-        <div class="welcome-name" id="w-name">שלום!</div>
+        <div class="welcome-name" id="w-name">היי!</div>
         <div class="welcome-grade">כיתה <span id="w-grade"></span></div>
       </div>
       <div class="week-progress-visual">
@@ -635,7 +635,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     </div>
   </div>
   <div class="content">
-    <div class="rep-heading" id="rep-mode-lbl">דיווח משימה</div>
+    <div class="rep-heading" id="rep-mode-lbl">שיתוף משימה</div>
     <div class="rep-task-lbl" id="rep-task-lbl"></div>
     <div class="rep-q">איך הרגשת אחרי המשימה?</div>
     <div class="emoji-grid">
@@ -657,7 +657,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
         <div class="audio-ok">✓ הקלטה שמורה</div>
       </div>
     </div>
-    <button class="btn-save" id="btn-save" onclick="submitReport()">שמור דיווח</button>
+    <button class="btn-save" id="btn-save" onclick="submitReport()">שמור שיתוף</button>
   </div>
 </div>
 
@@ -673,7 +673,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   <div class="content">
     <div class="view-task-lbl" id="view-task-lbl"></div>
     <div class="view-card" id="view-card"></div>
-    <button class="btn-ghost" onclick="openEditReport()">✏️ ערוך דיווח</button>
+    <button class="btn-ghost" onclick="openEditReport()">✏️ ערוך שיתוף</button>
     <button class="btn-primary mt10" onclick="showScreen('sc-home')">חזרה לבית</button>
   </div>
 </div>
@@ -681,7 +681,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 <!-- ════ SUCCESS ════ -->
 <div class="success" id="success-overlay">
   <div class="success-emoji">🎉</div>
-  <div class="success-title">תודה על הדיווח!</div>
+  <div class="success-title">תודה על השיתוף!</div>
   <button class="btn-primary" style="max-width:280px" onclick="afterSuccess()">חזרה לבית</button>
 </div>
 
@@ -1028,7 +1028,8 @@ async function doLogin(){
     // GET /students/login/{code} — login by 4-digit code
     studentCode=code;
     me=await api(`/students/login/${code}`);
-    document.getElementById('w-name').textContent=`שלום, ${me.name}! 👋`;
+    const firstName=(me.name||'').trim().split(/\s+/)[0]||me.name||'';
+    document.getElementById('w-name').textContent=`וואי ${firstName}, כמה הצלחת השבוע!`;
     document.getElementById('w-grade').textContent=me.grade;
     showScreen('sc-home');
     setStudentTab('tasks');
@@ -1131,7 +1132,7 @@ function weeklyTaskRow(t){
   const done=!!t.done;
   let hint='',hintCls='';
   if(done && rep)      {hint=`✓ הושלם · ${fmtTime(rep.created_at)}`;hintCls='ok';}
-  else if(done && !rep){hint='⚠️ דיווח נדרש';hintCls='warn';}
+  else if(done && !rep){hint='⚠️ שיתוף נדרש';hintCls='warn';}
   else                  {hint='בתהליך — לחץ/י להמשיך';hintCls='prog';}
 
   return `<div class="t-row t-row-weekly" role="button" tabindex="0" onclick="openTaskSheet('${t.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openTaskSheet('${t.id}');}">
@@ -1262,10 +1263,10 @@ function openTaskSheet(taskId){
   const mainBtn = document.getElementById('sheet-main-btn');
   if(task.done && rep){
     // Task done + has report → show report view
-    mainBtn.textContent = '📋 ראה את הדיווח שלי';
+    mainBtn.textContent = '📋 ראה את השיתוף שלי';
     sheetAction = 'view';
   } else if(task.done && !rep){
-    mainBtn.textContent = '📝 הוסף דיווח (נדרש)';
+    mainBtn.textContent = '📝 הוסף שיתוף (נדרש)';
     sheetAction = 'report';
   } else if(!task.done && rep){
     mainBtn.textContent = '✅ סמן כהושלם';
@@ -1360,7 +1361,7 @@ function beginReport(task){
   fEditMode = false;
   audioBlob = null;audioB64 = null;
 
-  document.getElementById('rep-mode-lbl').textContent='דיווח משימה';
+  document.getElementById('rep-mode-lbl').textContent='שיתוף משימה';
   document.getElementById('rep-task-lbl').textContent=task.text;
   document.getElementById('rep-text').value='';
   document.querySelectorAll('.emoji-btn').forEach(b=>b.classList.remove('picked'));
@@ -1381,7 +1382,7 @@ function openEditReport(){
   fEditMode = true;
   audioBlob = null;audioB64 = null;
 
-  document.getElementById('rep-mode-lbl').textContent='עריכת דיווח ✏️';
+  document.getElementById('rep-mode-lbl').textContent='עריכת שיתוף ✏️';
   document.getElementById('rep-task-lbl').textContent=task.text;
   document.getElementById('rep-text').value=rep.text||'';
   resetAudioUI();
@@ -1554,7 +1555,7 @@ async function submitReport(){
     renderHome();
 
     // Reset save button and form state so next report starts clean
-    btn.disabled=false;btn.textContent='שמור דיווח';btn.classList.remove('ready');
+    btn.disabled=false;btn.textContent='שמור שיתוף';btn.classList.remove('ready');
     fMood=null;fReportId=null;fEditMode=false;
     document.getElementById('rep-text').value='';
     document.querySelectorAll('.emoji-btn').forEach(b=>b.classList.remove('picked'));
@@ -1563,7 +1564,7 @@ async function submitReport(){
     document.getElementById('success-overlay').classList.add('show');
   }catch(e){
     toast(`שגיאה: ${e.message}`);
-    btn.disabled=false;btn.textContent='שמור דיווח';btn.classList.add('ready');
+    btn.disabled=false;btn.textContent='שמור שיתוף';btn.classList.add('ready');
   }
 }
 
