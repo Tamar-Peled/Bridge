@@ -56,6 +56,18 @@ ALTER TABLE public.meeting_notes
   ADD COLUMN IF NOT EXISTS note_type   text DEFAULT 'session',
   ADD COLUMN IF NOT EXISTS attachments jsonb DEFAULT '[]'::jsonb;
 
+-- ── 8b. students: counselor weekly meeting summary map ─────
+ALTER TABLE public.students
+  ADD COLUMN IF NOT EXISTS weekly_counselor_summaries jsonb DEFAULT '{}'::jsonb;
+
+-- ── 8b2. students: counselor-only weekly labels + private task notes (jsonb) ──
+ALTER TABLE public.students
+  ADD COLUMN IF NOT EXISTS counselor_weekly_extras jsonb DEFAULT '{}'::jsonb;
+
+-- ── 8c. meeting_notes: link session note to counselor week (epoch ms) ──
+ALTER TABLE public.meeting_notes
+  ADD COLUMN IF NOT EXISTS week_start_ms bigint;
+
 -- ── 9. Verify columns exist ─────────────────────────────────
 SELECT column_name, data_type
 FROM information_schema.columns

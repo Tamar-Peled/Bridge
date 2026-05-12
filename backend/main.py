@@ -6,7 +6,8 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Literal, Optional
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 import os
 import io
 import re
@@ -81,7 +82,7 @@ app.add_middleware(
 class StudentCreate(BaseModel):
     name:             str
     grade:            str
-    reason:           str
+    reason:           str = ""
     status:           str  = "בתהליך"
     code:             Optional[str] = None   
     description:      str  = ""
@@ -98,6 +99,8 @@ class StudentPatch(BaseModel):
     engagement_level: Optional[str] = None
     general_files:    Optional[List[dict]] = None  # [{name, mime, data}] counselor-only file cabinet
     key_points:       Optional[List[dict]] = None  # [{text, at}] counselor "נקודות חשובות"
+    weekly_counselor_summaries: Optional[dict] = None  # { week_start_ms_str: summary_text }
+    counselor_weekly_extras: Optional[dict] = None  # { week_labels: {wk: str}, task_notes: {"{wk}_{taskId}": str} }
 
 class KeyPointDelete(BaseModel):
     """Delete a single counselor key point by id or (at+text)."""
@@ -147,6 +150,7 @@ class MeetingNoteCreate(BaseModel):
     edit_status: Optional[Literal["manual", "ai_generated", "ai_edited"]] = None
     note_type: Literal["session", "insight"] = "session"
     attachments: Optional[List[dict]] = None  # [{name, mime, data}] data = data URL or base64
+    week_start_ms: Optional[int] = None  # counselor weekly accordion anchor (epoch ms)
 
 
 class MeetingNotePatch(BaseModel):
@@ -156,6 +160,7 @@ class MeetingNotePatch(BaseModel):
     edit_status: Optional[Literal["manual", "ai_generated", "ai_edited"]] = None
     note_type: Optional[Literal["session", "insight"]] = None
     attachments: Optional[List[dict]] = None
+    week_start_ms: Optional[int] = None
 
 class AnalysisResult(BaseModel):
     insights:       List[str]
@@ -173,6 +178,17 @@ class AnalysisResultV4(BaseModel):
 class KeyPointsDraftResult(BaseModel):
     """Concise Hebrew bullet points for counselor follow-up."""
     points: List[str] = Field(..., min_length=1, max_length=12)
+
+
+class WeeklyInsightsAIRequest(BaseModel):
+    """Week start in epoch ms; must match counselor UI week boundaries (Sunday 00:00 local)."""
+    week_start_ms: int
+
+
+class WeeklyInsightsAIResult(BaseModel):
+    """Short counselor-facing narrative (Hebrew)."""
+    trend: str = Field(..., min_length=1, max_length=2000)
+    recommended_focus: str = Field(..., min_length=1, max_length=2000)
 
 
 class StudentFileUpload(BaseModel):
@@ -304,6 +320,69 @@ prompt_task_rec = ChatPromptTemplate.from_messages([
 
 chain_task_rec = prompt_task_rec | structured_llm_task_rec
 
+llm_weekly_insights = ChatOpenAI(model="gpt-4o", temperature=0.25, api_key=api_key)
+structured_llm_weekly_insights = llm_weekly_insights.with_structured_output(WeeklyInsightsAIResult)
+
+WEEKLY_INSIGHTS_SYSTEM = """You are an educational AI assistant analyzing student progress. Your goal is to identify meaningful trends and provide actionable insights for school counselors.
+
+Input Data:
+
+Task Volume: Number of tasks assigned vs. completed this week compared to the previous week's average.
+
+Student Feedback: Qualitative sentiment from the student's self-reflections.
+
+Task Completion Rate: The percentage of 'Share' actions taken.
+
+Instructions:
+
+Identify Anomalies: If there is a significant increase or decrease in the weekly task volume, highlight this as a key insight (e.g., 'A 40% drop in task engagement may indicate burnout or avoidance').
+
+Sentiment Analysis: Summarize the student's emotional state based on their feedback.
+
+Actionable Advice: Suggest a focus area for the counselor's next meeting based on these shifts.
+
+Output Format:
+Provide a concise summary (2-3 sentences) focusing on 'Trend' and 'Recommended Focus'.
+
+Language: Write all output fields in professional Hebrew for school counselors in Israel. No medical diagnoses. JSON only per schema (trend, recommended_focus)."""
+
+prompt_weekly_insights = ChatPromptTemplate.from_messages(
+    [
+        ("system", WEEKLY_INSIGHTS_SYSTEM),
+        (
+            "human",
+            """Use the following computed snapshot (may be partial). If data is sparse, say so briefly and still give gentle guidance.
+
+Student (counselor background, one line):
+{counselor_description}
+
+--- THIS WEEK (window) ---
+Week label (local): {this_week_label}
+Tasks counted as weekly-assigned during this window (by selected_at): {this_assigned}
+Of those, marked completed (done) now: {this_completed}
+Student reports (shares) filed in this window: {this_reports}
+Approx. share engagement vs assigned slots: {this_share_pct}%
+
+Student self-reflections in THIS week (mood + text excerpts):
+{this_week_feedback}
+
+--- PREVIOUS WEEK ---
+Week label: {prev_week_label}
+Weekly-assigned (selected_at in window): {prev_assigned}
+Marked completed (done) now: {prev_completed}
+Reports in window: {prev_reports}
+Share vs assigned: {prev_share_pct}%
+
+Reflections in PREVIOUS week:
+{prev_week_feedback}
+
+Respond with JSON only: trend (1-2 sentences), recommended_focus (1-2 sentences). Hebrew only.""",
+        ),
+    ]
+)
+
+chain_weekly_insights = prompt_weekly_insights | structured_llm_weekly_insights
+
 # ═══════════════════ HELPERS ══════════════════════════════════
 
 def strip_none(d: dict) -> dict:
@@ -402,6 +481,77 @@ def format_date_hebrew(iso: str) -> str:
         return f"יום {days[dt.weekday()]} {dt.day}.{dt.month}.{dt.year}"
     except Exception:
         return iso
+
+
+def _parse_iso_to_ms(iso) -> Optional[int]:
+    if not iso:
+        return None
+    try:
+        s = str(iso).replace(" ", "T", 1)
+        if s.endswith("Z"):
+            dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        else:
+            dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return int(dt.timestamp() * 1000)
+    except Exception:
+        return None
+
+
+def _week_span_label(ms_start: int) -> str:
+    try:
+        tz = ZoneInfo("Asia/Jerusalem")
+        dt = datetime.fromtimestamp(ms_start / 1000, tz=tz)
+    except Exception:
+        dt = datetime.fromtimestamp(ms_start / 1000, tz=timezone.utc)
+    de = dt + timedelta(days=6)
+    return f"{dt.day}.{dt.month}.{dt.year} – {de.day}.{de.month}.{de.year}"
+
+
+def _collect_week_metrics(tasks: list, reports: list, window_start: int, window_end: int) -> dict:
+    """Tasks 'assigned' in window = selected_at in window OR received a report in window."""
+    assigned: set = set()
+    for t in tasks or []:
+        if not t or not t.get("id"):
+            continue
+        sm = _parse_iso_to_ms(t.get("selected_at"))
+        if sm is not None and window_start <= sm < window_end:
+            assigned.add(str(t["id"]))
+    for r in reports or []:
+        rm = _parse_iso_to_ms(r.get("created_at"))
+        if rm is not None and window_start <= rm < window_end and r.get("task_id"):
+            assigned.add(str(r["task_id"]))
+    completed = 0
+    for tid in assigned:
+        to = next((x for x in tasks or [] if x and str(x.get("id")) == tid), None)
+        if to and to.get("done"):
+            completed += 1
+    reps_in = []
+    for r in reports or []:
+        rm = _parse_iso_to_ms(r.get("created_at"))
+        if rm is not None and window_start <= rm < window_end:
+            reps_in.append(r)
+    n_reports = len(reps_in)
+    denom = max(len(assigned), 1)
+    share_pct = round(100.0 * n_reports / denom, 1)
+    lines = []
+    for r in sorted(reps_in, key=lambda x: str(x.get("created_at") or "")):
+        mood = r.get("mood") or ""
+        txt = (r.get("text") or "").strip()
+        if len(txt) > 400:
+            txt = txt[:400] + "…"
+        audio_note = " [דיווח קולי]" if r.get("audio_url") else ""
+        lines.append(f"- {mood}{audio_note}: {txt or '(ללא טקסט)'}")
+    feedback_blob = "\n".join(lines) if lines else "(אין דיווחים בשבוע זה)"
+    return {
+        "assigned": len(assigned),
+        "completed": completed,
+        "reports": n_reports,
+        "share_pct": share_pct,
+        "feedback": feedback_blob,
+    }
+
 
 # ═══════════════════ HEALTH ═══════════════════════════════════
 
@@ -1089,6 +1239,7 @@ def _meeting_note_row_out(row: dict) -> dict:
         "edit_status": eff_status,
         "note_type": row.get("note_type") or "session",
         "attachments": att,
+        "week_start_ms": row.get("week_start_ms"),
     }
 
 
@@ -1099,7 +1250,7 @@ def _meeting_note_insert_payload(student_id: str, note: MeetingNoteCreate) -> di
     status = note.edit_status or ("ai_generated" if note.is_ai_generated else "manual")
     attachments = note.attachments if note.attachments is not None else []
     ai_ins = (note.ai_insights or "").strip() if note.ai_insights is not None else ""
-    return {
+    out = {
         "student_id": student_id,
         "summary_text": content,
         "content": content,
@@ -1110,6 +1261,9 @@ def _meeting_note_insert_payload(student_id: str, note: MeetingNoteCreate) -> di
         "note_type": note.note_type,
         "attachments": attachments,
     }
+    if note.week_start_ms is not None:
+        out["week_start_ms"] = int(note.week_start_ms)
+    return out
 
 
 def _meeting_note_patch_payload(data: MeetingNotePatch) -> dict:
@@ -1168,6 +1322,14 @@ def patch_meeting_note(note_id: str, data: MeetingNotePatch):
     if not res.data:
         raise HTTPException(status_code=404, detail="סיכום לא נמצא")
     return _meeting_note_row_out(res.data[0])
+
+
+@app.delete("/meeting-notes/{note_id}")
+def delete_meeting_note(note_id: str):
+    """Delete a single meeting note by id (counselor UI)."""
+    db.table("meeting_notes").delete().eq("id", note_id).execute()
+    return {"deleted": True, "id": note_id}
+
 
 # ═══════════════════ AI ═══════════════════════════════════════
 
@@ -1233,6 +1395,63 @@ def analyze_student(student_id: str):
             "completed_with_feedback": "\n".join(fmt_completed_feedback(t, rep) for (t, rep) in completed_with_feedback) or "אין",
         })
         return result.model_dump()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/weekly-insights-ai/{student_id}")
+def weekly_insights_ai(student_id: str, body: WeeklyInsightsAIRequest):
+    """
+    Weekly task-volume volatility + sentiment + counselor focus (structured Hebrew).
+    week_start_ms must match the counselor accordion week (Sunday 00:00 local, epoch ms).
+    """
+    try:
+        student_res = db.table("students").select("id,description").eq("id", student_id).execute()
+        if not student_res.data:
+            raise HTTPException(status_code=404, detail="תלמיד לא נמצא")
+        student = student_res.data[0]
+
+        tasks_res = db.table("tasks").select("*").eq("student_id", student_id).execute()
+        reports_res = db.table("reports").select("*").eq("student_id", student_id).execute()
+        tasks = tasks_res.data or []
+        reports = reports_res.data or []
+
+        wk = int(body.week_start_ms)
+        span = 7 * 86400 * 1000
+        cur_s, cur_e = wk, wk + span
+        prev_s, prev_e = wk - span, wk
+
+        m_this = _collect_week_metrics(tasks, reports, cur_s, cur_e)
+        m_prev = _collect_week_metrics(tasks, reports, prev_s, prev_e)
+
+        counselor_description = (student.get("description") or "").strip().replace("\n", " ")[:800] or "לא צוין"
+
+        result = chain_weekly_insights.invoke(
+            {
+                "counselor_description": counselor_description,
+                "this_week_label": _week_span_label(cur_s),
+                "this_assigned": m_this["assigned"],
+                "this_completed": m_this["completed"],
+                "this_reports": m_this["reports"],
+                "this_share_pct": m_this["share_pct"],
+                "this_week_feedback": m_this["feedback"],
+                "prev_week_label": _week_span_label(prev_s),
+                "prev_assigned": m_prev["assigned"],
+                "prev_completed": m_prev["completed"],
+                "prev_reports": m_prev["reports"],
+                "prev_share_pct": m_prev["share_pct"],
+                "prev_week_feedback": m_prev["feedback"],
+            }
+        )
+        out = result.model_dump()
+        out["metrics"] = {
+            "this_week": m_this,
+            "previous_week": m_prev,
+        }
+        return out
 
     except HTTPException:
         raise

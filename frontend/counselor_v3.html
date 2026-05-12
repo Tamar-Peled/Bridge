@@ -303,6 +303,77 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .meeting-ai-insights .meeting-ai-body{font-size:13px;line-height:1.5;color:var(--dark)}
 .meeting-session-card.is-expanded .meeting-preview-col .meeting-preview,
 .meeting-session-card.is-expanded .meeting-acc-hint{display:none!important}
+.weekly-meeting-week{margin:12px 0;border:1px solid var(--case-border);border-radius:var(--radius-sm);background:var(--card);overflow:hidden}
+.weekly-meeting-week-head-wrap{display:flex;align-items:stretch;gap:0}
+.weekly-meeting-week-head{
+  flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:12px 14px;margin:0;border:none;background:rgba(91,183,183,.06);cursor:pointer;
+  font:inherit;text-align:right;font-weight:800;font-size:15px;color:var(--case-ink);
+  transition:background .12s;
+}
+.weekly-meeting-week-head:hover{background:rgba(91,183,183,.11)}
+.weekly-week-actions{
+  display:flex;flex-direction:column;justify-content:center;gap:6px;padding:8px 10px;
+  border-inline-start:1px dashed var(--border);background:rgba(91,183,183,.04);flex-shrink:0;
+}
+.btn-week-tool{
+  width:34px;height:34px;border:1px solid var(--border);border-radius:10px;background:var(--card);
+  cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;
+}
+.btn-week-tool:hover{background:var(--case-muted)}
+.btn-week-tool.danger{border-color:rgba(231,76,60,.35)}
+.weekly-meeting-week-head .weekly-week-meta{font-size:12px;font-weight:600;color:var(--mid);margin-top:4px}
+.weekly-meeting-week-head .weekly-acc-chevron{flex-shrink:0;color:var(--mid);font-size:12px;opacity:.85}
+.weekly-meeting-week-body{padding:14px 14px 16px;border-top:1px dashed var(--border);display:none}
+.weekly-meeting-week.is-open .weekly-meeting-week-body{display:block}
+.weekly-meeting-week .weekly-acc-chevron{transition:transform .2s ease}
+.weekly-meeting-week.is-open .weekly-acc-chevron{transform:rotate(180deg)}
+.weekly-subsec{margin-top:14px}
+.weekly-subsec:first-child{margin-top:0}
+.weekly-subsec-h{font-size:13px;font-weight:800;color:var(--case-ink);margin:0 0 8px;text-align:right}
+.weekly-task-done-list,.weekly-feedback-list{margin:0;padding:0 18px 0 0;text-align:right;font-size:14px;line-height:1.55;color:var(--dark)}
+.weekly-task-done-list li,.weekly-feedback-list li{margin-bottom:6px}
+.weekly-feedback-item{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--card)}
+.weekly-feedback-task{font-weight:700;font-size:14px;margin-bottom:4px}
+.weekly-feedback-meta{font-size:12px;color:var(--mid);margin-bottom:6px}
+.weekly-feedback-text{font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.weekly-counselor-ta{width:100%;min-height:100px;resize:vertical;padding:10px 12px;border-radius:10px;border:1px solid var(--border);font:inherit;font-size:14px;line-height:1.5;text-align:right}
+.weekly-counselor-save-row{display:flex;justify-content:flex-end;margin-top:8px;flex-wrap:wrap;gap:8px}
+.weekly-notes-nested .meeting-session-card{margin:10px 0}
+.weekly-task-stack{display:flex;flex-direction:column;gap:8px}
+.weekly-task-compact{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);
+  cursor:pointer;text-align:right;transition:background .12s,border-color .12s;
+}
+.weekly-task-row-tools{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.weekly-task-row-del{
+  width:32px;height:32px;border:none;border-radius:8px;background:transparent;cursor:pointer;
+  font-size:15px;line-height:1;opacity:.55;
+}
+.weekly-task-row-del:hover{opacity:1;background:var(--red-soft)}
+.weekly-counselor-task-note-wrap{
+  margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);text-align:right;
+}
+.weekly-counselor-task-note-lbl{display:block;font-size:12px;font-weight:800;color:var(--mid);margin-bottom:6px}
+.weekly-counselor-task-note-ta{
+  width:100%;min-height:72px;resize:vertical;padding:8px 10px;border-radius:10px;border:1px solid var(--border);
+  font:inherit;font-size:13px;line-height:1.45;text-align:right;margin-bottom:8px;background:#fafcfc;
+}
+.weekly-counselor-task-note-save{font-size:13px;padding:8px 14px;border-radius:10px;border:1px solid var(--primary-border);
+  background:var(--primary-soft);color:var(--primary-dk);font-weight:700;cursor:pointer;font-family:inherit;
+}
+.weekly-counselor-task-note-save:hover{background:var(--primary-border)}
+.weekly-task-compact:hover{background:rgba(91,183,183,.06);border-color:var(--primary-border)}
+.weekly-task-compact .weekly-task-title{font-size:14px;font-weight:700;color:var(--dark);flex:1;min-width:0}
+.weekly-task-compact .weekly-task-st{font-size:12px;font-weight:800;color:var(--mid);white-space:nowrap}
+.weekly-task-compact .weekly-task-st.done{color:var(--primary-dk)}
+.weekly-task-detail{
+  margin:0 0 4px;padding:10px 12px 12px;border:1px dashed var(--border);border-top:none;border-radius:0 0 10px 10px;
+  background:rgba(91,183,183,.04);font-size:13px;line-height:1.5;text-align:right;
+}
+.weekly-task-wrap{margin-bottom:4px}
+.weekly-orphan-h{font-size:12px;font-weight:800;color:var(--mid);margin:10px 0 6px;text-align:right}
 .general-files-head-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap}
 .general-files-head-row .sec-title{margin-bottom:0!important}
 .btn-attach--header{padding:6px 10px;border-radius:10px;border:1px solid var(--primary-border);background:var(--card);cursor:pointer;font-size:18px;line-height:1}
@@ -328,6 +399,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .case-file-hero .page-title{color:var(--case-ink)}
 .case-file-hero .page-sub{color:var(--mid);font-size:13px}
 .insights-section{
+  position:relative;
   background:var(--card);
   border:1px solid var(--case-border);
   border-radius:var(--radius-sm);
@@ -335,10 +407,40 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   margin-bottom:16px;
   box-shadow:0 1px 3px rgba(91,183,183,.08);
 }
-.insights-section > h2{
-  font-size:17px;font-weight:800;color:var(--case-ink);
-  margin-bottom:12px;letter-spacing:-.2px;
+.insights-section-head{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  margin-bottom:12px;
 }
+.insights-section-head > h2{
+  margin:0;
+  font-size:17px;font-weight:800;color:var(--case-ink);
+  letter-spacing:-.2px;text-align:center;
+}
+.insights-section-head .btn-kp-expand{
+  position:absolute;
+  left:0;
+  top:50%;
+  transform:translateY(-50%);
+  z-index:3;
+  width:34px;height:34px;border-radius:50%;
+  border:none;
+  background:var(--primary);
+  color:#fff;
+  cursor:pointer;font-size:22px;font-weight:700;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(91,183,183,.35);
+  transition:background .15s,transform .12s;
+}
+.insights-section-head .btn-kp-expand:hover{
+  background:var(--primary-dk);
+  transform:translateY(-50%) scale(1.04);
+}
+.key-points-collapsible{display:none;margin-top:2px}
+.key-points-collapsible.is-open{display:block}
 .system-trends--minimal{
   background:var(--primary-soft);
   border:1px solid var(--primary-border);
@@ -347,6 +449,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   font-size:14px;line-height:1.55;color:var(--dark);font-weight:600;text-align:center;
 }
 .insights-workspace{
+  position:relative;
   background:var(--card);
   border:1px solid var(--case-border);
   border-radius:var(--radius-xs);
@@ -904,8 +1007,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     <input type="text" id="new-name" placeholder="שם מלא">
     <label class="modal-lbl">כיתה *</label>
     <input type="text" id="new-grade" placeholder="לדוגמה: ז2">
-    <label class="modal-lbl">סיבת פנייה *</label>
-    <input type="text" id="new-reason" placeholder="סיבת פנייה">
     <label class="modal-lbl">תיאור רקע פנימי (התלמיד לא רואה) *</label>
     <textarea id="new-description" placeholder="תיאור קצר על הרקע של התלמיד..."></textarea>
     <label class="modal-lbl">תמונה</label>
@@ -920,10 +1021,9 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
       maxlength="4" inputmode="numeric" pattern="[0-9]{4}"
       oninput="this.value=this.value.replace(/[^0-9]/g,'')"
       style="letter-spacing:8px;font-size:20px;font-weight:700;text-align:center">
-    <label class="modal-lbl">רקע התלמיד</label>
+    <label class="modal-lbl">סטטוס טיפול</label>
     <select id="new-status">
       <option value="בתהליך">בתהליך</option>
-      <option value="סיים תהליך">סיים תהליך</option>
       <option value="נדרש מעקב צמוד">נדרש מעקב צמוד</option>
     </select>
     <div class="modal-btns">
@@ -1022,6 +1122,40 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   </div>
 </div>
 
+<!-- ════ MODAL: WEEKLY MEETING NOTE (replaces inline composer) ════ -->
+<div class="overlay" id="modal-weekly-meeting">
+  <div class="modal modal-teal" style="max-width:520px">
+    <h3>סיכום פגישה לשבוע</h3>
+    <div class="modal-note">השדות נשמרים כסיכום פגישה בתיק — משויך לשבוע הנבחר</div>
+    <label class="modal-lbl" for="modal-week-note-title">כותרת</label>
+    <input type="text" id="modal-week-note-title" style="width:100%;box-sizing:border-box" placeholder="Week …" autocomplete="off">
+    <label class="modal-lbl" for="modal-week-note-body">תוכן הסיכום</label>
+    <textarea id="modal-week-note-body" style="width:100%;box-sizing:border-box;min-height:140px;resize:vertical" placeholder=""></textarea>
+    <div class="new-meeting-upload-status" style="justify-content:center;display:flex;flex-wrap:wrap;gap:8px;margin:10px 0" aria-live="polite">
+      <div class="upload-inline-spinner" id="new-meeting-spinner" style="display:none"><span class="spinner spinner-teal"></span></div>
+      <div class="upload-progress-wrap" id="new-meeting-progress" style="display:none;flex:1;min-width:120px;max-width:280px">
+        <div class="upload-progress-bar"><div class="upload-progress-fill" id="new-meeting-progress-fill"></div></div>
+      </div>
+      <span class="upload-success-badge" id="new-meeting-success-badge" style="display:none">✓ נוספו לתור</span>
+    </div>
+    <div id="modal-pending-uploads-panel" class="pending-uploads-panel" style="display:none"></div>
+    <button type="button" class="btn-commit-pending" id="btn-commit-pending" style="display:none;width:100%;margin-bottom:8px" onclick="commitPendingUploads()">העלאה לאוסף</button>
+    <div class="add-row" style="align-items:flex-start;gap:10px;margin-top:8px;flex-wrap:wrap">
+      <label class="btn-attach btn-attach--tiny" title="צרף קובץ" aria-label="צרף קובץ">
+        <input type="file" id="new-meeting-file-input" multiple accept=".pdf,.docx,image/jpeg,image/png,image/jpg,image/webp,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none" onchange="onNewMeetingFileInput(this)">
+        📎
+      </label>
+      <button type="button" class="btn-kp-ai-wand" id="btn-meeting-summary-ai" onclick="runMeetingSummaryAI()" title="סיכום שבועי ותובנות (AI)" aria-label="סיכום שבועי ותובנות AI">✨</button>
+      <div class="ai-loading kp-ai-loading" id="meeting-summary-ai-loading">מנתח... <span class="spinner spinner-dk"></span></div>
+    </div>
+    <div id="modal-session-attachments-panel" class="attachments-panel"></div>
+    <div class="modal-btns" style="margin-top:14px">
+      <button type="button" class="btn-cancel" onclick="closeWeeklyMeetingNoteModal()">ביטול</button>
+      <button type="button" class="btn-primary" style="flex:1;margin:0" id="btn-modal-week-meeting-save" onclick="saveWeeklyMeetingNoteModal()">שמור</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1072,6 +1206,7 @@ let currentSid     = null;
 let currentTasks   = [];
 let currentReports = [];
 let currentNotes   = [];
+let _weeklyMeetingModalWk=null;
 let _photoSid      = null;
 let _descSid       = null;
 let _aiSummaryLast = '';
@@ -1163,18 +1298,17 @@ function attachmentsForApi(list){
     data:String(a.data||''),
   }));
 }
-function counselorDetailHistoryActive(){
-  const d=document.getElementById('screen-detail');
-  const h=document.getElementById('counselor-panel-history');
-  return !!(d&&d.classList.contains('active')&&h&&h.style.display!=='none');
-}
 function getNoteDraftTa(){
-  if(!counselorDetailHistoryActive()) return null;
-  return document.getElementById('note-draft-manual');
+  const m=document.getElementById('modal-weekly-meeting');
+  if(m&&m.classList.contains('show'))
+    return document.getElementById('modal-week-note-body');
+  return null;
 }
 function getSessionSaveBtn(){
-  if(!counselorDetailHistoryActive()) return null;
-  return document.getElementById('btn-meeting-save');
+  const m=document.getElementById('modal-weekly-meeting');
+  if(m&&m.classList.contains('show'))
+    return document.getElementById('btn-modal-week-meeting-save');
+  return null;
 }
 function snapshotMeetingHistoryDraft(){
   return{
@@ -1201,6 +1335,7 @@ function restoreMeetingHistoryDraft(s){
       _keyPointsUserEdited=s.ue;
     }
     syncKeyPointsSaveBtn();
+    if((ti.value||'').trim()) openKeyPointsCollapsible();
   }
   _editingNoteId=s.editingId;
   const nta=getNoteDraftTa();
@@ -1358,7 +1493,7 @@ async function confirmFileModalUpload(){
       target:'draft',
     });
     closeFileUploadModal();
-    ensureMeetingAddPanelOpen();
+    ensureMeetingModalForDraft();
     renderPendingUploadsPanel();
     flashNewMeetingUploadSuccess();
     openNextFileFromQueue();
@@ -1424,6 +1559,7 @@ function syncKeyPointsSaveBtn(){
   b.disabled=!ta.value.trim();
 }
 async function runKeyPointsAI(){
+  openKeyPointsCollapsible();
   const wand=document.getElementById('btn-key-points-wand');
   const loading=document.getElementById('key-points-loading');
   const ta=document.getElementById('key-points-ta');
@@ -1453,7 +1589,7 @@ async function runKeyPointsAI(){
 async function runMeetingSummaryAI(){
   const wand=document.getElementById('btn-meeting-summary-ai');
   const loading=document.getElementById('meeting-summary-ai-loading');
-  const ta=document.getElementById('note-draft-manual');
+  const ta=document.getElementById('modal-week-note-body');
   if(!currentSid){showToast('לא נבחר תלמיד');return;}
   if(wand) wand.disabled=true;
   if(loading) loading.classList.add('show');
@@ -1536,10 +1672,11 @@ function flashNewMeetingUploadSuccess(){
   clearTimeout(badge._tid);
   badge._tid=setTimeout(()=>{badge.style.display='none';},2200);
 }
-function ensureMeetingAddPanelOpen(){
-  const p=document.getElementById('detail-meeting-add-panel');
-  if(p&&(p.style.display==='none'||!p.style.display)){
-    p.style.display='block';
+function ensureMeetingModalForDraft(){
+  const m=document.getElementById('modal-weekly-meeting');
+  if(m&&!m.classList.contains('show')){
+    openWeeklyMeetingNoteModal(String(localSundayWeekStartMs(Date.now())),{prefillTitle:true});
+  }else{
     renderPendingUploadsPanel();
     renderSessionAttachmentsUi();
   }
@@ -1621,7 +1758,7 @@ function renderPendingUploadsPanel(){
     ?('<p class="pending-panel-hint">תצוגה מקדימה — ניתן לערוך שם ולבחור שיוך לפני העלאה</p>'+
       pendingFileUploads.map(pendingCardHtml).join(''))
     :'';
-  const host=document.getElementById('pending-uploads-panel');
+  const host=document.getElementById('modal-pending-uploads-panel');
   if(host){
     if(!pendingFileUploads.length){
       host.style.display='none';
@@ -2162,7 +2299,7 @@ function renderSessionAttachmentsUi(){
     <div class="attachments-head">קבצים מצורפים</div>
     ${cards?`<div class="attachment-cards">${cards}</div>`:'<div class="attachments-empty"></div>'}
   </div>`;
-  const host=document.getElementById('session-attachments-panel');
+  const host=document.getElementById('modal-session-attachments-panel');
   if(host) host.innerHTML=inner;
 }
 function removeSessionAttachment(id){
@@ -2255,6 +2392,7 @@ function showScreen(id){
 function closeModal(id){
   const el=document.getElementById(id);
   if(el) el.classList.remove('show');
+  if(id==='modal-weekly-meeting') resetWeeklyMeetingModalState();
   if(id==='modal-rename') _renameModalOk=null;
 }
 document.querySelectorAll('.overlay').forEach(ov=>
@@ -2360,6 +2498,7 @@ function filterStudents(){
     base=base.filter(s=>
       s.name.toLowerCase().includes(q)||
       (s.grade||'').toLowerCase().includes(q)||
+      (s.description||'').toLowerCase().includes(q)||
       (s.reason||'').toLowerCase().includes(q)
     );
   }
@@ -2502,19 +2641,199 @@ async function renderDetail(s){
   await setCounselorDetailTab(tabRestore);
 }
 
-function buildSessionNotesCardsHtml(){
-  const notesSorted=[...(currentNotes||[])].filter(meetingNoteIsSession).sort((a,b)=>(parseIsoMs(a.created_at)||0)-(parseIsoMs(b.created_at)||0));
-  if(!notesSorted.length) return '<div class="sec-empty">אין עדיין סיכומי פגישות מתועדים</div>';
-  return notesSorted.map((n,idx)=>{
-    const num=idx+1;
-    const nid=String(n.id||'').replace(/[^a-fA-F0-9-]/g,'');
-    const fullText=(n.content!=null?n.content:'')||(n.summary_text!=null?n.summary_text:'')||'';
-    const prevPlain=meetingPreviewPlain(fullText,3);
-    const attBlock=renderNoteAttachmentsBlock(n.id,n);
-    const aiRaw=(n.ai_insights!=null?String(n.ai_insights):'').trim();
-    const aiBlock=aiRaw?`<div class="meeting-ai-insights"><h4>תובנות AI</h4><div class="meeting-ai-body">${escHBr(aiRaw)}</div></div>`:'';
-    const noteIdJson=JSON.stringify(String(n.id||''));
-    return `<div class="rep-card meeting-session-card" style="margin:12px 0">
+function parseWeeklySummariesFromStudent(stu){
+  let raw=stu&&stu.weekly_counselor_summaries;
+  if(typeof raw==='string'){
+    try{raw=JSON.parse(raw);}catch(_){raw={};}
+  }
+  if(!raw||typeof raw!=='object'||Array.isArray(raw)) return {};
+  const out={};
+  for(const k of Object.keys(raw)){
+    out[String(k)]=raw[k]==null?'':String(raw[k]);
+  }
+  return out;
+}
+function localSundayWeekStartMs(ms){
+  const d=new Date(ms);
+  const c=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  const dow=c.getDay();
+  c.setDate(c.getDate()-dow);
+  c.setHours(0,0,0,0);
+  return c.getTime();
+}
+function addWeekFromIso(iso, intoSet){
+  const ms=parseIsoMs(iso);
+  if(ms==null) return;
+  intoSet.add(localSundayWeekStartMs(ms));
+}
+function collectCounselorWeekStartMsSet(stu,tasks,reports,notes){
+  const set=new Set();
+  set.add(localSundayWeekStartMs(Date.now()));
+  (reports||[]).forEach(r=>addWeekFromIso(r&&r.created_at,set));
+  (notes||[]).filter(meetingNoteIsSession).forEach(n=>{
+    addWeekFromIso(n&&n.created_at,set);
+    if(n&&n.week_start_ms!=null){
+      const w=Number(n.week_start_ms);
+      if(Number.isFinite(w)) set.add(w);
+    }
+  });
+  (tasks||[]).forEach(t=>{if(t&&t.selected_at) addWeekFromIso(t.selected_at,set);});
+  const sums=parseWeeklySummariesFromStudent(stu);
+  Object.keys(sums).forEach(k=>{
+    const n=Number(k);
+    if(Number.isFinite(n)) set.add(n);
+  });
+  return set;
+}
+function weekRangeLabelFromStart(wkStartMs){
+  const a=new Date(wkStartMs);
+  const b=new Date(wkStartMs);
+  b.setDate(b.getDate()+6);
+  const f=d=>`${d.getDate()}.${d.getMonth()+1}.${d.getFullYear()}`;
+  return `${f(a)} – ${f(b)}`;
+}
+function reportsInWeekSorted(reports,wkStart,wkEnd){
+  return (reports||[]).filter(r=>{
+    const ms=parseIsoMs(r&&r.created_at);
+    return ms!=null&&ms>=wkStart&&ms<wkEnd;
+  }).sort((a,b)=>(parseIsoMs(a.created_at)||0)-(parseIsoMs(b.created_at)||0));
+}
+function notesInWeekSorted(notes,wkStart,wkEnd){
+  return (notes||[]).filter(meetingNoteIsSession).filter(n=>{
+    const wks=n.week_start_ms!=null?Number(n.week_start_ms):NaN;
+    if(Number.isFinite(wks)&&wks===wkStart) return true;
+    const ms=parseIsoMs(n&&n.created_at);
+    return ms!=null&&ms>=wkStart&&ms<wkEnd;
+  }).sort((a,b)=>(parseIsoMs(a.created_at)||0)-(parseIsoMs(b.created_at)||0));
+}
+function taskTitleForReport(r,tasks){
+  if(r&&r.task_id){
+    const t=(tasks||[]).find(x=>x&&x.id===r.task_id);
+    if(t&&t.text) return t.text;
+  }
+  const n=r&&(r.task_name||'').trim();
+  return n||'משימה';
+}
+function safeWeeklyDomId(s){
+  return String(s||'').replace(/[^a-zA-Z0-9_-]/g,'_');
+}
+function weekOrdinalForStudent(wkMs,stu,tasks,reports,notes){
+  const set=collectCounselorWeekStartMsSet(stu||{},tasks||[],reports||[],notes||[]);
+  const asc=[...set].sort((a,b)=>a-b);
+  const i=asc.indexOf(Number(wkMs));
+  return i>=0?i+1:asc.length;
+}
+function formatWeekAccordionTitleLine(wkMs,ordinal){
+  const range=weekRangeLabelFromStart(wkMs);
+  return `Week ${ordinal} – ${range}`;
+}
+function weekTaskNoteKey(wkKey,taskId){
+  return String(wkKey)+'_'+String(taskId||'');
+}
+function parseCounselorWeeklyExtras(stu){
+  const d=stu&&stu.counselor_weekly_extras;
+  if(!d||typeof d!=='object') return {week_labels:{},task_notes:{}};
+  const wl=d.week_labels&&typeof d.week_labels==='object'?{...d.week_labels}:{};
+  const tn=d.task_notes&&typeof d.task_notes==='object'?{...d.task_notes}:{};
+  return {week_labels:wl,task_notes:tn};
+}
+function formatWeekDisplayTitle(wkMs,ordinal,stu){
+  const wl=parseCounselorWeeklyExtras(stu).week_labels;
+  const custom=String(wl[String(wkMs)]||'').trim();
+  if(custom) return custom;
+  return formatWeekAccordionTitleLine(wkMs,ordinal);
+}
+function tasksInWeekScopeTasks(wkStart,wkEnd,tasks,reports){
+  const ids=new Set();
+  for(const t of tasks||[]){
+    if(!t||!t.id) continue;
+    const sm=parseIsoMs(t.selected_at);
+    if(sm!=null&&sm>=wkStart&&sm<wkEnd) ids.add(t.id);
+  }
+  for(const r of reports||[]){
+    const rm=parseIsoMs(r&&r.created_at);
+    if(rm!=null&&rm>=wkStart&&rm<wkEnd&&r.task_id) ids.add(r.task_id);
+  }
+  const list=[];
+  for(const id of ids){
+    const t=(tasks||[]).find(x=>x&&x.id===id);
+    if(t) list.push(t);
+  }
+  return list.sort((a,b)=>String(a.text||'').localeCompare(String(b.text||''),'he'));
+}
+function reportsForTaskInWeek(taskId,reports,wkStart,wkEnd){
+  return reportsInWeekSorted(reports,wkStart,wkEnd).filter(r=>r&&r.task_id===taskId);
+}
+function buildTaskWeekDetailHtml(t,reports,wkStart,wkEnd,wkKey,stu){
+  const reps=reportsForTaskInWeek(t.id,reports,wkStart,wkEnd);
+  const tid=safeWeeklyDomId(t.id);
+  const ex=parseCounselorWeeklyExtras(stu);
+  const noteKey=weekTaskNoteKey(wkKey,t.id);
+  const noteRaw=String(ex.task_notes[noteKey]||'');
+  let body='';
+  if(reps.length){
+    body=reps.map(r=>{
+      const mood=escH(r.mood||'');
+      const time=escH(fmtTime(r.created_at)||'');
+      const txt=(r.text!=null&&String(r.text).trim())?`<div class="weekly-feedback-text">${escHBr(r.text)}</div>`:'';
+      const audio=r.audio_url?`<div class="rep-audio" style="margin-top:8px"><audio controls src="${escH(r.audio_url)}"></audio></div>`:'';
+      const conf=r.confidence_score?`<div class="weekly-feedback-meta">⭐ ביטחון עצמי: ${r.confidence_score}/5</div>`:'';
+      return `<div class="weekly-feedback-item" style="margin-bottom:8px">
+        <div class="weekly-feedback-meta">${mood}${mood&&time?' · ':''}${time}</div>
+        ${conf}${txt}${audio}
+      </div>`;
+    }).join('');
+  }else{
+    body='<p class="sec-empty" style="margin:0;padding:4px 0;font-size:13px">אין שיתוף מהתלמיד בשבוע זה למשימה זו</p>';
+  }
+  const noteBlock=stu?`<div class="weekly-counselor-task-note-wrap">
+    <label class="weekly-counselor-task-note-lbl" for="wtn-ta-${wkKey}-${tid}">הערה (לעיני היועצת בלבד)</label>
+    <textarea class="weekly-counselor-task-note-ta" id="wtn-ta-${wkKey}-${tid}" placeholder="הערה פנימית על המשימה בשבוע זה...">${escH(noteRaw)}</textarea>
+    <button type="button" class="weekly-counselor-task-note-save" onclick="saveWeeklyTaskCounselorNote('${wkKey}','${t.id}')">שמירת הערה</button>
+  </div>`:'';
+  return body+noteBlock;
+}
+function buildWeeklyTaskSectionsHtml(wkKey,wkStart,wkEnd,tasks,reports,stu){
+  const scope=tasksInWeekScopeTasks(wkStart,wkEnd,tasks,reports);
+  const done=scope.filter(t=>t.done);
+  const undone=scope.filter(t=>!t.done);
+  function rowHtml(t){
+    const tid=safeWeeklyDomId(t.id);
+    const st=t.done?'<span class="weekly-task-st done">✓ הושלמה</span>':'<span class="weekly-task-st">לא הושלמה</span>';
+    return `<div class="weekly-task-wrap">
+      <div class="weekly-task-compact" role="button" tabindex="0" onclick="toggleWeeklyTaskDetail('${wkKey}','${tid}')" onkeydown="if(event.key==='Enter'||event.key===' ')toggleWeeklyTaskDetail('${wkKey}','${tid}')">
+        <span class="weekly-task-title">${escH(t.text||'משימה')}</span>
+        <span class="weekly-task-row-tools">
+          ${st}
+          <button type="button" class="weekly-task-row-del" title="מחיקת משימה" aria-label="מחיקת משימה" onclick="event.stopPropagation();delTask('${t.id}')">🗑</button>
+        </span>
+      </div>
+      <div class="weekly-task-detail" id="wtd-${wkKey}-${tid}" hidden onclick="event.stopPropagation()">${buildTaskWeekDetailHtml(t,reports,wkStart,wkEnd,wkKey,stu)}</div>
+    </div>`;
+  }
+  const doneBlock=done.length
+    ?`<div class="weekly-subsec"><h4 class="weekly-subsec-h">משימות שהושלמו</h4><div class="weekly-task-stack">${done.map(rowHtml).join('')}</div></div>`
+    :'<div class="weekly-subsec"><h4 class="weekly-subsec-h">משימות שהושלמו</h4><p class="sec-empty" style="margin:0;text-align:right">אין</p></div>';
+  const undoneBlock=undone.length
+    ?`<div class="weekly-subsec"><h4 class="weekly-subsec-h">משימות שלא הושלמו</h4><div class="weekly-task-stack">${undone.map(rowHtml).join('')}</div></div>`
+    :'<div class="weekly-subsec"><h4 class="weekly-subsec-h">משימות שלא הושלמו</h4><p class="sec-empty" style="margin:0;text-align:right">אין</p></div>';
+  return doneBlock+undoneBlock;
+}
+function toggleWeeklyTaskDetail(wkKey,tidSafe){
+  const el=document.getElementById('wtd-'+wkKey+'-'+tidSafe);
+  if(!el) return;
+  el.hidden=!el.hidden;
+}
+function meetingSessionNoteCardHtml(n, num, nested){
+  const margin=nested?'10px 0':'12px 0';
+  const nid=String(n.id||'').replace(/[^a-fA-F0-9-]/g,'');
+  const fullText=(n.content!=null?n.content:'')||(n.summary_text!=null?n.summary_text:'')||'';
+  const prevPlain=meetingPreviewPlain(fullText,3);
+  const attBlock=renderNoteAttachmentsBlock(n.id,n);
+  const aiRaw=(n.ai_insights!=null?String(n.ai_insights):'').trim();
+  const aiBlock=aiRaw?`<div class="meeting-ai-insights"><h4>תובנות AI</h4><div class="meeting-ai-body">${escHBr(aiRaw)}</div></div>`:'';
+  const noteIdJson=JSON.stringify(String(n.id||''));
+  return `<div class="rep-card meeting-session-card" style="margin:${margin}">
       <div class="meeting-entry-hdr"><span>סיכום פגישה #${num}</span><span>${escH(fmtDateOnly(n.created_at))}</span></div>
       <button type="button" class="meeting-acc-toggle" id="meeting-acc-t-${nid}" aria-expanded="false" aria-controls="meeting-acc-body-${nid}" onclick="toggleMeetingAccordion('${nid}')">
         <div class="meeting-preview-col">
@@ -2538,24 +2857,293 @@ function buildSessionNotesCardsHtml(){
       <div class="meeting-card-actions">
         <div class="meeting-attach-status" id="attach-status-${n.id}"></div>
         <button type="button" class="btn-icon" onclick="startEditNote('${n.id}')">✏️ עריכה</button>
+        <button type="button" class="btn-icon" title="מחיקת סיכום" onclick="confirmDeleteMeetingNote(${noteIdJson})">🗑 מחיקה</button>
+      </div>
+    </div>`;
+}
+function buildSessionNotesCardsHtmlForList(notesSorted, opts){
+  const mode=(opts&&opts.mode)||'standalone';
+  if(!notesSorted.length){
+    if(mode==='nested') return '';
+    return '<div class="sec-empty">אין עדיין סיכומי פגישות מתועדים</div>';
+  }
+  const nested=mode==='nested';
+  return notesSorted.map((n,idx)=>meetingSessionNoteCardHtml(n,idx+1,nested)).join('');
+}
+function buildCounselorWeeklyMeetingAccordionHtml(stu){
+  const tasks=currentTasks||[];
+  const reports=currentReports||[];
+  const notes=currentNotes||[];
+  const wkSet=collectCounselorWeekStartMsSet(stu,tasks,reports,notes);
+  const weeksAsc=[...wkSet].sort((a,b)=>a-b);
+  const weeks=weeksAsc.slice().reverse();
+  if(!weeks.length){
+    return '<div class="sec-empty" style="margin:12px 0">אין שבועות להצגה.</div>';
+  }
+  const sumMap=parseWeeklySummariesFromStudent(stu);
+  return weeks.map((wkMs,wi)=>{
+    const wkEnd=wkMs+7*86400000;
+    const wkKey=String(wkMs);
+    const ord=weekOrdinalForStudent(wkMs,stu,tasks,reports,notes);
+    const titleLine=formatWeekDisplayTitle(wkMs,ord,stu);
+    const taskSections=buildWeeklyTaskSectionsHtml(wkKey,wkMs,wkEnd,tasks,reports,stu);
+    const notesWeek=notesInWeekSorted(notes,wkMs,wkEnd);
+    const nestedNotes=notesWeek.length
+      ?`<div class="weekly-subsec weekly-notes-nested"><h4 class="weekly-subsec-h">סיכומי פגישות מתועדים בשבוע</h4>${buildSessionNotesCardsHtmlForList(notesWeek,{mode:'nested'})}</div>`
+      :'';
+    const saved=(sumMap[wkKey]!=null)?sumMap[wkKey]:'';
+    const open=wi===0?' is-open':'';
+    const aria=wi===0?'true':'false';
+    const repCount=reportsInWeekSorted(reports,wkMs,wkEnd).filter(r=>{
+      if(!r||!r.task_id) return false;
+      return (tasks||[]).some(t=>t&&t.id===r.task_id);
+    }).length;
+    return `<div class="weekly-meeting-week${open}" id="weekly-week-${wkKey}">
+      <div class="weekly-meeting-week-head-wrap">
+        <button type="button" class="weekly-meeting-week-head" aria-expanded="${aria}" onclick="toggleWeeklyMeetingWeek('${wkKey}')">
+          <div>
+            <div>${escH(titleLine)}</div>
+            <div class="weekly-week-meta">משימות ושיתופים בשבוע · משובים: ${repCount} · סיכומי פגישה: ${notesWeek.length}</div>
+          </div>
+          <span class="weekly-acc-chevron" aria-hidden="true">▼</span>
+        </button>
+        <div class="weekly-week-actions" onclick="event.stopPropagation()">
+          <button type="button" class="btn-week-tool" title="עריכת כותרת השבוע" aria-label="עריכת כותרת השבוע" onclick="event.stopPropagation();editWeekTitle('${wkKey}')">✏️</button>
+          <button type="button" class="btn-week-tool danger" title="מחיקת תיעוד יועצת לשבוע" aria-label="מחיקת תיעוד שבוע" onclick="event.stopPropagation();deleteWeekBundle('${wkKey}')">🗑</button>
+        </div>
+      </div>
+      <div class="weekly-meeting-week-body">
+        ${taskSections}
+        <div class="weekly-subsec">
+          <h4 class="weekly-subsec-h">סיכום פגישת יועצת לשבוע</h4>
+          <textarea class="weekly-counselor-ta" id="weekly-sum-ta-${wkKey}" placeholder="כתבי כאן את סיכום המפגש לשבוע...">${escH(saved)}</textarea>
+          <div class="weekly-counselor-save-row">
+            <button type="button" class="btn-sm" id="weekly-save-${wkKey}" onclick="saveWeeklyCounselorSummary('${wkKey}')">שמירה</button>
+            <button type="button" class="btn-sm" id="weekly-ai-${wkKey}" onclick="runWeeklyInsightsAI('${wkKey}')" title="ניתוח נפח משימות, תנודתיות שבועית ומצב רגשי">✨ תובנות AI</button>
+          </div>
+          <div class="weekly-ai-out" id="weekly-ai-out-${wkKey}" style="display:none;margin-top:12px;padding:12px 14px;background:rgba(91,183,183,.1);border-radius:12px;text-align:right;border:1px solid rgba(91,183,183,.22)"></div>
+        </div>
+        ${nestedNotes}
       </div>
     </div>`;
   }).join('');
 }
+function toggleWeeklyMeetingWeek(wkKeyStr){
+  const el=document.getElementById('weekly-week-'+wkKeyStr);
+  if(!el) return;
+  el.classList.toggle('is-open');
+  const btn=el.querySelector('.weekly-meeting-week-head');
+  const open=el.classList.contains('is-open');
+  if(btn) btn.setAttribute('aria-expanded',open?'true':'false');
+}
+function toggleKeyPointsCollapsible(){
+  const w=document.getElementById('key-points-collapsible');
+  const b=document.getElementById('btn-key-points-expand');
+  if(!w) return;
+  const willOpen=!w.classList.contains('is-open');
+  w.classList.toggle('is-open',willOpen);
+  if(b) b.setAttribute('aria-expanded',willOpen?'true':'false');
+}
+function openKeyPointsCollapsible(){
+  const w=document.getElementById('key-points-collapsible');
+  const b=document.getElementById('btn-key-points-expand');
+  if(w) w.classList.add('is-open');
+  if(b) b.setAttribute('aria-expanded','true');
+}
+function confirmDeleteMeetingNote(noteId){
+  const id=String(noteId||'');
+  if(!id) return;
+  showAppConfirm('מחיקת סיכום','למחוק סיכום פגישה זה?',()=>{
+    void (async()=>{
+      try{
+        await apiFetch(`/meeting-notes/${encodeURIComponent(id)}`,{method:'DELETE'});
+        currentNotes=(currentNotes||[]).filter(n=>String(n.id)!==id);
+        await renderCounselorDetailHistory();
+        showToast('סיכום נמחק');
+      }catch(e){showToast(e.message||String(e));}
+    })();
+  });
+}
+async function saveWeeklyTaskCounselorNote(wkKey,taskId){
+  if(!currentSid) return;
+  const tid=safeWeeklyDomId(taskId);
+  const ta=document.getElementById('wtn-ta-'+wkKey+'-'+tid);
+  const stu=allStudents.find(x=>x.id===currentSid);
+  const ex=parseCounselorWeeklyExtras(stu);
+  const key=weekTaskNoteKey(wkKey,taskId);
+  const raw=(ta&&ta.value!=null)?String(ta.value):'';
+  if(raw.trim()) ex.task_notes[key]=raw;
+  else delete ex.task_notes[key];
+  try{
+    const updated=await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({
+      counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes}
+    })});
+    if(stu) stu.counselor_weekly_extras=updated.counselor_weekly_extras!=null?updated.counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes};
+    showToast('הערה נשמרה ✓');
+  }catch(e){showToast(e.message||String(e));}
+}
+function editWeekTitle(wkKeyStr){
+  if(!currentSid) return;
+  const stu=allStudents.find(x=>x.id===currentSid);
+  const wkMs=Number(wkKeyStr);
+  const ord=weekOrdinalForStudent(wkMs,stu,currentTasks,currentReports,currentNotes);
+  const cur=formatWeekDisplayTitle(wkMs,ord,stu);
+  showRenameModal('כותרת מותאמת לשבוע',cur,(v)=>{
+    if(v==null) return;
+    void (async()=>{
+      const ex=parseCounselorWeeklyExtras(stu);
+      const t=String(v).trim();
+      if(t) ex.week_labels[String(wkKeyStr)]=t;
+      else delete ex.week_labels[String(wkKeyStr)];
+      try{
+        const updated=await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({
+          counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes}
+        })});
+        if(stu) stu.counselor_weekly_extras=updated.counselor_weekly_extras;
+        await renderCounselorDetailHistory();
+      }catch(e){showToast(e.message||String(e));}
+    })();
+  });
+}
+function deleteWeekBundle(wkKeyStr){
+  if(!currentSid) return;
+  showAppConfirm('מחיקת תיעוד שבוע','יימחקו סיכומי הפגישות של השבוע, סיכום היועצת לשבוע, כותרת מותאמת והערות פנימיות למשימות. משימות ושיתופי התלמיד לא יימחקו.',()=>{
+    void (async()=>{
+      const stu=allStudents.find(x=>x.id===currentSid);
+      const wkMs=Number(wkKeyStr);
+      const wkEnd=wkMs+7*86400000;
+      const notesWeek=notesInWeekSorted(currentNotes||[],wkMs,wkEnd);
+      try{
+        for(const n of notesWeek){
+          await apiFetch(`/meeting-notes/${encodeURIComponent(String(n.id))}`,{method:'DELETE'});
+        }
+        currentNotes=(currentNotes||[]).filter(n=>!notesWeek.some(x=>x.id===n.id));
+        const sums={...parseWeeklySummariesFromStudent(stu)};
+        delete sums[wkKeyStr];
+        const ex=parseCounselorWeeklyExtras(stu);
+        delete ex.week_labels[wkKeyStr];
+        Object.keys(ex.task_notes).forEach(k=>{
+          if(k.startsWith(wkKeyStr+'_')) delete ex.task_notes[k];
+        });
+        const updated=await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({
+          weekly_counselor_summaries:sums,
+          counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes}
+        })});
+        if(stu){
+          stu.weekly_counselor_summaries=updated.weekly_counselor_summaries!=null?updated.weekly_counselor_summaries:sums;
+          stu.counselor_weekly_extras=updated.counselor_weekly_extras!=null?updated.counselor_weekly_extras:ex;
+        }
+        await renderCounselorDetailHistory();
+        showToast('תיעוד היועצת לשבוע נמחק');
+      }catch(e){showToast(e.message||String(e));}
+    })();
+  });
+}
+async function saveWeeklyCounselorSummary(wkKeyStr){
+  if(!currentSid) return;
+  const ta=document.getElementById('weekly-sum-ta-'+wkKeyStr);
+  if(!ta) return;
+  const stu=allStudents.find(x=>x.id===currentSid);
+  const cur={...parseWeeklySummariesFromStudent(stu)};
+  cur[wkKeyStr]=ta.value;
+  const btn=document.getElementById('weekly-save-'+wkKeyStr);
+  if(btn) setBusy(btn.id,true,'שומר...');
+  try{
+    const updated=await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({weekly_counselor_summaries:cur})});
+    if(stu){
+      stu.weekly_counselor_summaries=updated.weekly_counselor_summaries!=null
+        ? updated.weekly_counselor_summaries
+        : cur;
+    }
+    showToast('סיכום שבועי נשמר ✓');
+  }catch(e){
+    showToast(`שגיאה: ${e.message}`);
+  }finally{
+    if(btn) setBusy(btn.id,false,'שמירה');
+  }
+}
+function resetWeeklyMeetingModalState(){
+  _weeklyMeetingModalWk=null;
+  _editingNoteId=null;
+  const titleInp=document.getElementById('modal-week-note-title');
+  const bodyTa=document.getElementById('modal-week-note-body');
+  if(titleInp) titleInp.value='';
+  if(bodyTa) bodyTa.value='';
+  draftSessionAttachments=[];
+  editingSessionAttachments=[];
+  pendingFileUploads=[];
+  renderPendingUploadsPanel();
+  renderSessionAttachmentsUi();
+}
+function openWeeklyMeetingNoteModal(wkKeyStr, opts){
+  if(!currentSid){showToast('לא נבחר תלמיד');return;}
+  const wk=wkKeyStr!=null&&wkKeyStr!==''?String(wkKeyStr):String(localSundayWeekStartMs(Date.now()));
+  _weeklyMeetingModalWk=wk;
+  const stu=allStudents.find(x=>x.id===currentSid);
+  const keepEdit=opts&&opts.keepEdit;
+  const titleInp=document.getElementById('modal-week-note-title');
+  const bodyTa=document.getElementById('modal-week-note-body');
+  if(!titleInp||!bodyTa) return;
+  if(!keepEdit){
+    _editingNoteId=null;
+    editingSessionAttachments=[];
+    draftSessionAttachments=[];
+    pendingFileUploads=[];
+    bodyTa.value='';
+    if(opts&&opts.prefillTitle===false){
+      titleInp.value='';
+    }else{
+      const ord=weekOrdinalForStudent(Number(wk),stu,currentTasks,currentReports,currentNotes);
+      titleInp.value=formatWeekAccordionTitleLine(Number(wk),ord);
+    }
+  }
+  document.getElementById('modal-weekly-meeting').classList.add('show');
+  renderPendingUploadsPanel();
+  renderSessionAttachmentsUi();
+  setTimeout(()=>{try{bodyTa.focus();}catch(_){}},80);
+}
+function closeWeeklyMeetingNoteModal(){
+  closeModal('modal-weekly-meeting');
+}
+async function saveWeeklyMeetingNoteModal(){
+  const titleInp=document.getElementById('modal-week-note-title');
+  const bodyTa=document.getElementById('modal-week-note-body');
+  const title=(titleInp&&titleInp.value||'').trim();
+  const body=(bodyTa&&bodyTa.value||'').trim();
+  if(!title&&!body){showToast('נא למלא כותרת או תוכן');return;}
+  const text=title+(body?('\n\n'+body):'');
+  const wk=_weeklyMeetingModalWk!=null?Number(_weeklyMeetingModalWk):NaN;
+  const ok=await saveNoteCore(text,false,{noteType:'session',weekStartMs:Number.isFinite(wk)?wk:undefined});
+  if(ok) closeWeeklyMeetingNoteModal();
+}
+
+async function runWeeklyInsightsAI(wkKeyStr){
+  if(!currentSid) return;
+  const out=document.getElementById('weekly-ai-out-'+wkKeyStr);
+  const btn=document.getElementById('weekly-ai-'+wkKeyStr);
+  if(btn) setBusy(btn.id,true,'...');
+  try{
+    const data=await apiFetch(`/weekly-insights-ai/${currentSid}`,{
+      method:'POST',
+      body:JSON.stringify({week_start_ms:Number(wkKeyStr)}),
+    });
+    if(out){
+      out.style.display='block';
+      const tr=escHBr((data&&data.trend)||'');
+      const rf=escHBr((data&&data.recommended_focus)||'');
+      out.innerHTML=`<div class="weekly-ai-block"><strong>מגמה:</strong><br>${tr}</div>`+
+        `<div class="weekly-ai-block" style="margin-top:10px"><strong>מיקוד מומלץ לפגישה הבאה:</strong><br>${rf}</div>`;
+    }
+    showToast('תובנות AI הוכנו ✓');
+  }catch(e){
+    showToast(`שגיאה: ${e.message}`);
+  }finally{
+    if(btn) setBusy(btn.id,false,'✨ תובנות AI');
+  }
+}
 
 function renderCounselorDetailHistoryIfMounted(){
   if(document.getElementById('detail-history-content')) void renderCounselorDetailHistory();
-}
-
-function toggleDetailMeetingAddForm(){
-  const w=document.getElementById('detail-meeting-add-panel');
-  if(!w) return;
-  const open=w.style.display==='none'||!w.style.display;
-  w.style.display=open?'block':'none';
-  if(open){
-    renderPendingUploadsPanel();
-    renderSessionAttachmentsUi();
-  }
 }
 
 async function setCounselorDetailTab(tab){
@@ -2580,16 +3168,20 @@ async function renderCounselorDetailHistory(preSnap){
   const stu=allStudents.find(x=>x.id===currentSid);
   await reloadMeetingNotes();
   const taskLine=escH(getWeeklyTaskSummaryLine(currentTasks));
-  const notesHtml=buildSessionNotesCardsHtml();
+  const weeklyMeetingsHtml=buildCounselorWeeklyMeetingAccordionHtml(stu);
   const kpBullets=renderKeyPointsBulletsHtml(stu);
 
   host.innerHTML=`
     <div class="meeting-history-embedded">
     <section class="insights-section" aria-label="נקודות חשובות">
-      <h2 style="text-align:center">נקודות חשובות</h2>
+      <div class="insights-section-head">
+        <button type="button" class="btn-kp-expand" id="btn-key-points-expand" onclick="toggleKeyPointsCollapsible()" aria-expanded="false" title="הוספה לנקודות חשובות">+</button>
+        <h2>נקודות חשובות</h2>
+      </div>
       <div class="system-trends--minimal">${taskLine}</div>
       ${kpBullets}
       <div class="insights-workspace">
+        <div id="key-points-collapsible" class="key-points-collapsible">
         <div class="key-points-ta-wrap">
           <textarea id="key-points-ta" placeholder=""
             oninput="onKeyPointsTaInput()"></textarea>
@@ -2599,43 +3191,19 @@ async function renderCounselorDetailHistory(preSnap){
         <div class="insights-actions">
           <button type="button" class="btn-insights-save" id="btn-key-points-save" disabled onclick="saveKeyPointsToStudent()">שמירה</button>
         </div>
+        </div>
       </div>
     </section>
 
     <div class="sec">
       <div class="meeting-summaries-head-row" style="align-items:center">
-        <div class="sec-title sec-case-title" style="text-align:center;flex:1;min-width:0;margin-bottom:0">סיכומי פגישות</div>
+        <div class="sec-title sec-case-title" style="text-align:center;flex:1;min-width:0;margin-bottom:0">סיכומי פגישות — תצוגה שבועית</div>
         <div class="meeting-summaries-head-toolbar">
-          <button type="button" class="btn-add-meeting-minimal" onclick="toggleDetailMeetingAddForm()" title="הוסף סיכום" aria-label="הוסף סיכום">+</button>
+          <button type="button" class="btn-add-meeting-minimal" onclick="openWeeklyMeetingNoteModal(null)" title="הוסף סיכום פגישה (שבוע נוכחי)" aria-label="הוסף סיכום פגישה">+</button>
         </div>
       </div>
-      <p class="sec-case-note" style="text-align:center">תיעוד מהלך השיחה והמפגש</p>
-      ${notesHtml}
-      <div id="detail-meeting-add-panel" class="meeting-inline-add-panel" style="display:none">
-        <div class="new-meeting-upload-status" style="justify-content:center;display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px" aria-live="polite">
-          <div class="upload-inline-spinner" id="new-meeting-spinner" style="display:none"><span class="spinner spinner-teal"></span></div>
-          <div class="upload-progress-wrap" id="new-meeting-progress" style="display:none;flex:1;min-width:120px;max-width:280px">
-            <div class="upload-progress-bar"><div class="upload-progress-fill" id="new-meeting-progress-fill"></div></div>
-          </div>
-          <span class="upload-success-badge" id="new-meeting-success-badge" style="display:none">✓ נוספו לתור</span>
-        </div>
-        <div id="pending-uploads-panel" class="pending-uploads-panel" style="display:none"></div>
-        <button type="button" class="btn-commit-pending" id="btn-commit-pending" style="display:none" onclick="commitPendingUploads()">העלאה לאוסף</button>
-        <div class="add-row" style="align-items:flex-start;gap:10px;margin-top:12px;max-width:100%;justify-content:center">
-          <label class="btn-attach btn-attach--tiny" title="צרף קובץ" aria-label="צרף קובץ">
-            <input type="file" id="new-meeting-file-input" multiple accept=".pdf,.docx,image/jpeg,image/png,image/jpg,image/webp,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none" onchange="onNewMeetingFileInput(this)">
-            📎
-          </label>
-          <div class="meeting-summary-ta-wrap">
-            <label class="meeting-summary-lbl" for="note-draft-manual">כתבי את סיכום הפגישה</label>
-            <textarea class="add-input" id="note-draft-manual" style="height:auto;resize:vertical;max-width:100%;width:100%" placeholder=""></textarea>
-            <button type="button" class="btn-kp-ai-wand" id="btn-meeting-summary-ai" onclick="runMeetingSummaryAI()" title="סיכום שבועי ותובנות (AI)" aria-label="סיכום שבועי ותובנות AI">✨</button>
-            <div class="ai-loading kp-ai-loading" id="meeting-summary-ai-loading">מנתח... <span class="spinner spinner-dk"></span></div>
-          </div>
-          <button type="button" class="btn-sm btn-meeting-save" id="btn-meeting-save" style="height:42px;align-self:flex-start;margin-top:22px" onclick="saveManualHistoryNote()">שמור</button>
-        </div>
-        <div id="session-attachments-panel" class="attachments-panel"></div>
-      </div>
+      <p class="sec-case-note" style="text-align:center">לכל שבוע: משימות ושיתופים, סיכום יועצת, וסיכומי פגישות. השתמשי ב־+ למעלה לסיכום פגישה חדש.</p>
+      ${weeklyMeetingsHtml}
     </div>
     <div class="sec">
       <div class="general-files-head-row">
@@ -2652,8 +3220,6 @@ async function renderCounselorDetailHistory(preSnap){
     </div>`;
   syncKeyPointsSaveBtn();
   restoreMeetingHistoryDraft(snap);
-  renderPendingUploadsPanel();
-  renderSessionAttachmentsUi();
 }
 
 async function attachFilesToMeetingNote(noteId, input){
@@ -2871,7 +3437,7 @@ function delTask(taskId){
 
 /* ════════════════ ADD STUDENT ════════════════ */
 function openAddModal(){
-  ['new-name','new-grade','new-reason','new-description','new-code'].forEach(id=>document.getElementById(id).value='');
+  ['new-name','new-grade','new-description','new-code'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('new-photo-b64').value='';
   document.getElementById('new-photo-drop').innerHTML='📷 לחצי להעלאת תמונה';
   document.getElementById('new-status').value='בתהליך';
@@ -2880,16 +3446,15 @@ function openAddModal(){
 async function doAddStudent(){
   const name       =document.getElementById('new-name').value.trim();
   const grade      =document.getElementById('new-grade').value.trim();
-  const reason     =document.getElementById('new-reason').value.trim();
   const description=document.getElementById('new-description').value.trim();
   const photo      =document.getElementById('new-photo-b64').value||'';
   const status     =document.getElementById('new-status').value;
   const code       =document.getElementById('new-code').value.trim();
-  if(!name||!grade||!reason){showToast('נא למלא שם, כיתה וסיבת פנייה');return;}
+  if(!name||!grade){showToast('נא למלא שם וכיתה');return;}
   if(code && !/^\d{4}$/.test(code)){showToast('קוד כניסה חייב להיות 4 ספרות');return;}
   setBusy('btn-add-submit',true,'הוסף');
   try{
-    await apiFetch('/students',{method:'POST',body:JSON.stringify({name,grade,reason,description,photo,status,code:code||null})});
+    await apiFetch('/students',{method:'POST',body:JSON.stringify({name,grade,reason:'',description,photo,status,code:code||null})});
     closeModal('modal-add');await loadList();showToast(`${name} נוסף/ה בהצלחה ✓`);
   }catch(e){showToast(`שגיאה: ${e.message}`);}
   finally{setBusy('btn-add-submit',false,'הוסף');}
@@ -2914,9 +3479,15 @@ async function refreshAfterNoteSave(opts={}){
 }
 
 async function saveNoteCore(text, isAiFlow, opts={}){
-  if(!text||!String(text).trim()){showToast('נא לכתוב סיכום לפני שמירה');return;}
+  if(!text||!String(text).trim()){showToast('נא לכתוב סיכום לפני שמירה');return false;}
   const noteType=opts.noteType||'session';
   const forceEditStatus=opts.forceEditStatus||null;
+  const resolveWk=()=>{
+    if(opts.weekStartMs!=null&&Number.isFinite(Number(opts.weekStartMs))) return Number(opts.weekStartMs);
+    if(_weeklyMeetingModalWk!=null&&Number.isFinite(Number(_weeklyMeetingModalWk))) return Number(_weeklyMeetingModalWk);
+    return null;
+  };
+  const wkMs=resolveWk();
   let editStatus;
   let flagAi;
   if(_editingNoteId){
@@ -2945,27 +3516,25 @@ async function saveNoteCore(text, isAiFlow, opts={}){
   try{
     let saved;
     if(_editingNoteId){
-      saved=await apiFetch(`/meeting-notes/${_editingNoteId}`,{
-        method:'PATCH',
-        body:JSON.stringify({
-          content:text,
-          is_ai_generated:flagAi,
-          edit_status:editStatus,
-          attachments:attPayload,
-        })
-      });
+      const patchBody={
+        content:text,
+        is_ai_generated:flagAi,
+        edit_status:editStatus,
+        attachments:attPayload,
+      };
+      if(wkMs!=null) patchBody.week_start_ms=wkMs;
+      saved=await apiFetch(`/meeting-notes/${_editingNoteId}`,{method:'PATCH',body:JSON.stringify(patchBody)});
       currentNotes=(currentNotes||[]).map(n=>n.id===_editingNoteId?saved:n);
     }else{
-      saved=await apiFetch(`/meeting-notes/${currentSid}`,{
-        method:'POST',
-        body:JSON.stringify({
-          content:text,
-          is_ai_generated:flagAi,
-          edit_status:editStatus,
-          note_type:noteType,
-          attachments:attPayload,
-        })
-      });
+      const postBody={
+        content:text,
+        is_ai_generated:flagAi,
+        edit_status:editStatus,
+        note_type:noteType,
+        attachments:attPayload,
+      };
+      if(wkMs!=null) postBody.week_start_ms=wkMs;
+      saved=await apiFetch(`/meeting-notes/${currentSid}`,{method:'POST',body:JSON.stringify(postBody)});
       currentNotes=[saved,...(currentNotes||[])];
     }
     draftSessionAttachments=[];
@@ -2976,8 +3545,11 @@ async function saveNoteCore(text, isAiFlow, opts={}){
     _editingNoteId=null;
     await refreshAfterNoteSave({preserveKeyPointsDraft:noteType==='session'});
     showToast('נשמר בתיק התלמיד ✓');
-  }catch(e){showToast(`שגיאה: ${e.message}`);}
-  finally{
+    return true;
+  }catch(e){
+    showToast(`שגיאה: ${e.message}`);
+    return false;
+  }finally{
     if(saveBtnSession){
       saveBtnSession.disabled=false;
       if(saveBtnSession.dataset._prevHtml!=null){
@@ -2990,28 +3562,21 @@ async function saveNoteCore(text, isAiFlow, opts={}){
   }
 }
 
-async function saveManualHistoryNote(){
-  const ta=getNoteDraftTa();
-  const text=ta&&ta.value!=null?String(ta.value).trim():'';
-  await saveNoteCore(text, false, {noteType:'session'});
-}
-
 async function startEditNote(id){
   const note=(currentNotes||[]).find(n=>n.id===id);
-  let ta=getNoteDraftTa();
   if(!note||!meetingNoteIsSession(note)) return;
-  if(!ta){
-    _counselorDetailTab='history';
-    await renderDetail(allStudents.find(x=>x.id===currentSid));
-    const p=document.getElementById('detail-meeting-add-panel');
-    if(p) p.style.display='block';
-    ta=getNoteDraftTa();
-    if(!ta) return;
-  }else{
-    const wrap=document.getElementById('detail-meeting-add-panel');
-    if(wrap) wrap.style.display='block';
+  const full=(note.content!=null?note.content:'')||(note.summary_text!=null?note.summary_text:'')||'';
+  const parts=full.split(/\n\n/);
+  const titleGuess=parts.length>1?parts[0].trim():'';
+  const bodyRest=parts.length>1?parts.slice(1).join('\n\n').trim():full.trim();
+  let wkKey=null;
+  if(note.week_start_ms!=null&&Number.isFinite(Number(note.week_start_ms)))
+    wkKey=String(note.week_start_ms);
+  else{
+    const ms=parseIsoMs(note.created_at);
+    if(ms!=null) wkKey=String(localSundayWeekStartMs(ms));
   }
-  ta.value=note.content||'';
+  const wkOpen=wkKey||String(localSundayWeekStartMs(Date.now()));
   _editingNoteId=id;
   _noteIsAi=!!note.is_ai_generated;
   draftSessionAttachments=[];
@@ -3021,10 +3586,19 @@ async function startEditNote(id){
     mime:a.mime||guessMimeFromName(a.name||''),
     data:String(a.data||a.url||''),
   }));
+  openWeeklyMeetingNoteModal(wkOpen,{keepEdit:true,prefillTitle:false});
+  const stu=allStudents.find(x=>x.id===currentSid);
+  const titleInp=document.getElementById('modal-week-note-title');
+  const bodyTa=document.getElementById('modal-week-note-body');
+  if(titleInp) titleInp.value=titleGuess||formatWeekAccordionTitleLine(Number(wkOpen),weekOrdinalForStudent(Number(wkOpen),stu,currentTasks,currentReports,currentNotes));
+  if(bodyTa) bodyTa.value=bodyRest;
+  _weeklyMeetingModalWk=wkOpen;
   renderSessionAttachmentsUi();
   renderPendingUploadsPanel();
-  ta.focus();
-  try{ta.scrollIntoView({behavior:'smooth',block:'center'});}catch(_){}
+  if(bodyTa){
+    bodyTa.focus();
+    try{bodyTa.scrollIntoView({behavior:'smooth',block:'center'});}catch(_){}
+  }
 }
 function editSug(i){
   const el=document.getElementById(`sg-t-${i}`);
