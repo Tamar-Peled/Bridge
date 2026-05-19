@@ -3,6 +3,16 @@
 -- Run this in: Supabase Dashboard → SQL Editor → New Query
 -- ============================================================
 
+-- RLS: backend writes must not be silently ignored. The backend should use
+-- SUPABASE_SERVICE_KEY, but disabling RLS here also protects older deployments
+-- that still have SUPABASE_KEY set to the anon key.
+ALTER TABLE IF EXISTS public.students DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tasks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.meeting_notes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.reports DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.student_documents DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.student_notes DISABLE ROW LEVEL SECURITY;
+
 -- ── 1. students: add missing columns ────────────────────────
 ALTER TABLE public.students
   ADD COLUMN IF NOT EXISTS description  text          DEFAULT '',

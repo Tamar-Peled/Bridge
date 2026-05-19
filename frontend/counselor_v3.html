@@ -2765,18 +2765,6 @@ async function renderDetail(s){
   await setCounselorDetailTab(tabRestore);
 }
 
-function parseWeeklySummariesFromStudent(stu){
-  let raw=stu&&stu.weekly_counselor_summaries;
-  if(typeof raw==='string'){
-    try{raw=JSON.parse(raw);}catch(_){raw={};}
-  }
-  if(!raw||typeof raw!=='object'||Array.isArray(raw)) return {};
-  const out={};
-  for(const k of Object.keys(raw)){
-    out[String(k)]=raw[k]==null?'':String(raw[k]);
-  }
-  return out;
-}
 function localSundayWeekStartMs(ms){
   const d=new Date(ms);
   const c=new Date(d.getFullYear(),d.getMonth(),d.getDate());
@@ -2785,26 +2773,76 @@ function localSundayWeekStartMs(ms){
   c.setHours(0,0,0,0);
   return c.getTime();
 }
+/* Single source of truth for week keys. Every weekly card, textarea id, save
+   body, delete call, and DB read MUST go through this so a key written by an
+   older version (or a different timezone, or stored directly from
+   note.week_start_ms) bucket to the same canonical Sunday-00:00-local key as
+   the freshly rendered card.
+
+   Returns:
+     - a canonical string key (Sunday 00:00 local epoch ms) for any
+       parsable number/string/Date input
+     - "" when input is not parsable
+*/
+function normalizeWeekKey(any){
+  if(any==null) return '';
+  const n=Number(any);
+  if(!Number.isFinite(n)) return '';
+  return String(localSundayWeekStartMs(n));
+}
+function parseWeeklySummariesFromStudent(stu){
+  let raw=stu&&stu.weekly_counselor_summaries;
+  if(typeof raw==='string'){
+    try{raw=JSON.parse(raw);}catch(_){raw={};}
+  }
+  if(!raw||typeof raw!=='object'||Array.isArray(raw)) return {};
+  const out={};
+  for(const k of Object.keys(raw)){
+    const canon=normalizeWeekKey(k);
+    if(!canon) continue;
+    const v=raw[k]==null?'':String(raw[k]);
+    // If two raw keys collapse to the same canonical week, prefer non-empty.
+    if(out[canon]==null||out[canon]===''||v!=='') out[canon]=v;
+    if(canon!==String(k)) console.log('[wkKey] summaries normalized',JSON.stringify(k),'→',canon);
+  }
+  return out;
+}
 function addWeekFromIso(iso, intoSet){
   const ms=parseIsoMs(iso);
   if(ms==null) return;
   intoSet.add(localSundayWeekStartMs(ms));
 }
 function collectCounselorWeekStartMsSet(stu,tasks,reports,notes){
+  /* Every value added to this set MUST be a canonical week-start ms (Sunday
+     00:00 local) so that the same conceptual week renders one card with one
+     id, and saves into one key. note.week_start_ms and the keys already in
+     weekly_counselor_summaries / counselor_weekly_extras come from older
+     writes and aren't trusted — push them through normalizeWeekKey first. */
   const set=new Set();
   set.add(localSundayWeekStartMs(Date.now()));
   (reports||[]).forEach(r=>addWeekFromIso(r&&r.created_at,set));
   (notes||[]).filter(meetingNoteIsSession).forEach(n=>{
     addWeekFromIso(n&&n.created_at,set);
     if(n&&n.week_start_ms!=null){
-      const w=Number(n.week_start_ms);
-      if(Number.isFinite(w)) set.add(w);
+      const canon=normalizeWeekKey(n.week_start_ms);
+      if(canon) set.add(Number(canon));
     }
   });
   (tasks||[]).forEach(t=>{if(t&&t.selected_at) addWeekFromIso(t.selected_at,set);});
   const sums=parseWeeklySummariesFromStudent(stu);
   Object.keys(sums).forEach(k=>{
     const n=Number(k);
+    if(Number.isFinite(n)) set.add(n);
+  });
+  const ex=parseCounselorWeeklyExtras(stu);
+  Object.keys(ex.week_labels||{}).forEach(k=>{
+    const n=Number(k);
+    if(Number.isFinite(n)) set.add(n);
+  });
+  Object.keys(ex.task_notes||{}).forEach(k=>{
+    const us=k.indexOf('_');
+    const prefix=us>=0?k.slice(0,us):k;
+    const n=Number(prefix);
     if(Number.isFinite(n)) set.add(n);
   });
   return set;
@@ -2857,8 +2895,32 @@ function weekTaskNoteKey(wkKey,taskId){
 function parseCounselorWeeklyExtras(stu){
   const d=stu&&stu.counselor_weekly_extras;
   if(!d||typeof d!=='object') return {week_labels:{},task_notes:{}};
-  const wl=d.week_labels&&typeof d.week_labels==='object'?{...d.week_labels}:{};
-  const tn=d.task_notes&&typeof d.task_notes==='object'?{...d.task_notes}:{};
+  const rawWl=d.week_labels&&typeof d.week_labels==='object'?d.week_labels:{};
+  const rawTn=d.task_notes&&typeof d.task_notes==='object'?d.task_notes:{};
+  /* Normalize every week-bucketed key through normalizeWeekKey so legacy
+     entries written by older versions of the UI collapse onto the same
+     canonical key the renderer uses today. task_notes keys are composite —
+     "<wkKey>_<taskId>" — so split on the FIRST underscore only (task ids are
+     uuids that may not contain underscores but can contain hyphens). */
+  const wl={};
+  for(const k of Object.keys(rawWl)){
+    const canon=normalizeWeekKey(k);
+    if(!canon) continue;
+    if(wl[canon]==null||String(wl[canon]||'').trim()==='') wl[canon]=rawWl[k];
+    if(canon!==String(k)) console.log('[wkKey] week_labels normalized',JSON.stringify(k),'→',canon);
+  }
+  const tn={};
+  for(const k of Object.keys(rawTn)){
+    const us=String(k).indexOf('_');
+    if(us<0) continue;
+    const prefix=String(k).slice(0,us);
+    const suffix=String(k).slice(us+1);
+    const canon=normalizeWeekKey(prefix);
+    if(!canon||!suffix) continue;
+    const newKey=canon+'_'+suffix;
+    if(tn[newKey]==null||String(tn[newKey]||'').trim()==='') tn[newKey]=rawTn[k];
+    if(newKey!==String(k)) console.log('[wkKey] task_notes normalized',JSON.stringify(k),'→',newKey);
+  }
   return {week_labels:wl,task_notes:tn};
 }
 function formatWeekDisplayTitle(wkMs,ordinal,stu){
@@ -3101,11 +3163,12 @@ function confirmDeleteMeetingNote(noteId){
 }
 async function saveWeeklyTaskCounselorNote(wkKey,taskId){
   if(!currentSid) return;
+  const wkKeyNorm=normalizeWeekKey(wkKey)||String(wkKey);
   const tid=safeWeeklyDomId(taskId);
-  const ta=document.getElementById('wtn-ta-'+wkKey+'-'+tid);
+  const ta=document.getElementById('wtn-ta-'+wkKeyNorm+'-'+tid);
   const stu=allStudents.find(x=>x.id===currentSid);
   const ex=parseCounselorWeeklyExtras(stu);
-  const key=weekTaskNoteKey(wkKey,taskId);
+  const key=weekTaskNoteKey(wkKeyNorm,taskId);
   const raw=(ta&&ta.value!=null)?String(ta.value):'';
   if(raw.trim()) ex.task_notes[key]=raw;
   else delete ex.task_notes[key];
@@ -3120,7 +3183,8 @@ async function saveWeeklyTaskCounselorNote(wkKey,taskId){
 function editWeekTitle(wkKeyStr){
   if(!currentSid) return;
   const stu=allStudents.find(x=>x.id===currentSid);
-  const wkMs=Number(wkKeyStr);
+  const wkKeyNorm=normalizeWeekKey(wkKeyStr)||String(wkKeyStr);
+  const wkMs=Number(wkKeyNorm);
   const ord=weekOrdinalForStudent(wkMs,stu,currentTasks,currentReports,currentNotes);
   const cur=formatWeekDisplayTitle(wkMs,ord,stu);
   showRenameModal('כותרת מותאמת לשבוע',cur,(v)=>{
@@ -3128,8 +3192,8 @@ function editWeekTitle(wkKeyStr){
     void (async()=>{
       const ex=parseCounselorWeeklyExtras(stu);
       const t=String(v).trim();
-      if(t) ex.week_labels[String(wkKeyStr)]=t;
-      else delete ex.week_labels[String(wkKeyStr)];
+      if(t) ex.week_labels[wkKeyNorm]=t;
+      else delete ex.week_labels[wkKeyNorm];
       try{
         const updated=await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({
           counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes}
@@ -3142,11 +3206,12 @@ function editWeekTitle(wkKeyStr){
 }
 function deleteWeekBundle(wkKeyStr){
   if(!currentSid){showToast('לא נבחר תלמיד');return;}
+  const wkKeyNorm=normalizeWeekKey(wkKeyStr)||String(wkKeyStr);
   showAppConfirm('מחיקת תיעוד שבוע','יימחקו סיכומי הפגישות של השבוע, סיכום היועצת לשבוע, כותרת מותאמת והערות פנימיות למשימות. משימות ושיתופי התלמיד לא יימחקו.', async ()=>{
     await reloadMeetingNotes();
     const stu=await reloadCurrentStudentFromServer();
     if(!stu){showToast('תלמיד לא נמצא — לא ניתן למחוק');return;}
-    const wkMs=Number(wkKeyStr);
+    const wkMs=Number(wkKeyNorm);
     if(!Number.isFinite(wkMs)){showToast('שבוע לא תקין');return;}
     const wkEnd=wkMs+7*86400000;
     const notesWeek=notesInWeekSorted(currentNotes||[],wkMs,wkEnd);
@@ -3170,13 +3235,14 @@ function deleteWeekBundle(wkKeyStr){
 
     /* Step 2 — PATCH the student row so the weekly summary text,
        custom label, and per-task notes for this week are actually
-       persisted as gone in the database. */
+       persisted as gone in the database. Lookups use the canonical
+       (normalized) wkKey so legacy raw keys from older writes still match. */
     const sums={...parseWeeklySummariesFromStudent(stu)};
-    delete sums[wkKeyStr];
+    delete sums[wkKeyNorm];
     const ex=parseCounselorWeeklyExtras(stu);
-    delete ex.week_labels[wkKeyStr];
+    delete ex.week_labels[wkKeyNorm];
     Object.keys(ex.task_notes).forEach(k=>{
-      if(k.startsWith(wkKeyStr+'_')) delete ex.task_notes[k];
+      if(k.startsWith(wkKeyNorm+'_')) delete ex.task_notes[k];
     });
 
     try{
@@ -3197,9 +3263,9 @@ function deleteWeekBundle(wkKeyStr){
     const serverEx=parseCounselorWeeklyExtras(fresh);
     const serverLabels=serverEx.week_labels||{};
     const serverTaskNotes=serverEx.task_notes||{};
-    const stillHasSummary=Object.prototype.hasOwnProperty.call(serverSums,wkKeyStr);
-    const stillHasLabel=Object.prototype.hasOwnProperty.call(serverLabels,wkKeyStr);
-    const stillHasTaskNote=Object.keys(serverTaskNotes).some(k=>k.startsWith(wkKeyStr+'_'));
+    const stillHasSummary=Object.prototype.hasOwnProperty.call(serverSums,wkKeyNorm);
+    const stillHasLabel=Object.prototype.hasOwnProperty.call(serverLabels,wkKeyNorm);
+    const stillHasTaskNote=Object.keys(serverTaskNotes).some(k=>k.startsWith(wkKeyNorm+'_'));
     if(stillHasSummary||stillHasLabel||stillHasTaskNote){
       showToast('המחיקה לא נשמרה במסד הנתונים. נסי שוב.');
       return;
@@ -3218,31 +3284,113 @@ function deleteWeeklyCounselorSummary(wkKeyStr){
   });
 }
 async function saveWeeklyCounselorSummary(wkKeyStr,opts={}){
-  if(!currentSid){showToast('לא נבחר תלמיד');return;}
-  const ta=document.getElementById('weekly-sum-ta-'+wkKeyStr);
-  if(!ta){showToast('שדה הסיכום לא נמצא');return;}
+  console.log('[weekly-summary] === saveWeeklyCounselorSummary CALLED ===',{wkKeyStr,opts,currentSid});
+  if(!currentSid){
+    console.warn('[weekly-summary] aborting: no currentSid');
+    showToast('לא נבחר תלמיד');return;
+  }
+  const wkKeyType=typeof wkKeyStr;
+  /* Canonicalize the incoming key so a click on any weekly card always
+     targets the same Sunday-00:00-local bucket the renderer used to build
+     that card. The textarea id we generate at render time already uses the
+     canonical value, so normalize-then-lookup keeps everything in lockstep. */
+  const wkKeyStrNorm=normalizeWeekKey(wkKeyStr)||String(wkKeyStr);
+  if(wkKeyStrNorm!==String(wkKeyStr)){
+    console.log('[weekly-summary] wkKey normalized at entry:',JSON.stringify(String(wkKeyStr)),'→',wkKeyStrNorm);
+  }
+  const taId='weekly-sum-ta-'+wkKeyStrNorm;
+  const ta=document.getElementById(taId);
+  // === Textarea diagnostics — exactly the hypothesis to verify ============
+  const allTextareas=Array.from(document.querySelectorAll('[id^="weekly-sum-ta-"]'));
+  const allTextareaSnapshot=allTextareas.map(el=>({
+    id:el.id,
+    valueLen:String(el.value||'').length,
+    valuePreview:String(el.value||'').slice(0,80),
+  }));
+  const focused=document.activeElement;
+  console.group('[weekly-summary] textarea READ');
+  console.log('looked up element id  =',taId);
+  console.log('wkKeyStr (raw)        =',wkKeyStr,'typeof',wkKeyType);
+  console.log('wkKeyStr (normalized) =',wkKeyStrNorm);
+  console.log('textarea found?       =',!!ta);
+  if(ta){
+    console.log('textarea.id           =',ta.id);
+    console.log('textarea.value        =',JSON.stringify(ta.value));
+    console.log('textarea.value length =',String(ta.value||'').length);
+    console.log('textarea.value trimmed length =',String(ta.value||'').trim().length);
+    console.log('textarea.defaultValue =',JSON.stringify(ta.defaultValue));
+    console.log('textarea is in DOM?   =',document.body.contains(ta));
+  }
+  console.log('document.activeElement=',focused&&focused.id?focused.id:focused&&focused.tagName);
+  console.log('all weekly-sum-ta-* in DOM:',allTextareaSnapshot);
+  console.groupEnd();
+  if(!ta){
+    console.error('[weekly-summary] aborting: textarea element not found in DOM. Expected id =',taId);
+    showToast('שדה הסיכום לא נמצא');return;
+  }
   const value=String(ta.value||'');
   const deleting=!!(opts&&opts.deleteOnly);
-  const btn=document.getElementById('weekly-save-'+wkKeyStr);
+  const willDelete=deleting||!value.trim();
+  console.log('[weekly-summary] branch decision: deleting?',deleting,'→ value trim len =',value.trim().length,'→ will DELETE key?',willDelete);
+  const btn=document.getElementById('weekly-save-'+wkKeyStrNorm);
   if(btn) setBusy(btn.id,true,'שומר...');
   try{
     const stu=await reloadCurrentStudentFromServer();
     const cur={...parseWeeklySummariesFromStudent(stu)};
-    if(deleting||!value.trim()) delete cur[wkKeyStr];
-    else cur[wkKeyStr]=value;
-    await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({weekly_counselor_summaries:cur})});
+    console.log('[weekly-summary] BEFORE mutate, cur keys =',Object.keys(cur));
+    if(willDelete) delete cur[wkKeyStrNorm];
+    else cur[wkKeyStrNorm]=value;
+    console.log('[weekly-summary] AFTER mutate, cur keys  =',Object.keys(cur),'wkKey present?',Object.prototype.hasOwnProperty.call(cur,wkKeyStrNorm));
+    const url=`/students/${currentSid}`;
+    const bodyObj={weekly_counselor_summaries:cur};
+    const bodyStr=JSON.stringify(bodyObj);
+    // === LOUD top-level body log (the one the user asked for) ============
+    console.log('[weekly-summary] OUTBOUND PATCH →',API+url);
+    console.log('[weekly-summary] OUTBOUND BODY (object) →',bodyObj);
+    console.log('[weekly-summary] OUTBOUND BODY (string) →',bodyStr);
+    console.log('[weekly-summary] OUTBOUND BODY length    →',bodyStr.length,'bytes');
+    console.log('[weekly-summary] OUTBOUND wkKey          →',wkKeyStrNorm,'value →',JSON.stringify(cur[wkKeyStrNorm]));
+    console.log('[weekly-summary] DB column being written → weekly_counselor_summaries (jsonb on public.students)');
+    let saved;
+    try{
+      saved=await apiFetch(url,{method:'PATCH',body:bodyStr});
+    }catch(err){
+      console.error('[weekly-summary] PATCH FAILED →',err);
+      throw err;
+    }
+    console.group('[weekly-summary] PATCH response');
+    console.log('full response object =',saved);
+    console.log('typeof response      =',typeof saved,'is null?',saved===null);
+    if(saved && typeof saved==='object'){
+      console.log('response.id                          =',saved.id);
+      console.log('response.weekly_counselor_summaries  =',saved.weekly_counselor_summaries);
+      console.log('  → typeof                           =',typeof saved.weekly_counselor_summaries);
+      const r=saved.weekly_counselor_summaries;
+      if(r && typeof r==='object'){
+        console.log('  → keys                              =',Object.keys(r));
+        console.log('  → ['+wkKeyStrNorm+']                =',JSON.stringify(r[wkKeyStrNorm]));
+      }
+    }
+    console.groupEnd();
     const fresh=await reloadCurrentStudentFromServer();
     const serverSums=parseWeeklySummariesFromStudent(fresh);
-    const hasKey=Object.prototype.hasOwnProperty.call(serverSums,wkKeyStr);
-    if(deleting||!value.trim()){
+    console.group('[weekly-summary] fresh GET /students');
+    console.log('fresh.weekly_counselor_summaries  =',fresh.weekly_counselor_summaries);
+    console.log('parsed keys                       =',Object.keys(serverSums));
+    console.log('serverSums['+wkKeyStrNorm+']      =',JSON.stringify(serverSums[wkKeyStrNorm]));
+    console.log('expected to find wkKey?           =',!willDelete);
+    console.groupEnd();
+    const hasKey=Object.prototype.hasOwnProperty.call(serverSums,wkKeyStrNorm);
+    if(willDelete){
       if(hasKey) throw new Error('המחיקה לא נשמרה במסד הנתונים');
       ta.value='';
-    }else if(serverSums[wkKeyStr]!==value){
+    }else if(serverSums[wkKeyStrNorm]!==value){
       throw new Error('השמירה לא אומתה במסד הנתונים');
     }
     await renderCounselorDetailHistory();
-    showToast((deleting||!value.trim())?'סיכום שבועי נמחק':'סיכום שבועי נשמר ✓');
+    showToast(willDelete?'סיכום שבועי נמחק':'סיכום שבועי נשמר ✓');
   }catch(e){
+    console.error('[weekly-summary] error:',e);
     showToast(`שגיאה: ${e.message}`);
   }finally{
     if(btn) setBusy(btn.id,false,'שמירה');
@@ -3263,7 +3411,8 @@ function resetWeeklyMeetingModalState(){
 }
 function openWeeklyMeetingNoteModal(wkKeyStr, opts){
   if(!currentSid){showToast('לא נבחר תלמיד');return;}
-  const wk=wkKeyStr!=null&&wkKeyStr!==''?String(wkKeyStr):String(localSundayWeekStartMs(Date.now()));
+  const canon=(wkKeyStr!=null&&wkKeyStr!=='')?normalizeWeekKey(wkKeyStr):'';
+  const wk=canon||String(localSundayWeekStartMs(Date.now()));
   _weeklyMeetingModalWk=wk;
   const stu=allStudents.find(x=>x.id===currentSid);
   const keepEdit=opts&&opts.keepEdit;
@@ -3305,13 +3454,14 @@ async function saveWeeklyMeetingNoteModal(){
 
 async function runWeeklyInsightsAI(wkKeyStr){
   if(!currentSid) return;
-  const out=document.getElementById('weekly-ai-out-'+wkKeyStr);
-  const btn=document.getElementById('weekly-ai-'+wkKeyStr);
+  const wkKeyNorm=normalizeWeekKey(wkKeyStr)||String(wkKeyStr);
+  const out=document.getElementById('weekly-ai-out-'+wkKeyNorm);
+  const btn=document.getElementById('weekly-ai-'+wkKeyNorm);
   if(btn) setBusy(btn.id,true,'...');
   try{
     const data=await apiFetch(`/weekly-insights-ai/${currentSid}`,{
       method:'POST',
-      body:JSON.stringify({week_start_ms:Number(wkKeyStr)}),
+      body:JSON.stringify({week_start_ms:Number(wkKeyNorm)}),
     });
     if(out){
       out.style.display='block';
@@ -3764,8 +3914,8 @@ async function startEditNote(id){
   const bodyRest=parts.length>1?parts.slice(1).join('\n\n').trim():full.trim();
   let wkKey=null;
   if(note.week_start_ms!=null&&Number.isFinite(Number(note.week_start_ms)))
-    wkKey=String(note.week_start_ms);
-  else{
+    wkKey=normalizeWeekKey(note.week_start_ms);
+  if(!wkKey){
     const ms=parseIsoMs(note.created_at);
     if(ms!=null) wkKey=String(localSundayWeekStartMs(ms));
   }

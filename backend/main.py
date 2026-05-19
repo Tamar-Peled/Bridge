@@ -28,10 +28,12 @@ load_dotenv()
 
 api_key      = os.getenv("OPENAI_API_KEY")
 supabase_url = os.getenv("SUPABASE_URL")
-supabase_key = os.getenv("SUPABASE_KEY")
+supabase_key_source = "SUPABASE_SERVICE_KEY" if os.getenv("SUPABASE_SERVICE_KEY") else "SUPABASE_KEY"
+supabase_key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY")
 
 if not api_key:      raise ValueError("Missing OPENAI_API_KEY")
-if not supabase_url or not supabase_key: raise ValueError("Missing SUPABASE_URL or SUPABASE_KEY")
+if not supabase_url or not supabase_key:
+    raise ValueError("Missing SUPABASE_URL or SUPABASE_SERVICE_KEY/SUPABASE_KEY")
 
 openai_client = OpenAI(api_key=api_key)
 
@@ -56,13 +58,14 @@ def _supabase_jwt_role(key: str) -> Optional[str]:
 _jwt_role = _supabase_jwt_role(supabase_key)
 if _jwt_role == "anon":
     print(
-        "[BRIDGE] WARNING: SUPABASE_KEY decodes as role=anon. Storage uploads will usually fail with RLS. "
-        "Use the service_role secret from Supabase Dashboard → Project Settings → API (never expose it to the browser)."
+        "[BRIDGE] WARNING: Supabase key decodes as role=anon. Writes may be blocked by RLS. "
+        "Set SUPABASE_SERVICE_KEY to the service_role secret from Supabase Dashboard → Project Settings → API "
+        "(never expose it to the browser)."
     )
 elif _jwt_role and _jwt_role != "service_role":
     print(f"[BRIDGE] INFO: SUPABASE_KEY JWT role={_jwt_role!r} (expected service_role for full Storage access).")
 print(
-    f"[BRIDGE] Supabase client up. url={supabase_url!r}  role={_jwt_role!r}  "
+    f"[BRIDGE] Supabase client up. url={supabase_url!r}  key_source={supabase_key_source}  role={_jwt_role!r}  "
     f"(role=anon → RLS will silently block writes; expected role=service_role for full backend access)"
 )
 
@@ -92,6 +95,27 @@ def _log_db_res(table: str, op: str, row_id: Optional[str], res, payload: Option
         )
     except Exception as e:  # never let logging itself break the request
         print(f"[DB] LOG-FAIL table={table!r} op={op} id={row_id!r}: {e!s}")
+
+
+def _require_db_rows(table: str, op: str, row_id: Optional[str], res, payload: Optional[dict] = None):
+    """
+    Supabase/PostgREST can return HTTP 200 with data=[] when an UPDATE/DELETE
+    matched no visible rows. In this backend that must never be treated as a
+    successful write, because it usually means either a wrong id or RLS blocked
+    the service from seeing/updating the row.
+    """
+    _log_db_res(table, op, row_id, res, payload)
+    rows = getattr(res, "data", None)
+    if isinstance(rows, list) and len(rows) > 0:
+        return rows
+    raise HTTPException(
+        status_code=403,
+        detail=(
+            f"Supabase RLS blocked the write or no row matched. "
+            f"table={table}, op={op}, id={row_id}. "
+            "Verify the backend uses SUPABASE_SERVICE_KEY and that RLS policies allow this write."
+        ),
+    )
 
 app.add_middleware(
     CORSMiddleware,
@@ -611,6 +635,7 @@ def diag_db():
     """
     out: dict = {
         "supabase_url": supabase_url,
+        "supabase_key_source": supabase_key_source,
         "jwt_role": _jwt_role,
         "jwt_role_is_service_role": _jwt_role == "service_role",
         "tables": {},
@@ -895,13 +920,8 @@ def patch_student(student_id: str, data: StudentPatch):
     except Exception as e:
         print(f"[DB] EXC table='students' op=PATCH id={student_id!r} err={e!s}")
         raise HTTPException(status_code=500, detail=f"שגיאה בעדכון תלמיד: {e!s}") from e
-    _log_db_res("students", "PATCH", student_id, res, payload)
-    if not res.data:
-        # No rows came back. With service_role this means the id was not found
-        # in public.students. With an anon key it can also mean RLS blocked the
-        # write silently — see /diag/db.
-        raise HTTPException(status_code=404, detail="תלמיד לא נמצא")
-    return res.data[0]
+    rows = _require_db_rows("students", "PATCH", student_id, res, payload)
+    return rows[0]
 
 
 def _key_point_matches(p: dict, target: KeyPointDelete) -> bool:
@@ -933,9 +953,8 @@ def delete_key_point(student_id: str, body: KeyPointDelete):
     if len(after) == len(before):
         raise HTTPException(status_code=404, detail="נקודה לא נמצאה")
     res = db.table("students").update({"key_points": after}).eq("id", student_id).execute()
-    if not res.data:
-        raise HTTPException(status_code=500, detail="מחיקה נכשלה")
-    return {"deleted": True, "key_points": res.data[0].get("key_points")}
+    rows = _require_db_rows("students", "PATCH key_points", student_id, res, {"key_points": after})
+    return {"deleted": True, "key_points": rows[0].get("key_points")}
 
 
 @app.post("/students/{student_id}/files/upload")
@@ -1074,7 +1093,8 @@ def upload_student_document(student_id: str, body: StudentFileUpload):
             "document_id": str(doc_id),
         }
     )
-    db.table("students").update({"general_files": gf}).eq("id", student_id).execute()
+    upd = db.table("students").update({"general_files": gf}).eq("id", student_id).execute()
+    _require_db_rows("students", "PATCH general_files", student_id, upd, {"general_files": gf})
     return {"document": row, "general_files": gf, **up}
 
 
@@ -1090,8 +1110,7 @@ def rename_student_document(student_id: str, document_id: str, body: StudentDocu
         .eq("student_id", student_id)
         .execute()
     )
-    if not res.data:
-        raise HTTPException(status_code=404, detail="מסמך לא נמצא")
+    rows = _require_db_rows("student_documents", "PATCH", document_id, res, {"file_name": nm})
     st = db.table("students").select("general_files").eq("id", student_id).execute()
     if st.data:
         gf = _general_files_as_list(st.data[0].get("general_files"))
@@ -1099,8 +1118,9 @@ def rename_student_document(student_id: str, document_id: str, body: StudentDocu
             if str(a.get("document_id") or "") == str(document_id):
                 a["name"] = nm
                 break
-        db.table("students").update({"general_files": gf}).eq("id", student_id).execute()
-    return res.data[0]
+        upd = db.table("students").update({"general_files": gf}).eq("id", student_id).execute()
+        _require_db_rows("students", "PATCH general_files", student_id, upd, {"general_files": gf})
+    return rows[0]
 
 
 @app.delete("/students/{student_id}/documents/{document_id}")
@@ -1115,7 +1135,8 @@ def delete_student_document(student_id: str, document_id: str):
     if not cur.data:
         raise HTTPException(status_code=404, detail="מסמך לא נמצא")
     url = str(cur.data[0].get("file_url") or "").strip()
-    db.table("student_documents").delete().eq("id", document_id).execute()
+    del_res = db.table("student_documents").delete().eq("id", document_id).execute()
+    _require_db_rows("student_documents", "DELETE", document_id, del_res)
     st = db.table("students").select("general_files").eq("id", student_id).execute()
     if not st.data:
         return {"deleted": True, "general_files": []}
@@ -1129,13 +1150,15 @@ def delete_student_document(student_id: str, document_id: str):
             or (url and str(a.get("url") or "").strip() == url)
         )
     ]
-    db.table("students").update({"general_files": gf}).eq("id", student_id).execute()
+    upd = db.table("students").update({"general_files": gf}).eq("id", student_id).execute()
+    _require_db_rows("students", "PATCH general_files", student_id, upd, {"general_files": gf})
     return {"deleted": True, "general_files": gf}
 
 
 @app.delete("/students/{student_id}")
 def delete_student(student_id: str):
-    db.table("students").delete().eq("id", student_id).execute()
+    res = db.table("students").delete().eq("id", student_id).execute()
+    _require_db_rows("students", "DELETE", student_id, res)
     return {"deleted": True}
 
 # ═══════════════════ TASKS ════════════════════════════════════
@@ -1177,9 +1200,12 @@ def select_task(task_id: str, body: TaskSelect):
         .eq("id", task_id)
         .execute()
     )
-    if not res.data:
-        raise HTTPException(status_code=404, detail="משימה לא נמצאה")
-    return res.data[0]
+    rows = _require_db_rows("tasks", "PATCH select", task_id, res, {
+        "selected": True,
+        "confidence_score": body.confidence_score,
+        "selected_at": now,
+    })
+    return rows[0]
 
 @app.patch("/tasks/{task_id}/deselect")
 def deselect_task(task_id: str):
@@ -1198,9 +1224,13 @@ def deselect_task(task_id: str):
         .eq("id", task_id)
         .execute()
     )
-    if not res.data:
-        raise HTTPException(status_code=404, detail="משימה לא נמצאה")
-    return res.data[0]
+    rows = _require_db_rows("tasks", "PATCH deselect", task_id, res, {
+        "selected": False,
+        "confidence_score": None,
+        "selected_at": None,
+        "done": False,
+    })
+    return rows[0]
 
 @app.patch("/tasks/{task_id}/done")
 def mark_task_done(task_id: str):
@@ -1210,7 +1240,8 @@ def mark_task_done(task_id: str):
         raise HTTPException(status_code=404, detail="משימה לא נמצאה")
     new_val = not cur.data[0]["done"]
     res = db.table("tasks").update({"done": new_val}).eq("id", task_id).execute()
-    return res.data[0]
+    rows = _require_db_rows("tasks", "PATCH done", task_id, res, {"done": new_val})
+    return rows[0]
 
 @app.delete("/tasks/{task_id}")
 def delete_task(task_id: str):
@@ -1231,20 +1262,7 @@ def delete_task(task_id: str):
         print(f"[DB] EXC table='tasks' op=DELETE id={task_id!r} err={e!s}")
         raise HTTPException(status_code=500, detail=f"מחיקת משימה נכשלה: {e!s}") from e
 
-    _log_db_res("tasks", "DELETE", task_id, res)
-    rows = getattr(res, "data", None) or []
-    if not rows:
-        chk = db.table("tasks").select("id").eq("id", task_id).limit(1).execute()
-        _log_db_res("tasks", "CHK-after-DELETE", task_id, chk)
-        if chk.data:
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    "המשימה קיימת אך לא נמחקה — בדקי מפתח Supabase "
-                    "(service_role מומלץ) או מדיניות RLS על tasks."
-                ),
-            )
-        raise HTTPException(status_code=404, detail="משימה לא נמצאה")
+    _require_db_rows("tasks", "DELETE", task_id, res)
     return {"deleted": True, "id": task_id}
 
 # ═══════════════════ REPORTS ══════════════════════════════════
@@ -1277,9 +1295,8 @@ def patch_report(report_id: str, data: ReportPatch):
     if not payload:
         raise HTTPException(status_code=400, detail="אין שדות לעדכון")
     res = db.table("reports").update(payload).eq("id", report_id).execute()
-    if not res.data:
-        raise HTTPException(status_code=404, detail="דיווח לא נמצא")
-    return res.data[0]
+    rows = _require_db_rows("reports", "PATCH", report_id, res, payload)
+    return rows[0]
 
 
 def _student_row_by_login_code(code: str) -> Optional[dict]:
@@ -1350,9 +1367,8 @@ def patch_student_note(note_id: str, body: StudentNotePatch):
         .eq("id", note_id)
         .execute()
     )
-    if not res.data:
-        raise HTTPException(status_code=500, detail="שגיאה בעדכון פתק")
-    return res.data[0]
+    rows = _require_db_rows("student_notes", "PATCH", note_id, res, {"content": content})
+    return rows[0]
 
 
 @app.delete("/notes/{note_id}")
@@ -1373,13 +1389,15 @@ def delete_student_note(
         raise HTTPException(status_code=404, detail="פתק לא נמצא")
     if cur.data[0]["student_code"] != st["code"]:
         raise HTTPException(status_code=403, detail="אין הרשאה")
-    db.table("student_notes").delete().eq("id", note_id).execute()
+    res = db.table("student_notes").delete().eq("id", note_id).execute()
+    _require_db_rows("student_notes", "DELETE", note_id, res)
     return {"deleted": True}
 
 
 @app.patch("/reports/{student_id}/mark-seen")
 def mark_reports_seen(student_id: str):
-    db.table("reports").update({"is_new": False}).eq("student_id", student_id).execute()
+    res = db.table("reports").update({"is_new": False}).eq("student_id", student_id).execute()
+    _require_db_rows("reports", "PATCH mark-seen", student_id, res, {"is_new": False})
     return {"updated": True}
 
 # ═══════════════════ LOGS ═════════════════════════════════════
@@ -1532,10 +1550,8 @@ def patch_meeting_note(note_id: str, data: MeetingNotePatch):
             status_code=500,
             detail=f"שגיאה בעדכון סיכום: {e!s}",
         ) from e
-    _log_db_res("meeting_notes", "PATCH", note_id, res, payload)
-    if not res.data:
-        raise HTTPException(status_code=404, detail="סיכום לא נמצא")
-    return _meeting_note_row_out(res.data[0])
+    rows = _require_db_rows("meeting_notes", "PATCH", note_id, res, payload)
+    return _meeting_note_row_out(rows[0])
 
 
 @app.delete("/meeting-notes/{note_id}")
@@ -1553,20 +1569,7 @@ def delete_meeting_note(note_id: str):
     except Exception as e:
         print(f"[DB] EXC table='meeting_notes' op=DELETE id={note_id!r} err={e!s}")
         raise HTTPException(status_code=500, detail=f"מחיקה נכשלה: {e!s}") from e
-    _log_db_res("meeting_notes", "DELETE", note_id, res)
-    rows = getattr(res, "data", None) or []
-    if not rows:
-        chk = db.table("meeting_notes").select("id").eq("id", note_id).limit(1).execute()
-        _log_db_res("meeting_notes", "CHK-after-DELETE", note_id, chk)
-        if chk.data:
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    "השורה קיימת אך לא נמחקה — בדקי מפתח Supabase (מומלץ service_role) "
-                    "או מדיניות RLS על meeting_notes."
-                ),
-            )
-        raise HTTPException(status_code=404, detail="סיכום לא נמצא")
+    _require_db_rows("meeting_notes", "DELETE", note_id, res)
     return {"deleted": True, "id": note_id}
 
 

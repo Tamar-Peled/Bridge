@@ -7,6 +7,20 @@
 -- that is already up-to-date is a no-op.
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- 0) RLS: backend writes must not be silently ignored ───────────────────────
+-- The backend now uses SUPABASE_SERVICE_KEY first. If a deployment is still
+-- configured with the anon key, RLS can make PostgREST return HTTP 200 with
+-- data=[] for UPDATE/DELETE. These DISABLE statements make the app work even
+-- before Render is reconfigured. If you prefer policies, re-enable RLS and add
+-- explicit INSERT/UPDATE/DELETE policies for the role your backend uses.
+ALTER TABLE IF EXISTS public.students DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tasks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.meeting_notes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.reports DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.student_documents DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.student_notes DISABLE ROW LEVEL SECURITY;
+
+
 -- 1) tasks: full counselor weekly flow + delete/update RLS off ──────────────
 -- Without `selected_at` the PATCH /tasks/{id}/select call errors out and
 -- nothing is persisted. The counselor weekly view also reads selected_at
