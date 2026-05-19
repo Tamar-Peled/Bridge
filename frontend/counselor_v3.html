@@ -3164,22 +3164,29 @@ function buildSessionNotesCardsHtmlForList(notesSorted, opts){
   const nested=mode==='nested';
   return notesSorted.map((n,idx)=>meetingSessionNoteCardHtml(n,idx+1,nested)).join('');
 }
-function weeklyCounselorSummarySectionHtml(wkKey,wkMs,savedText){
+function weeklyCounselorSummarySectionHtml(wkKey,wkMs,savedText,ord){
   /* Read-only card by default; the textarea only appears when the user
      clicks "ערוך" (or when no summary exists yet, i.e. "add" mode). The
-     edit/add toggle is tracked client-side in _weeklyCounselorEditingKeys. */
+     edit/add toggle is tracked client-side in _weeklyCounselorEditingKeys.
+     `ord` is the student's week ordinal (1-based, computed by
+     weekOrdinalForStudent) — used to mirror the meeting-summary card's
+     "סיכום פגישה #N" sequential title style. */
   const hasSaved=savedText!=null&&String(savedText).trim().length>0;
   const isEditing=_weeklyCounselorEditingKeys.has(wkKey);
   const aiBlock=`<div class="weekly-ai-out" id="weekly-ai-out-${wkKey}" style="display:none;margin-top:12px;padding:12px 14px;background:rgba(91,183,183,.1);border-radius:12px;text-align:right;border:1px solid rgba(91,183,183,.22)"></div>`;
+  const ordNum=Number(ord);
+  const ordSuffix=Number.isFinite(ordNum)&&ordNum>0?` #${ordNum}`:'';
   if(hasSaved&&!isEditing){
     /* CARD view — mirrors the meeting-summary card style so the two
-       sections feel consistent on screen. */
+       sections feel consistent on screen. Header layout is identical to
+       meetingSessionNoteCardHtml: bold title with sequential number on
+       the right (RTL), date range on the left. */
     const dateLine=weekRangeLabelFromStart(wkMs);
     const prevPlain=meetingPreviewPlain(String(savedText),3);
     return `<div class="weekly-subsec">
       <h4 class="weekly-subsec-h">סיכום פגישת יועצת לשבוע</h4>
       <div class="rep-card meeting-session-card weekly-counselor-card" id="weekly-sum-card-${wkKey}" style="margin:8px 0;position:relative">
-        <div class="meeting-entry-hdr"><span>${escH(dateLine)}</span></div>
+        <div class="meeting-entry-hdr"><span>סיכום פגישת יועצת${ordSuffix}</span><span>${escH(dateLine)}</span></div>
         <button type="button" class="meeting-acc-toggle" id="weekly-sum-toggle-${wkKey}" aria-expanded="false" aria-controls="weekly-sum-body-${wkKey}" onclick="toggleWeeklyCounselorSummaryCard('${wkKey}')">
           <div class="meeting-preview-col">
             <div class="meeting-preview">${escH(prevPlain)}</div>
@@ -3258,7 +3265,7 @@ function buildCounselorWeeklyMeetingAccordionHtml(stu){
       if(!r||!r.task_id) return false;
       return (tasks||[]).some(t=>t&&t.id===r.task_id);
     }).length;
-    const summarySection=weeklyCounselorSummarySectionHtml(wkKey,wkMs,saved);
+    const summarySection=weeklyCounselorSummarySectionHtml(wkKey,wkMs,saved,ord);
     return `<div class="weekly-meeting-week${open}" id="weekly-week-${wkKey}">
       <div class="weekly-meeting-week-head-wrap">
         <button type="button" class="weekly-meeting-week-head" aria-expanded="${aria}" onclick="toggleWeeklyMeetingWeek('${wkKey}')">
