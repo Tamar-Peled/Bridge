@@ -2790,12 +2790,56 @@ function normalizeWeekKey(any){
   if(!Number.isFinite(n)) return '';
   return String(localSundayWeekStartMs(n));
 }
-function parseWeeklySummariesFromStudent(stu){
+function rawWeeklySummariesFromStudent(stu){
   let raw=stu&&stu.weekly_counselor_summaries;
   if(typeof raw==='string'){
     try{raw=JSON.parse(raw);}catch(_){raw={};}
   }
   if(!raw||typeof raw!=='object'||Array.isArray(raw)) return {};
+  return {...raw};
+}
+function weekKeyFallsInRange(rawKey,wkStart,wkEnd){
+  const n=Number(rawKey);
+  if(!Number.isFinite(n)) return false;
+  if(n>=wkStart&&n<wkEnd) return true;
+  return normalizeWeekKey(n)===String(wkStart);
+}
+function weekHasCounselorActivity(wkStart){
+  const wkEnd=wkStart+7*86400000;
+  if(reportsInWeekSorted(currentReports||[],wkStart,wkEnd).length) return true;
+  if(notesInWeekSorted(currentNotes||[],wkStart,wkEnd).length) return true;
+  if(tasksInWeekScopeTasks(wkStart,wkEnd,currentTasks||[],currentReports||[]).length) return true;
+  return false;
+}
+function removeWeeklySummaryKeysForWeek(summaryMap,wkStart,wkEnd){
+  const removed=[];
+  Object.keys(summaryMap||{}).forEach(k=>{
+    if(weekKeyFallsInRange(k,wkStart,wkEnd)){
+      removed.push(k);
+      delete summaryMap[k];
+    }
+  });
+  return removed;
+}
+function removeLikelyStaleNeighborSummaryKeys(summaryMap,wkStart){
+  /* Older builds wrote a weekly summary under the adjacent week's key. Only
+     clean such a neighbor when that neighbor week has no reports/notes/tasks;
+     this avoids deleting a real historical week that simply has its own
+     legitimate counselor summary. */
+  const removed=[];
+  const day7=7*86400000;
+  Object.keys(summaryMap||{}).forEach(k=>{
+    const n=Number(k);
+    if(!Number.isFinite(n)) return;
+    if(Math.abs(n-wkStart)!==day7) return;
+    if(weekHasCounselorActivity(n)) return;
+    removed.push(k);
+    delete summaryMap[k];
+  });
+  return removed;
+}
+function parseWeeklySummariesFromStudent(stu){
+  const raw=rawWeeklySummariesFromStudent(stu);
   const out={};
   for(const k of Object.keys(raw)){
     const canon=normalizeWeekKey(k);
@@ -2862,7 +2906,7 @@ function reportsInWeekSorted(reports,wkStart,wkEnd){
 }
 function notesInWeekSorted(notes,wkStart,wkEnd){
   return (notes||[]).filter(meetingNoteIsSession).filter(n=>{
-    const wks=n.week_start_ms!=null?Number(n.week_start_ms):NaN;
+    const wks=n.week_start_ms!=null?Number(normalizeWeekKey(n.week_start_ms)):NaN;
     if(Number.isFinite(wks)&&wks===wkStart) return true;
     const ms=parseIsoMs(n&&n.created_at);
     return ms!=null&&ms>=wkStart&&ms<wkEnd;
@@ -3237,8 +3281,9 @@ function deleteWeekBundle(wkKeyStr){
        custom label, and per-task notes for this week are actually
        persisted as gone in the database. Lookups use the canonical
        (normalized) wkKey so legacy raw keys from older writes still match. */
-    const sums={...parseWeeklySummariesFromStudent(stu)};
-    delete sums[wkKeyNorm];
+    const sums=rawWeeklySummariesFromStudent(stu);
+    const removedSummaryKeys=removeWeeklySummaryKeysForWeek(sums,wkMs,wkEnd);
+    const removedNeighborSummaryKeys=removeLikelyStaleNeighborSummaryKeys(sums,wkMs);
     const ex=parseCounselorWeeklyExtras(stu);
     delete ex.week_labels[wkKeyNorm];
     Object.keys(ex.task_notes).forEach(k=>{
@@ -3246,10 +3291,32 @@ function deleteWeekBundle(wkKeyStr){
     });
 
     try{
-      await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({
+      const url=`/students/${currentSid}`;
+      const bodyObj={
         weekly_counselor_summaries:sums,
         counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes},
-      })});
+      };
+      const bodyStr=JSON.stringify(bodyObj);
+      console.group('[deleteWeekBundle] PATCH payload');
+      console.log('student_id                    =',currentSid);
+      console.log('wkKey raw                     =',wkKeyStr);
+      console.log('wkKey normalized              =',wkKeyNorm);
+      console.log('week range                    =',new Date(wkMs).toString(),'→',new Date(wkEnd).toString());
+      console.log('removed summary keys in range =',removedSummaryKeys);
+      console.log('removed stale neighbor keys   =',removedNeighborSummaryKeys);
+      console.log('remaining summary keys        =',Object.keys(sums));
+      console.log('PATCH url                     =',API+url);
+      console.log('PATCH body (object)           =',bodyObj);
+      console.log('PATCH body (string)           =',bodyStr);
+      console.groupEnd();
+      const updated=await apiFetch(url,{method:'PATCH',body:bodyStr});
+      console.group('[deleteWeekBundle] PATCH response');
+      console.log('full response object =',updated);
+      if(updated&&typeof updated==='object'){
+        console.log('response.weekly_counselor_summaries =',updated.weekly_counselor_summaries);
+        console.log('response.counselor_weekly_extras    =',updated.counselor_weekly_extras);
+      }
+      console.groupEnd();
     }catch(e){
       showToast(`שגיאה בשמירת מחיקת תיעוד השבוע: ${e&&e.message?e.message:String(e)}`);
       return;
@@ -3259,14 +3326,24 @@ function deleteWeekBundle(wkKeyStr){
        Previously the UI just trusted the response, which made silent
        PATCH failures look like a successful delete. */
     const fresh=await reloadCurrentStudentFromServer();
+    const rawServerSums=rawWeeklySummariesFromStudent(fresh);
     const serverSums=parseWeeklySummariesFromStudent(fresh);
     const serverEx=parseCounselorWeeklyExtras(fresh);
     const serverLabels=serverEx.week_labels||{};
     const serverTaskNotes=serverEx.task_notes||{};
+    const removedStillPresent=[...removedSummaryKeys,...removedNeighborSummaryKeys]
+      .filter(k=>Object.prototype.hasOwnProperty.call(rawServerSums,k));
     const stillHasSummary=Object.prototype.hasOwnProperty.call(serverSums,wkKeyNorm);
     const stillHasLabel=Object.prototype.hasOwnProperty.call(serverLabels,wkKeyNorm);
     const stillHasTaskNote=Object.keys(serverTaskNotes).some(k=>k.startsWith(wkKeyNorm+'_'));
-    if(stillHasSummary||stillHasLabel||stillHasTaskNote){
+    if(removedStillPresent.length||stillHasSummary||stillHasLabel||stillHasTaskNote){
+      console.error('[deleteWeekBundle] verify failed',{
+        removedStillPresent,
+        rawServerSums,
+        serverSums,
+        serverLabels,
+        serverTaskNotes,
+      });
       showToast('המחיקה לא נשמרה במסד הנתונים. נסי שוב.');
       return;
     }
@@ -3336,11 +3413,16 @@ async function saveWeeklyCounselorSummary(wkKeyStr,opts={}){
   if(btn) setBusy(btn.id,true,'שומר...');
   try{
     const stu=await reloadCurrentStudentFromServer();
-    const cur={...parseWeeklySummariesFromStudent(stu)};
-    console.log('[weekly-summary] BEFORE mutate, cur keys =',Object.keys(cur));
-    if(willDelete) delete cur[wkKeyStrNorm];
-    else cur[wkKeyStrNorm]=value;
-    console.log('[weekly-summary] AFTER mutate, cur keys  =',Object.keys(cur),'wkKey present?',Object.prototype.hasOwnProperty.call(cur,wkKeyStrNorm));
+    const wkMs=Number(wkKeyStrNorm);
+    const wkEnd=wkMs+7*86400000;
+    const cur=rawWeeklySummariesFromStudent(stu);
+    console.log('[weekly-summary] BEFORE mutate, raw cur keys =',Object.keys(cur));
+    const removedRangeKeys=removeWeeklySummaryKeysForWeek(cur,wkMs,wkEnd);
+    const removedNeighborKeys=removeLikelyStaleNeighborSummaryKeys(cur,wkMs);
+    if(!willDelete) cur[wkKeyStrNorm]=value;
+    console.log('[weekly-summary] removed keys in current week range =',removedRangeKeys);
+    console.log('[weekly-summary] removed likely stale neighbor keys =',removedNeighborKeys);
+    console.log('[weekly-summary] AFTER mutate, raw cur keys  =',Object.keys(cur),'wkKey present?',Object.prototype.hasOwnProperty.call(cur,wkKeyStrNorm));
     const url=`/students/${currentSid}`;
     const bodyObj={weekly_counselor_summaries:cur};
     const bodyStr=JSON.stringify(bodyObj);
@@ -3373,14 +3455,22 @@ async function saveWeeklyCounselorSummary(wkKeyStr,opts={}){
     }
     console.groupEnd();
     const fresh=await reloadCurrentStudentFromServer();
+    const rawFreshSums=rawWeeklySummariesFromStudent(fresh);
     const serverSums=parseWeeklySummariesFromStudent(fresh);
     console.group('[weekly-summary] fresh GET /students');
     console.log('fresh.weekly_counselor_summaries  =',fresh.weekly_counselor_summaries);
+    const keysExpectedGone=[...removedRangeKeys,...removedNeighborKeys].filter(k=>willDelete||String(k)!==wkKeyStrNorm);
+    console.log('raw removed keys still present    =',keysExpectedGone.filter(k=>Object.prototype.hasOwnProperty.call(rawFreshSums,k)));
     console.log('parsed keys                       =',Object.keys(serverSums));
     console.log('serverSums['+wkKeyStrNorm+']      =',JSON.stringify(serverSums[wkKeyStrNorm]));
     console.log('expected to find wkKey?           =',!willDelete);
     console.groupEnd();
     const hasKey=Object.prototype.hasOwnProperty.call(serverSums,wkKeyStrNorm);
+    const removedStillPresent=keysExpectedGone
+      .filter(k=>Object.prototype.hasOwnProperty.call(rawFreshSums,k));
+    if(removedStillPresent.length){
+      throw new Error('מפתחות שבוע ישנים לא נמחקו במסד הנתונים: '+removedStillPresent.join(', '));
+    }
     if(willDelete){
       if(hasKey) throw new Error('המחיקה לא נשמרה במסד הנתונים');
       ta.value='';
