@@ -16,10 +16,26 @@ ALTER TABLE public.reports
   ADD COLUMN IF NOT EXISTS confidence_score integer       DEFAULT NULL
     CHECK (confidence_score IS NULL OR (confidence_score >= 1 AND confidence_score <= 5));
 
--- ── 3. tasks: add pre-task confidence question ──────────────
+-- ── 3. tasks: full counselor weekly-flow schema ─────────────
+-- The backend writes these on /tasks/{id}/select and /tasks/{id}/deselect.
+-- Missing any of them causes saves/deletes to silently fail at the DB layer.
 ALTER TABLE public.tasks
-  ADD COLUMN IF NOT EXISTS confidence_score integer DEFAULT NULL
-    CHECK (confidence_score IS NULL OR (confidence_score >= 1 AND confidence_score <= 5));
+  ADD COLUMN IF NOT EXISTS selected         boolean      DEFAULT false,
+  ADD COLUMN IF NOT EXISTS done             boolean      DEFAULT false,
+  ADD COLUMN IF NOT EXISTS selected_at      timestamptz  DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS confidence_score integer      DEFAULT NULL
+    CHECK (confidence_score IS NULL OR (confidence_score BETWEEN 1 AND 5)),
+  ADD COLUMN IF NOT EXISTS created_at       timestamptz  DEFAULT now();
+
+-- RLS off so the backend (service_role / anon) can UPDATE & DELETE.
+-- If you re-enable RLS, add explicit UPDATE + DELETE policies for tasks.
+ALTER TABLE public.tasks DISABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_tasks_student_selected
+  ON public.tasks (student_id, selected);
+
+CREATE INDEX IF NOT EXISTS idx_tasks_selected_at
+  ON public.tasks (selected_at);
 
 -- ── 4. Useful index: reports by task_id ─────────────────────
 CREATE INDEX IF NOT EXISTS idx_reports_task_id

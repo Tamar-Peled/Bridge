@@ -946,6 +946,92 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   to{transform:rotate(360deg)}
 }
 .loading-box{display:flex;align-items:center;justify-content:center;height:150px;color:var(--light);font-size:14px;gap:10px}
+
+/* ══════════════════ DESKTOP RESPONSIVE ══════════════════
+   The mobile-first baseline above is preserved as-is.
+   These breakpoints adapt sizing & layout for tablets and
+   desktops (min-width only — mobile view is untouched).
+*/
+
+/* Tablet / small laptop — more breathing room, 2-col student list */
+@media (min-width:768px){
+  .topbar{padding:16px 32px}
+  .topbar-logo{width:38px;height:38px;font-size:16px}
+  .topbar-name{font-size:19px}
+
+  .content{max-width:720px;padding:28px 28px}
+
+  /* landing — larger hero */
+  #screen-landing{padding:64px 32px}
+  .logo-box{width:96px;height:96px;font-size:42px;margin-bottom:28px}
+  .landing-title{font-size:48px}
+  .landing-welcome{font-size:32px}
+  .landing-desc{font-size:16px;margin-bottom:44px}
+  .footer-txt{margin-top:64px}
+
+  /* modals */
+  .overlay{padding:32px}
+  .modal{max-width:540px;padding:28px 30px}
+
+  /* dashboard student list — 2-column grid */
+  #students-list{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+  }
+  #students-list .student-card{margin-bottom:0}
+
+  /* detail screen — slightly wider content */
+  #screen-detail .content{max-width:780px}
+}
+
+/* Desktop / standard laptop — 3-col student list, 2-col tasks panel */
+@media (min-width:1100px){
+  .topbar{padding:18px 48px}
+
+  .content{max-width:1080px;padding:32px 40px}
+
+  /* dashboard chrome */
+  #screen-main .page-title{text-align:center;font-size:32px;margin-bottom:6px}
+  #screen-main .page-sub{text-align:center}
+
+  /* dashboard student list — 3-column grid */
+  #students-list{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:14px;
+  }
+
+  /* detail screen: wider, but keep inner copy readable */
+  #screen-detail .content{max-width:980px}
+
+  /* center & constrain in-card meta widgets so they don't span ~900px */
+  #screen-detail .detail-unified-text .detail-status-inline,
+  #screen-detail .detail-unified-text .desc-block{
+    max-width:560px;margin-left:auto;margin-right:auto;
+  }
+
+  /* tasks panel — weekly + bank side by side */
+  #counselor-panel-tasks{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    align-items:start;
+  }
+  #counselor-panel-tasks > .sec{margin-bottom:0}
+
+  /* modals slightly larger */
+  .modal{max-width:600px}
+
+  /* student-card a touch more padding on desktop */
+  .student-card{padding:18px 20px}
+}
+
+/* Extra-wide desktops — one more column on the dashboard */
+@media (min-width:1440px){
+  .content{max-width:1240px}
+  #students-list{grid-template-columns:repeat(4,minmax(0,1fr))}
+  #screen-detail .content{max-width:1040px}
+}
 </style>
 </head>
 <body>
@@ -954,7 +1040,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 <div id="screen-landing" class="screen active">
   <div class="logo-box">B</div>
   <div class="landing-title">BRIDGE</div>
-  <div class="landing-sub">עוזרת AI ליועצות בית ספר</div>
   <div class="landing-welcome">ברוכים הבאים ל-BRIDGE</div>
   <div class="landing-desc">כניסת יועצת — ניהול תלמידים ותיעוד מקצועי</div>
   <button class="btn-primary" onclick="enterCounselor()">כניסה למערכת</button>
@@ -1007,8 +1092,8 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     <input type="text" id="new-name" placeholder="שם מלא">
     <label class="modal-lbl">כיתה *</label>
     <input type="text" id="new-grade" placeholder="לדוגמה: ז2">
-    <label class="modal-lbl">תיאור רקע פנימי (התלמיד לא רואה) *</label>
-    <textarea id="new-description" placeholder="תיאור קצר על הרקע של התלמיד..."></textarea>
+    <label class="modal-lbl">תיאור רקע פנימי  *</label>
+    <textarea id="new-description" placeholder="תיאור קצר על הרקע של התלמיד."></textarea>
     <label class="modal-lbl">תמונה</label>
     <div class="photo-drop" id="new-photo-drop" onclick="document.getElementById('new-photo-file').click()">
       📷 לחצי להעלאת תמונה
@@ -1037,8 +1122,8 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 <div class="overlay" id="modal-desc">
   <div class="modal">
     <h3>תיאור רקע</h3>
-    <div class="modal-note">🔒 מידע פנימי — התלמיד אינו רואה זאת</div>
-    <textarea id="desc-ta" placeholder="הכניסי תיאור קצר על רקע התלמיד..." style="min-height:120px"></textarea>
+    <div class="modal-note">🔒 מידע פנימי </div>
+    <textarea id="desc-ta" placeholder="הכניסי תיאור קצר על רקע התלמיד." style="min-height:120px"></textarea>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal('modal-desc')">ביטול</button>
       <button class="btn-primary" style="flex:1;margin:0" id="btn-desc-save" onclick="saveDesc()">שמור</button>
@@ -1232,16 +1317,44 @@ let proactiveById  = {}; // { [id]: computeProactiveAlert(...) }
 
 /* ════════════════ HTTP ════════════════ */
 async function apiFetch(path, opts={}){
+  const hdrs={...(opts.headers||{})};
+  // Avoid Content-Type: application/json on DELETE/GET with no body — some proxies/APIs mishandle it.
+  if(opts.body!=null&&String(opts.body).length)
+    hdrs['Content-Type']=hdrs['Content-Type']||'application/json';
+  const method=String(opts.method||'GET').toUpperCase();
+  // Loud trace for the operations the user is debugging. Only the mutating
+  // ones; GET noise would drown the console.
+  const isMutating=method==='POST'||method==='PATCH'||method==='DELETE'||method==='PUT';
+  if(isMutating){
+    let bodyPreview=null;
+    try{ bodyPreview=opts.body?JSON.parse(opts.body):null; }
+    catch(_){ bodyPreview=String(opts.body||'').slice(0,300); }
+    console.log('[apiFetch →]',method,`${API}${path}`,{body:bodyPreview});
+  }
   let res;
   try{
-    res = await fetch(`${API}${path}`,{headers:{'Content-Type':'application/json'},...opts});
-  }catch(e){throw new Error(`שגיאת רשת: ${e.message}`);}
+    res=await fetch(`${API}${path}`,{...opts,headers:hdrs});
+  }catch(e){
+    if(isMutating) console.error('[apiFetch ✕ network]',method,path,e);
+    throw new Error(`שגיאת רשת: ${e.message}`);
+  }
   if(!res.ok){
     let d=`HTTP ${res.status}`;
-    try{d=(await res.json()).detail||d;}catch(_){}
+    try{d=(await res.json()).detail||d;}catch(_){
+      try{d=(await res.text()).trim()||d;}catch(_){}
+    }
+    if(isMutating) console.error('[apiFetch ✕]',method,path,'status='+res.status,'detail='+d);
     throw new Error(d);
   }
-  return res.json();
+  const raw=await res.text();
+  if(isMutating){
+    let preview=raw;
+    try{ preview=JSON.parse(raw); }catch(_){}
+    console.log('[apiFetch ✓]',method,path,'status='+res.status,{response:preview});
+  }
+  if(!raw||!String(raw).trim()) return null;
+  try{return JSON.parse(raw);}
+  catch(_){throw new Error('תשובה לא תקינה מהשרת');}
 }
 
 async function reloadStudentDocuments(){
@@ -1384,11 +1497,16 @@ function showAppConfirm(title,message,onOk){
   _appConfirmAction=onOk;
   document.getElementById('modal-app-confirm').classList.add('show');
 }
-function appConfirmExecute(){
+async function appConfirmExecute(){
   const fn=_appConfirmAction;
   _appConfirmAction=null;
   closeModal('modal-app-confirm');
-  if(fn) fn();
+  if(!fn) return;
+  try{
+    await fn();
+  }catch(e){
+    showToast(e&&e.message?e.message:String(e));
+  }
 }
 function showRenameModal(title,initial,onOk){
   document.getElementById('rename-modal-title').textContent=title;
@@ -1712,6 +1830,17 @@ async function reloadMeetingNotes(){
     const n=await apiFetch(`/meeting-notes/${currentSid}`);
     if(Array.isArray(n)) currentNotes=n;
   }catch(_){/* keep currentNotes */}
+}
+async function reloadCurrentStudentFromServer(){
+  if(!currentSid) return null;
+  const list=await apiFetch('/students');
+  if(!Array.isArray(list)) throw new Error('תשובת תלמידים לא תקינה מהשרת');
+  const fresh=list.find(x=>String(x.id)===String(currentSid));
+  if(!fresh) throw new Error('תלמיד לא נמצא');
+  const idx=allStudents.findIndex(x=>String(x.id)===String(currentSid));
+  if(idx>=0) allStudents[idx]=fresh;
+  else allStudents.push(fresh);
+  return fresh;
 }
 
 function meetingTargetOptionsForPending(selected){
@@ -2452,14 +2581,12 @@ function renderList(list){
   const el=document.getElementById('students-list');
   if(!list.length){el.innerHTML='<div class="sec-empty" style="padding:20px">לא נמצאו תלמידים</div>';return;}
   el.innerHTML=list.map(s=>{
-    const status=canonicalStatus(s.status);
-    const isStatusAlert=(status==='נדרש מעקב צמוד');
     const pa=proactiveById[s.id]||{needs:false,aiStillDetected:false,relaxedByPositiveData:false,inactive7:false,isDistressed:false,tags:[],reasonHebrew:'',silenceFingerprint:''};
     const aiStillDetected=!!pa.aiStillDetected;
     const fp=pa.silenceFingerprint||'';
     const silenced=isSystemFlagSilenced(s.id, fp);
     const showAiLabel=aiStillDetected&&!silenced;
-    const cardCls=`student-card${isStatusAlert?' alert-card':''}`;
+    const cardCls=`student-card`;
     const av=s.photo
       ?`<div class="s-avatar"><img src="${escH(s.photo)}" alt="" onerror="this.parentElement.textContent='${escH(s.name[0])}'"></div>`
       :`<div class="s-avatar">${escH(s.name[0])}</div>`;
@@ -2473,14 +2600,11 @@ function renderList(list){
         </div>`
       : '';
 
-    const statusBadgeHtml = (status === 'בתהליך' || status === 'סיים תהליך') ? '' : `<div class="s-badges"><span class="badge ${statusBadgeCls(status)}">${escH(status)}</span></div>`;
-
     return `<div class="${cardCls}" onclick="openStudent('${s.id}')">
       ${av}
       <div class="s-info">
-        <div class="s-name">${isStatusAlert ? '⚠️ ' : ''}${escH(s.name)}</div>
+        <div class="s-name">${escH(s.name)}</div>
         <div class="s-meta">כיתה ${escH(s.grade)}</div>
-        ${statusBadgeHtml}
         ${sysLbl}
         ${reasonTags}
       </div>
@@ -2832,7 +2956,11 @@ function meetingSessionNoteCardHtml(n, num, nested){
   const attBlock=renderNoteAttachmentsBlock(n.id,n);
   const aiRaw=(n.ai_insights!=null?String(n.ai_insights):'').trim();
   const aiBlock=aiRaw?`<div class="meeting-ai-insights"><h4>תובנות AI</h4><div class="meeting-ai-body">${escHBr(aiRaw)}</div></div>`:'';
-  const noteIdJson=JSON.stringify(String(n.id||''));
+  /* IMPORTANT: pass the id as a SINGLE-quoted string inside the DOUBLE-quoted
+     attribute. Previously this used JSON.stringify(...) which embeds literal
+     double quotes and silently terminated the onclick/onchange attribute —
+     causing the delete & attach buttons to do nothing at all. */
+  const nidAttr=escAttr(String(n.id||''));
   return `<div class="rep-card meeting-session-card" style="margin:${margin}">
       <div class="meeting-entry-hdr"><span>סיכום פגישה #${num}</span><span>${escH(fmtDateOnly(n.created_at))}</span></div>
       <button type="button" class="meeting-acc-toggle" id="meeting-acc-t-${nid}" aria-expanded="false" aria-controls="meeting-acc-body-${nid}" onclick="toggleMeetingAccordion('${nid}')">
@@ -2845,7 +2973,7 @@ function meetingSessionNoteCardHtml(n, num, nested){
       <div class="meeting-acc-panel" id="meeting-acc-body-${nid}" hidden>
         <div class="meeting-expanded-toolbar">
           <label class="btn-attach btn-attach--panel-mini" title="צרף קובץ לפגישה זו" aria-label="צרף קובץ">
-            <input type="file" multiple accept=".pdf,.docx,image/jpeg,image/png,image/jpg,image/webp,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none" onchange="attachFilesToMeetingNote(${noteIdJson},this)">
+            <input type="file" multiple accept=".pdf,.docx,image/jpeg,image/png,image/jpg,image/webp,image/gif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none" onchange="attachFilesToMeetingNote('${nidAttr}',this)">
             📎
           </label>
           <span class="meeting-expanded-toolbar-hint" style="font-size:12px;color:var(--mid);font-weight:600">צירוף לסיכום זה</span>
@@ -2856,8 +2984,8 @@ function meetingSessionNoteCardHtml(n, num, nested){
       </div>
       <div class="meeting-card-actions">
         <div class="meeting-attach-status" id="attach-status-${n.id}"></div>
-        <button type="button" class="btn-icon" onclick="startEditNote('${n.id}')">✏️ עריכה</button>
-        <button type="button" class="btn-icon" title="מחיקת סיכום" onclick="confirmDeleteMeetingNote(${noteIdJson})">🗑 מחיקה</button>
+        <button type="button" class="btn-icon" onclick="startEditNote('${nidAttr}')">✏️ עריכה</button>
+        <button type="button" class="btn-icon" title="מחיקת סיכום" onclick="confirmDeleteMeetingNote('${nidAttr}')">🗑 מחיקה</button>
       </div>
     </div>`;
 }
@@ -2919,6 +3047,7 @@ function buildCounselorWeeklyMeetingAccordionHtml(stu){
           <textarea class="weekly-counselor-ta" id="weekly-sum-ta-${wkKey}" placeholder="כתבי כאן את סיכום המפגש לשבוע...">${escH(saved)}</textarea>
           <div class="weekly-counselor-save-row">
             <button type="button" class="btn-sm" id="weekly-save-${wkKey}" onclick="saveWeeklyCounselorSummary('${wkKey}')">שמירה</button>
+            <button type="button" class="btn-sm" id="weekly-delete-summary-${wkKey}" onclick="deleteWeeklyCounselorSummary('${wkKey}')" style="background:var(--red-soft);color:var(--red-dk)">מחיקה</button>
             <button type="button" class="btn-sm" id="weekly-ai-${wkKey}" onclick="runWeeklyInsightsAI('${wkKey}')" title="ניתוח נפח משימות, תנודתיות שבועית ומצב רגשי">✨ תובנות AI</button>
           </div>
           <div class="weekly-ai-out" id="weekly-ai-out-${wkKey}" style="display:none;margin-top:12px;padding:12px 14px;background:rgba(91,183,183,.1);border-radius:12px;text-align:right;border:1px solid rgba(91,183,183,.22)"></div>
@@ -2951,17 +3080,23 @@ function openKeyPointsCollapsible(){
   if(b) b.setAttribute('aria-expanded','true');
 }
 function confirmDeleteMeetingNote(noteId){
-  const id=String(noteId||'');
-  if(!id) return;
-  showAppConfirm('מחיקת סיכום','למחוק סיכום פגישה זה?',()=>{
-    void (async()=>{
-      try{
-        await apiFetch(`/meeting-notes/${encodeURIComponent(id)}`,{method:'DELETE'});
-        currentNotes=(currentNotes||[]).filter(n=>String(n.id)!==id);
-        await renderCounselorDetailHistory();
-        showToast('סיכום נמחק');
-      }catch(e){showToast(e.message||String(e));}
-    })();
+  const id=String(noteId||'').trim();
+  if(!id){showToast('סיכום ללא מזהה — לא ניתן למחוק');return;}
+  showAppConfirm('מחיקת סיכום','למחוק סיכום פגישה זה?', async ()=>{
+    try{
+      const resp=await apiFetch(`/meeting-notes/${encodeURIComponent(id)}`,{method:'DELETE'});
+      if(resp&&resp.deleted===false){
+        throw new Error('השרת לא אישר מחיקה');
+      }
+      await reloadMeetingNotes();
+      if((currentNotes||[]).some(n=>String(n.id)===id)){
+        throw new Error('המחיקה לא נשמרה במסד הנתונים');
+      }
+      await renderCounselorDetailHistory();
+      showToast('סיכום נמחק');
+    }catch(e){
+      showToast(`שגיאה במחיקת סיכום: ${e&&e.message?e.message:String(e)}`);
+    }
   });
 }
 async function saveWeeklyTaskCounselorNote(wkKey,taskId){
@@ -3006,56 +3141,107 @@ function editWeekTitle(wkKeyStr){
   });
 }
 function deleteWeekBundle(wkKeyStr){
-  if(!currentSid) return;
-  showAppConfirm('מחיקת תיעוד שבוע','יימחקו סיכומי הפגישות של השבוע, סיכום היועצת לשבוע, כותרת מותאמת והערות פנימיות למשימות. משימות ושיתופי התלמיד לא יימחקו.',()=>{
-    void (async()=>{
-      const stu=allStudents.find(x=>x.id===currentSid);
-      const wkMs=Number(wkKeyStr);
-      const wkEnd=wkMs+7*86400000;
-      const notesWeek=notesInWeekSorted(currentNotes||[],wkMs,wkEnd);
+  if(!currentSid){showToast('לא נבחר תלמיד');return;}
+  showAppConfirm('מחיקת תיעוד שבוע','יימחקו סיכומי הפגישות של השבוע, סיכום היועצת לשבוע, כותרת מותאמת והערות פנימיות למשימות. משימות ושיתופי התלמיד לא יימחקו.', async ()=>{
+    await reloadMeetingNotes();
+    const stu=await reloadCurrentStudentFromServer();
+    if(!stu){showToast('תלמיד לא נמצא — לא ניתן למחוק');return;}
+    const wkMs=Number(wkKeyStr);
+    if(!Number.isFinite(wkMs)){showToast('שבוע לא תקין');return;}
+    const wkEnd=wkMs+7*86400000;
+    const notesWeek=notesInWeekSorted(currentNotes||[],wkMs,wkEnd);
+
+    /* Step 1 — delete every meeting note that belongs to this week.
+       Each call is awaited individually so that any backend failure
+       (RLS, network, etc.) throws immediately and surfaces to the user
+       instead of being hidden behind a later "deleted" toast. */
+    const failedNotes=[];
+    for(const n of notesWeek){
       try{
-        for(const n of notesWeek){
-          await apiFetch(`/meeting-notes/${encodeURIComponent(String(n.id))}`,{method:'DELETE'});
-        }
-        currentNotes=(currentNotes||[]).filter(n=>!notesWeek.some(x=>x.id===n.id));
-        const sums={...parseWeeklySummariesFromStudent(stu)};
-        delete sums[wkKeyStr];
-        const ex=parseCounselorWeeklyExtras(stu);
-        delete ex.week_labels[wkKeyStr];
-        Object.keys(ex.task_notes).forEach(k=>{
-          if(k.startsWith(wkKeyStr+'_')) delete ex.task_notes[k];
-        });
-        const updated=await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({
-          weekly_counselor_summaries:sums,
-          counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes}
-        })});
-        if(stu){
-          stu.weekly_counselor_summaries=updated.weekly_counselor_summaries!=null?updated.weekly_counselor_summaries:sums;
-          stu.counselor_weekly_extras=updated.counselor_weekly_extras!=null?updated.counselor_weekly_extras:ex;
-        }
-        await renderCounselorDetailHistory();
-        showToast('תיעוד היועצת לשבוע נמחק');
-      }catch(e){showToast(e.message||String(e));}
-    })();
+        await apiFetch(`/meeting-notes/${encodeURIComponent(String(n.id))}`,{method:'DELETE'});
+      }catch(e){
+        failedNotes.push({id:n.id,err:e&&e.message?e.message:String(e)});
+      }
+    }
+    if(failedNotes.length){
+      showToast(`לא הצלחתי למחוק ${failedNotes.length} סיכומי פגישה: ${failedNotes[0].err}`);
+      return;
+    }
+
+    /* Step 2 — PATCH the student row so the weekly summary text,
+       custom label, and per-task notes for this week are actually
+       persisted as gone in the database. */
+    const sums={...parseWeeklySummariesFromStudent(stu)};
+    delete sums[wkKeyStr];
+    const ex=parseCounselorWeeklyExtras(stu);
+    delete ex.week_labels[wkKeyStr];
+    Object.keys(ex.task_notes).forEach(k=>{
+      if(k.startsWith(wkKeyStr+'_')) delete ex.task_notes[k];
+    });
+
+    try{
+      await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({
+        weekly_counselor_summaries:sums,
+        counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes},
+      })});
+    }catch(e){
+      showToast(`שגיאה בשמירת מחיקת תיעוד השבוע: ${e&&e.message?e.message:String(e)}`);
+      return;
+    }
+
+    /* Step 3 — verify the backend actually persisted the deletion.
+       Previously the UI just trusted the response, which made silent
+       PATCH failures look like a successful delete. */
+    const fresh=await reloadCurrentStudentFromServer();
+    const serverSums=parseWeeklySummariesFromStudent(fresh);
+    const serverEx=parseCounselorWeeklyExtras(fresh);
+    const serverLabels=serverEx.week_labels||{};
+    const serverTaskNotes=serverEx.task_notes||{};
+    const stillHasSummary=Object.prototype.hasOwnProperty.call(serverSums,wkKeyStr);
+    const stillHasLabel=Object.prototype.hasOwnProperty.call(serverLabels,wkKeyStr);
+    const stillHasTaskNote=Object.keys(serverTaskNotes).some(k=>k.startsWith(wkKeyStr+'_'));
+    if(stillHasSummary||stillHasLabel||stillHasTaskNote){
+      showToast('המחיקה לא נשמרה במסד הנתונים. נסי שוב.');
+      return;
+    }
+
+    /* Step 4 — only NOW update local cache and re-render. */
+    await reloadMeetingNotes();
+    await renderCounselorDetailHistory();
+    showToast('תיעוד היועצת לשבוע נמחק');
   });
 }
-async function saveWeeklyCounselorSummary(wkKeyStr){
-  if(!currentSid) return;
+function deleteWeeklyCounselorSummary(wkKeyStr){
+  if(!currentSid){showToast('לא נבחר תלמיד');return;}
+  showAppConfirm('מחיקת סיכום שבועי','למחוק את סיכום פגישת היועצת לשבוע זה?', async ()=>{
+    await saveWeeklyCounselorSummary(wkKeyStr,{deleteOnly:true});
+  });
+}
+async function saveWeeklyCounselorSummary(wkKeyStr,opts={}){
+  if(!currentSid){showToast('לא נבחר תלמיד');return;}
   const ta=document.getElementById('weekly-sum-ta-'+wkKeyStr);
-  if(!ta) return;
-  const stu=allStudents.find(x=>x.id===currentSid);
-  const cur={...parseWeeklySummariesFromStudent(stu)};
-  cur[wkKeyStr]=ta.value;
+  if(!ta){showToast('שדה הסיכום לא נמצא');return;}
+  const value=String(ta.value||'');
+  const deleting=!!(opts&&opts.deleteOnly);
   const btn=document.getElementById('weekly-save-'+wkKeyStr);
   if(btn) setBusy(btn.id,true,'שומר...');
   try{
-    const updated=await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({weekly_counselor_summaries:cur})});
-    if(stu){
-      stu.weekly_counselor_summaries=updated.weekly_counselor_summaries!=null
-        ? updated.weekly_counselor_summaries
-        : cur;
+    const stu=await reloadCurrentStudentFromServer();
+    const cur={...parseWeeklySummariesFromStudent(stu)};
+    if(deleting||!value.trim()) delete cur[wkKeyStr];
+    else cur[wkKeyStr]=value;
+    await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({weekly_counselor_summaries:cur})});
+    const fresh=await reloadCurrentStudentFromServer();
+    const serverSums=parseWeeklySummariesFromStudent(fresh);
+    const hasKey=Object.prototype.hasOwnProperty.call(serverSums,wkKeyStr);
+    if(deleting||!value.trim()){
+      if(hasKey) throw new Error('המחיקה לא נשמרה במסד הנתונים');
+      ta.value='';
+    }else if(serverSums[wkKeyStr]!==value){
+      throw new Error('השמירה לא אומתה במסד הנתונים');
     }
-    showToast('סיכום שבועי נשמר ✓');
+    await renderCounselorDetailHistory();
+    showToast((deleting||!value.trim())?'סיכום שבועי נמחק':'סיכום שבועי נשמר ✓');
   }catch(e){
     showToast(`שגיאה: ${e.message}`);
   }finally{
@@ -3165,8 +3351,11 @@ async function renderCounselorDetailHistory(preSnap){
   const host=document.getElementById('detail-history-content');
   if(!host||!currentSid) return;
   const snap=preSnap===undefined?snapshotMeetingHistoryDraft():preSnap;
+  await Promise.all([
+    reloadMeetingNotes(),
+    reloadCurrentStudentFromServer().catch(()=>null),
+  ]);
   const stu=allStudents.find(x=>x.id===currentSid);
-  await reloadMeetingNotes();
   const taskLine=escH(getWeeklyTaskSummaryLine(currentTasks));
   const weeklyMeetingsHtml=buildCounselorWeeklyMeetingAccordionHtml(stu);
   const kpBullets=renderKeyPointsBulletsHtml(stu);
@@ -3536,6 +3725,10 @@ async function saveNoteCore(text, isAiFlow, opts={}){
       if(wkMs!=null) postBody.week_start_ms=wkMs;
       saved=await apiFetch(`/meeting-notes/${currentSid}`,{method:'POST',body:JSON.stringify(postBody)});
       currentNotes=[saved,...(currentNotes||[])];
+    }
+    await reloadMeetingNotes();
+    if(saved&&saved.id&&!currentNotes.some(n=>String(n.id)===String(saved.id))){
+      throw new Error('השמירה לא אומתה במסד הנתונים');
     }
     draftSessionAttachments=[];
     editingSessionAttachments=[];

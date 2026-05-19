@@ -61,6 +61,37 @@ if _jwt_role == "anon":
     )
 elif _jwt_role and _jwt_role != "service_role":
     print(f"[BRIDGE] INFO: SUPABASE_KEY JWT role={_jwt_role!r} (expected service_role for full Storage access).")
+print(
+    f"[BRIDGE] Supabase client up. url={supabase_url!r}  role={_jwt_role!r}  "
+    f"(role=anon → RLS will silently block writes; expected role=service_role for full backend access)"
+)
+
+
+def _log_db_res(table: str, op: str, row_id: Optional[str], res, payload: Optional[dict] = None) -> None:
+    """
+    Print the raw Supabase response in a single line so writes/deletes are
+    never silent on the server. Captures: data length, first row preview,
+    .count, and any extra attributes the client exposes. supabase-py 2.x
+    raises on real PostgREST errors, so an exception path is logged
+    separately by the caller.
+    """
+    try:
+        data = getattr(res, "data", None)
+        count = getattr(res, "count", None)
+        data_len = len(data) if isinstance(data, list) else (1 if data else 0)
+        sample = None
+        if isinstance(data, list) and data:
+            row = data[0]
+            if isinstance(row, dict):
+                sample = {k: row.get(k) for k in ("id", "student_id") if k in row}
+        payload_keys = list(payload.keys()) if isinstance(payload, dict) else None
+        print(
+            f"[DB] table={table!r} op={op} id={row_id!r} "
+            f"data_len={data_len} count={count!r} sample={sample!r} "
+            f"payload_keys={payload_keys!r}"
+        )
+    except Exception as e:  # never let logging itself break the request
+        print(f"[DB] LOG-FAIL table={table!r} op={op} id={row_id!r}: {e!s}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -560,6 +591,135 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/diag/db")
+def diag_db():
+    """
+    End-to-end Supabase diagnostic. Exposes exactly what the backend sees so we
+    can rule out the four classes of silent-write bugs the user is hunting:
+
+      1. wrong supabase URL / key (returns the URL and JWT role)
+      2. wrong table / column name (does a SELECT * limit 1 on each of
+         students / meeting_notes / tasks / reports — any 4xx is captured)
+      3. wrong / missing row id at delete time (uses a row we just inserted)
+      4. RLS silently blocking writes (does INSERT → DELETE roundtrip on
+         meeting_notes and tasks, reports `data_len`/`count` and whether the
+         row really vanished afterwards)
+
+    Read-only against existing data; the test rows it creates are deleted
+    again at the end of the same request. Hit it from a browser:
+        https://<api>/diag/db
+    """
+    out: dict = {
+        "supabase_url": supabase_url,
+        "jwt_role": _jwt_role,
+        "jwt_role_is_service_role": _jwt_role == "service_role",
+        "tables": {},
+        "roundtrips": {},
+    }
+
+    # 1) Can we SELECT from each table the backend uses?
+    for tbl in ("students", "meeting_notes", "tasks", "reports", "student_documents"):
+        try:
+            r = db.table(tbl).select("*").limit(1).execute()
+            cols = sorted(list((r.data or [{}])[0].keys())) if r.data else []
+            out["tables"][tbl] = {
+                "ok": True,
+                "data_len": len(r.data or []),
+                "count": getattr(r, "count", None),
+                "first_row_columns": cols,
+            }
+        except Exception as e:
+            out["tables"][tbl] = {"ok": False, "error": str(e)}
+
+    # 2) Pick a student to roundtrip against.
+    try:
+        s = db.table("students").select("id").limit(1).execute()
+        sid = (s.data or [{}])[0].get("id") if s.data else None
+    except Exception as e:
+        sid = None
+        out["roundtrips"]["pick_student_error"] = str(e)
+    out["roundtrips"]["student_id"] = sid
+
+    if not sid:
+        return out
+
+    # 3) meeting_notes INSERT → DELETE roundtrip.
+    mn_section: dict = {}
+    note_id = None
+    try:
+        ins = db.table("meeting_notes").insert({
+            "student_id": sid,
+            "summary_text": "DIAG /diag/db roundtrip",
+            "content": "DIAG /diag/db roundtrip",
+            "is_ai_generated": False,
+            "edit_status": "manual",
+            "note_type": "session",
+            "attachments": [],
+            "file_urls": [],
+        }).execute()
+        mn_section["insert_data_len"] = len(ins.data or [])
+        mn_section["insert_returned_id"] = (ins.data or [{}])[0].get("id") if ins.data else None
+        note_id = mn_section["insert_returned_id"]
+    except Exception as e:
+        mn_section["insert_error"] = str(e)
+
+    if note_id:
+        try:
+            d = db.table("meeting_notes").delete().eq("id", note_id).execute()
+            mn_section["delete_data_len"] = len(d.data or [])
+            mn_section["delete_count"] = getattr(d, "count", None)
+        except Exception as e:
+            mn_section["delete_error"] = str(e)
+        try:
+            v = db.table("meeting_notes").select("id").eq("id", note_id).limit(1).execute()
+            mn_section["row_still_present_after_delete"] = bool(v.data)
+        except Exception as e:
+            mn_section["verify_error"] = str(e)
+    out["roundtrips"]["meeting_notes"] = mn_section
+
+    # 4) tasks INSERT → DELETE roundtrip.
+    tk_section: dict = {}
+    task_id = None
+    try:
+        ins = db.table("tasks").insert({
+            "student_id": sid,
+            "text": "DIAG /diag/db roundtrip",
+        }).execute()
+        tk_section["insert_data_len"] = len(ins.data or [])
+        tk_section["insert_returned_id"] = (ins.data or [{}])[0].get("id") if ins.data else None
+        task_id = tk_section["insert_returned_id"]
+    except Exception as e:
+        tk_section["insert_error"] = str(e)
+
+    if task_id:
+        try:
+            d = db.table("tasks").delete().eq("id", task_id).execute()
+            tk_section["delete_data_len"] = len(d.data or [])
+            tk_section["delete_count"] = getattr(d, "count", None)
+        except Exception as e:
+            tk_section["delete_error"] = str(e)
+        try:
+            v = db.table("tasks").select("id").eq("id", task_id).limit(1).execute()
+            tk_section["row_still_present_after_delete"] = bool(v.data)
+        except Exception as e:
+            tk_section["verify_error"] = str(e)
+    out["roundtrips"]["tasks"] = tk_section
+
+    # 5) PATCH students no-op (echo description back to itself).
+    st_section: dict = {}
+    try:
+        row = db.table("students").select("id, description").eq("id", sid).limit(1).execute()
+        desc = (row.data or [{}])[0].get("description") if row.data else None
+        upd = db.table("students").update({"description": desc or ""}).eq("id", sid).execute()
+        st_section["patch_data_len"] = len(upd.data or [])
+        st_section["patch_returned_id"] = (upd.data or [{}])[0].get("id") if upd.data else None
+    except Exception as e:
+        st_section["patch_error"] = str(e)
+    out["roundtrips"]["students_patch_noop"] = st_section
+
+    return out
+
+
 @app.post("/api/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
     """
@@ -730,8 +890,16 @@ def patch_student(student_id: str, data: StudentPatch):
     payload = strip_none(data.model_dump())
     if not payload:
         raise HTTPException(status_code=400, detail="אין שדות לעדכון")
-    res = db.table("students").update(payload).eq("id", student_id).execute()
+    try:
+        res = db.table("students").update(payload).eq("id", student_id).execute()
+    except Exception as e:
+        print(f"[DB] EXC table='students' op=PATCH id={student_id!r} err={e!s}")
+        raise HTTPException(status_code=500, detail=f"שגיאה בעדכון תלמיד: {e!s}") from e
+    _log_db_res("students", "PATCH", student_id, res, payload)
     if not res.data:
+        # No rows came back. With service_role this means the id was not found
+        # in public.students. With an anon key it can also mean RLS blocked the
+        # write silently — see /diag/db.
         raise HTTPException(status_code=404, detail="תלמיד לא נמצא")
     return res.data[0]
 
@@ -1046,8 +1214,38 @@ def mark_task_done(task_id: str):
 
 @app.delete("/tasks/{task_id}")
 def delete_task(task_id: str):
-    db.table("tasks").delete().eq("id", task_id).execute()
-    return {"deleted": True}
+    """
+    Delete a task by id. Verifies the row was actually removed; previously this
+    endpoint always returned {"deleted": True} even when RLS blocked the delete
+    or the id did not exist, which made the UI think tasks were removed when
+    they were still in the database.
+
+    NOTE: supabase-py 2.x does NOT allow `.select()` after `.delete()` — that
+    chain raises "'SyncFilterRequestBuilder' object has no attribute 'select'".
+    The client already returns the deleted rows in `.data` by default
+    (Prefer: return=representation), so we just call .delete().eq().execute().
+    """
+    try:
+        res = db.table("tasks").delete().eq("id", task_id).execute()
+    except Exception as e:
+        print(f"[DB] EXC table='tasks' op=DELETE id={task_id!r} err={e!s}")
+        raise HTTPException(status_code=500, detail=f"מחיקת משימה נכשלה: {e!s}") from e
+
+    _log_db_res("tasks", "DELETE", task_id, res)
+    rows = getattr(res, "data", None) or []
+    if not rows:
+        chk = db.table("tasks").select("id").eq("id", task_id).limit(1).execute()
+        _log_db_res("tasks", "CHK-after-DELETE", task_id, chk)
+        if chk.data:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "המשימה קיימת אך לא נמחקה — בדקי מפתח Supabase "
+                    "(service_role מומלץ) או מדיניות RLS על tasks."
+                ),
+            )
+        raise HTTPException(status_code=404, detail="משימה לא נמצאה")
+    return {"deleted": True, "id": task_id}
 
 # ═══════════════════ REPORTS ══════════════════════════════════
 
@@ -1307,7 +1505,15 @@ def get_meeting_notes(student_id: str):
 @app.post("/meeting-notes/{student_id}")
 def add_meeting_note(student_id: str, note: MeetingNoteCreate):
     payload = _meeting_note_insert_payload(student_id, note)
-    res = db.table("meeting_notes").insert(payload).execute()
+    try:
+        res = db.table("meeting_notes").insert(payload).execute()
+    except Exception as e:
+        print(f"[DB] EXC table='meeting_notes' op=INSERT student_id={student_id!r} err={e!s}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"שגיאה בשמירת סיכום: {e!s}",
+        ) from e
+    _log_db_res("meeting_notes", "INSERT", student_id, res, payload)
     if not res.data:
         raise HTTPException(status_code=500, detail="שגיאה בשמירת סיכום")
     return _meeting_note_row_out(res.data[0])
@@ -1318,7 +1524,15 @@ def patch_meeting_note(note_id: str, data: MeetingNotePatch):
     payload = _meeting_note_patch_payload(data)
     if not payload:
         raise HTTPException(status_code=400, detail="אין עדכונים")
-    res = db.table("meeting_notes").update(payload).eq("id", note_id).execute()
+    try:
+        res = db.table("meeting_notes").update(payload).eq("id", note_id).execute()
+    except Exception as e:
+        print(f"[DB] EXC table='meeting_notes' op=PATCH id={note_id!r} err={e!s}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"שגיאה בעדכון סיכום: {e!s}",
+        ) from e
+    _log_db_res("meeting_notes", "PATCH", note_id, res, payload)
     if not res.data:
         raise HTTPException(status_code=404, detail="סיכום לא נמצא")
     return _meeting_note_row_out(res.data[0])
@@ -1326,8 +1540,33 @@ def patch_meeting_note(note_id: str, data: MeetingNotePatch):
 
 @app.delete("/meeting-notes/{note_id}")
 def delete_meeting_note(note_id: str):
-    """Delete a single meeting note by id (counselor UI)."""
-    db.table("meeting_notes").delete().eq("id", note_id).execute()
+    """
+    Delete a single meeting note by id (counselor UI).
+
+    NOTE: supabase-py 2.x does NOT allow `.select()` after `.delete()` — that
+    chain raises "'SyncFilterRequestBuilder' object has no attribute 'select'".
+    The client already returns the deleted rows in `.data` by default
+    (Prefer: return=representation), so we just call .delete().eq().execute().
+    """
+    try:
+        res = db.table("meeting_notes").delete().eq("id", note_id).execute()
+    except Exception as e:
+        print(f"[DB] EXC table='meeting_notes' op=DELETE id={note_id!r} err={e!s}")
+        raise HTTPException(status_code=500, detail=f"מחיקה נכשלה: {e!s}") from e
+    _log_db_res("meeting_notes", "DELETE", note_id, res)
+    rows = getattr(res, "data", None) or []
+    if not rows:
+        chk = db.table("meeting_notes").select("id").eq("id", note_id).limit(1).execute()
+        _log_db_res("meeting_notes", "CHK-after-DELETE", note_id, chk)
+        if chk.data:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "השורה קיימת אך לא נמחקה — בדקי מפתח Supabase (מומלץ service_role) "
+                    "או מדיניות RLS על meeting_notes."
+                ),
+            )
+        raise HTTPException(status_code=404, detail="סיכום לא נמצא")
     return {"deleted": True, "id": note_id}
 
 
