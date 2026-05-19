@@ -3052,12 +3052,18 @@ function buildWeeklyTaskSectionsHtml(wkKey,wkStart,wkEnd,tasks,reports,stu){
   function rowHtml(t){
     const tid=safeWeeklyDomId(t.id);
     const st=t.done?'<span class="weekly-task-st done">✓ הושלמה</span>':'<span class="weekly-task-st">לא הושלמה</span>';
+    /* Completed tasks are read-only in the weekly review — the counselor
+       shouldn't be able to retroactively delete what the student already
+       finished from this screen. Trash only appears on "לא הושלמה" rows. */
+    const delBtn=t.done
+      ?''
+      :`<button type="button" class="weekly-task-row-del" title="מחיקת משימה" aria-label="מחיקת משימה" onclick="event.stopPropagation();delTask('${t.id}')">🗑</button>`;
     return `<div class="weekly-task-wrap">
       <div class="weekly-task-compact" role="button" tabindex="0" onclick="toggleWeeklyTaskDetail('${wkKey}','${tid}')" onkeydown="if(event.key==='Enter'||event.key===' ')toggleWeeklyTaskDetail('${wkKey}','${tid}')">
         <span class="weekly-task-title">${escH(t.text||'משימה')}</span>
         <span class="weekly-task-row-tools">
           ${st}
-          <button type="button" class="weekly-task-row-del" title="מחיקת משימה" aria-label="מחיקת משימה" onclick="event.stopPropagation();delTask('${t.id}')">🗑</button>
+          ${delBtn}
         </span>
       </div>
       <div class="weekly-task-detail" id="wtd-${wkKey}-${tid}" hidden onclick="event.stopPropagation()">${buildTaskWeekDetailHtml(t,reports,wkStart,wkEnd,wkKey,stu)}</div>
@@ -3487,6 +3493,7 @@ async function saveWeeklyCounselorSummary(wkKeyStr,opts={}){
   if(wkKeyStrNorm!==String(wkKeyStr)){
     console.log('[weekly-summary] wkKey normalized at entry:',JSON.stringify(String(wkKeyStr)),'→',wkKeyStrNorm);
   }
+  const deleting=!!(opts&&opts.deleteOnly);
   const taId='weekly-sum-ta-'+wkKeyStrNorm;
   const ta=document.getElementById(taId);
   // === Textarea diagnostics — exactly the hypothesis to verify ============
@@ -3502,6 +3509,7 @@ async function saveWeeklyCounselorSummary(wkKeyStr,opts={}){
   console.log('wkKeyStr (raw)        =',wkKeyStr,'typeof',wkKeyType);
   console.log('wkKeyStr (normalized) =',wkKeyStrNorm);
   console.log('textarea found?       =',!!ta);
+  console.log('deleteOnly mode?      =',deleting);
   if(ta){
     console.log('textarea.id           =',ta.id);
     console.log('textarea.value        =',JSON.stringify(ta.value));
@@ -3513,12 +3521,14 @@ async function saveWeeklyCounselorSummary(wkKeyStr,opts={}){
   console.log('document.activeElement=',focused&&focused.id?focused.id:focused&&focused.tagName);
   console.log('all weekly-sum-ta-* in DOM:',allTextareaSnapshot);
   console.groupEnd();
-  if(!ta){
-    console.error('[weekly-summary] aborting: textarea element not found in DOM. Expected id =',taId);
+  /* deleteOnly is invoked from the saved read-only CARD (no textarea), or
+     from any other path that doesn't need to read input — only clear the
+     stored key. Don't require a textarea in that case. */
+  if(!ta && !deleting){
+    console.error('[weekly-summary] aborting: textarea element not found in DOM. Expected id =',taId,'existing ids =',allTextareaSnapshot.map(s=>s.id));
     showToast('שדה הסיכום לא נמצא');return;
   }
-  const value=String(ta.value||'');
-  const deleting=!!(opts&&opts.deleteOnly);
+  const value=ta?String(ta.value||''):'';
   const willDelete=deleting||!value.trim();
   console.log('[weekly-summary] branch decision: deleting?',deleting,'→ value trim len =',value.trim().length,'→ will DELETE key?',willDelete);
   const btn=document.getElementById('weekly-save-'+wkKeyStrNorm);
