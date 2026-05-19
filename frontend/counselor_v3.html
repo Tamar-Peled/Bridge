@@ -1334,7 +1334,7 @@ let _counselorDetailTab       = 'tasks'; // 'tasks' | 'history' — restored aft
    holds ENTRY ids whose card is currently swapped into an editable form.
    renderCounselorDetailHistory consults it when rendering each entry. */
 let _weeklyCounselorEditingKeys = new Set();
-/* Weeks where the user clicked "+ הוסף סיכום פגישת יועצת" and is mid-add.
+/* Weeks where the user clicked "+ הוסיפי סיכום פגישה" and is mid-add.
    Holds canonical wkKey strings. While present, the renderer also shows
    an empty editor card with an auto-generated default title underneath
    the existing entries for that week. */
@@ -2885,7 +2885,7 @@ function generateWeeklyEntryId(){
   return 'we_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10);
 }
 function defaultWeeklyEntryTitle(num){
-  return 'סיכום פגישת יועצת #'+num;
+  return 'סיכום פגישה #'+num;
 }
 function normalizeWeeklyEntry(raw,defaultNum,stableIdSeed){
   /* stableIdSeed is used to derive a deterministic legacy id (e.g. the
@@ -2912,7 +2912,7 @@ function normalizeWeeklyEntry(raw,defaultNum,stableIdSeed){
 function weeklyEntriesForRawValue(rawValue,seedPrefix){
   /* Accepts a single value out of weekly_counselor_summaries[wkKey].
      Returns a normalized SummaryEntry[]. Handles three legacy shapes:
-       - string         → wrap as one entry titled "סיכום פגישת יועצת #1"
+       - string         → wrap as one entry titled "סיכום פגישה #1"
        - array          → normalize each item
        - object (single entry) → wrap as one-entry array
      `seedPrefix` (typically the wkKey) is used to deterministically derive
@@ -3353,10 +3353,10 @@ function weeklyCounselorSummarySectionHtml(wkKey,wkMs,entries,ord){
   /* Show the section heading once, then the entries (or empty hint) and
      the +/AI row. */
   const emptyHint=(!list.length&&!adding)
-    ?'<div class="sec-empty" style="margin:4px 0 8px 0">אין עדיין סיכומי פגישת יועצת לשבוע זה</div>'
+    ?'<div class="sec-empty" style="margin:4px 0 8px 0">אין עדיין סיכומי פגישה לשבוע זה</div>'
     :'';
   return `<div class="weekly-subsec">
-    <h4 class="weekly-subsec-h">סיכומי פגישת יועצת לשבוע</h4>
+    <h4 class="weekly-subsec-h">סיכומי פגישות לשבוע</h4>
     ${entriesHtml}
     ${emptyHint}
     ${addBlock}
@@ -3404,7 +3404,7 @@ function weeklyCounselorEntryEditorHtml(wkKey,wkMs,entry,positionNum,isNew){
     :`cancelEditWeeklyCounselorSummary('${wkKey}','${escAttr(id)}')`;
   return `<div class="rep-card weekly-counselor-card weekly-counselor-editor" id="weekly-sum-editor-${id}" style="margin:8px 0;position:relative;padding:12px 14px">
     <div class="weekly-counselor-title-row" style="margin-bottom:8px">
-      <input class="weekly-counselor-title-input" id="weekly-sum-title-${id}" type="text" value="${escAttr(title)}" placeholder="כותרת — לדוגמה: סיכום פגישת יועצת #1" style="width:100%;font-weight:700;padding:8px 10px;border-radius:8px;border:1px solid var(--case-border, #e0e0e0);font-size:14px;text-align:right" />
+      <input class="weekly-counselor-title-input" id="weekly-sum-title-${id}" type="text" value="${escAttr(title)}" placeholder="כותרת — לדוגמה: סיכום פגישה #1" style="width:100%;font-weight:700;padding:8px 10px;border-radius:8px;border:1px solid var(--case-border, #e0e0e0);font-size:14px;text-align:right" />
     </div>
     <textarea class="weekly-counselor-ta" id="weekly-sum-ta-${id}" placeholder="כתבי כאן את סיכום המפגש לשבוע...">${escH(text)}</textarea>
     <div class="weekly-counselor-save-row">
