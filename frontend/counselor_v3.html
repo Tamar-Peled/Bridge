@@ -659,6 +659,19 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   transition:box-shadow .15s,transform .15s;
 }
 .student-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px)}
+.student-card-del{
+  flex-shrink:0;
+  display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;
+  background:var(--red-soft);color:var(--red-dk);
+  border:1px solid #f5c6c2;border-radius:10px;
+  font-size:15px;line-height:1;cursor:pointer;
+  font-family:'Heebo',sans-serif;
+  transition:background .12s,transform .12s,box-shadow .12s;
+}
+.student-card-del:hover{background:#fad5d1;transform:scale(1.05);box-shadow:0 2px 6px rgba(231,76,60,.18)}
+.student-card-del:active{transform:scale(.96)}
+.student-card-del:disabled{opacity:.5;cursor:not-allowed;transform:none}
 /* Priority 1 — counselor "attention required" (red, always on top) */
 .student-card.alert-card{
   border:1.5px solid var(--red);
@@ -2170,6 +2183,18 @@ function shouldRelaxAIFlag(reports){
   return isPositiveEmojiMood(latest.mood) && isPositiveSentimentText(latest.text);
 }
 function computeProactiveAlert(student, tasks, reports){
+  /* Proactive alerts (inactivity / distress / "7 days inactive") only make
+     sense for students who are still in an active counselor process. Once a
+     student is moved to "סיים תהליך" (or any other non-active state) they
+     are no longer expected to log in or pick weekly tasks, so suppressing
+     the warning silences the false positive on the dashboard. */
+  if(canonicalStatus(student && student.status) !== 'בתהליך'){
+    return {
+      needs:false, aiStillDetected:false, relaxedByPositiveData:false,
+      inactive7:false, isDistressed:false, tags:[], reasonHebrew:'',
+      silenceFingerprint:''
+    };
+  }
   const tags=[];
   let inactive7=false;
   let isDistressed=false;
@@ -2637,6 +2662,14 @@ function renderList(list){
           <button type="button" class="system-flag-label" title="${tip}" onclick="openAiAlertModal('${s.id}',event)">⚠️ אזהרה לתשומת לב</button>
         </div>`
       : '';
+    /* Inline trash button on the dashboard card for completed students,
+       so the counselor doesn't have to drill into the detail screen just to
+       remove a student whose process is already finished. Stop propagation
+       on the click so the surrounding card's openStudent() handler doesn't
+       also fire. */
+    const delBtn = isCompletedStudent(s)
+      ? `<button type="button" class="student-card-del" title="מחיקת תלמיד" aria-label="מחיקת תלמיד" onclick="deleteStudentFromList('${s.id}',event)">🗑</button>`
+      : '';
 
     return `<div class="${cardCls}" onclick="openStudent('${s.id}')">
       ${av}
@@ -2646,6 +2679,7 @@ function renderList(list){
         ${sysLbl}
         ${reasonTags}
       </div>
+      ${delBtn}
       <span class="arrow">‹</span>
     </div>`;
   }).join('');
@@ -4201,42 +4235,62 @@ async function updateStatus(newStatus){
 }
 
 /* Permanent deletion of a student from the counselor view. Only available
-   when status === 'סיים תהליך' (UI enforces this by hiding the button).
-   Server cascades JSONB fields stored on the students row; auxiliary tables
-   (tasks, notes, meeting_notes, etc.) are not auto-cleaned here — they remain
-   orphaned by student_id but are no longer reachable from the UI since the
-   parent student row is gone. */
-async function deleteCurrentStudent(){
-  const s=allStudents.find(x=>x.id===currentSid);
+   when status === 'סיים תהליך'. The backend cascades to all auxiliary tables
+   (tasks, reports, logs, meeting_notes, student_documents, student_notes),
+   and because the students row is hard-deleted, the access code on that row
+   is automatically freed and can be re-assigned to a new student. */
+async function deleteStudentById(sid, displayName){
+  if(!sid){showToast('תלמיד לא נמצא');return;}
+  const s=allStudents.find(x=>x.id===sid);
   if(!s){showToast('תלמיד לא נמצא');return;}
   if(canonicalStatus(s.status)!=='סיים תהליך'){
     showToast('ניתן למחוק רק תלמיד עם סטטוס "סיים תהליך"');return;
   }
-  const sid=currentSid;
-  const name=s.name||'התלמיד';
+  const safeName=displayName||s.name||'התלמיד';
   showAppConfirm(
     'מחיקת תלמיד לצמיתות',
-    `האם למחוק את ${name} לצמיתות? כל הנתונים הקשורים אליו יוסרו מהמערכת ולא יהיה ניתן לשחזר אותם.`,
+    `האם למחוק את ${safeName} לצמיתות? כל הנתונים הקשורים אליו יוסרו מהמערכת ולא יהיה ניתן לשחזר אותם. קוד הכניסה שלו ישוחרר וניתן יהיה לשייך אותו לתלמיד אחר.`,
     async ()=>{
-      const btn=document.getElementById('btn-delete-student');
-      if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';}
+      const detailBtn=document.getElementById('btn-delete-student');
+      if(detailBtn){detailBtn.disabled=true;detailBtn.innerHTML='<span class="spinner"></span>';}
       try{
         const resp=await apiFetch(`/students/${sid}`,{method:'DELETE'});
-        console.log('[deleteCurrentStudent] server response:',resp);
+        console.log('[deleteStudentById] server response:',resp);
         const idx=allStudents.findIndex(x=>x.id===sid);
         if(idx>=0) allStudents.splice(idx,1);
         if(proactiveById&&proactiveById[sid]) delete proactiveById[sid];
-        currentSid=null;
-        showScreen('screen-main');
+        if(currentSid===sid){
+          currentSid=null;
+          showScreen('screen-main');
+        }
         await loadList();
-        showToast(`${name} נמחק/ה מהמערכת ✓`);
+        showToast(`${safeName} נמחק/ה מהמערכת ✓`);
       }catch(e){
-        console.error('[deleteCurrentStudent] failed:',e);
-        if(btn){btn.disabled=false;btn.innerHTML='<span class="trash-ico" aria-hidden="true">🗑</span><span>מחיקת תלמיד</span>';}
+        console.error('[deleteStudentById] failed:',e);
+        if(detailBtn){detailBtn.disabled=false;detailBtn.innerHTML='<span class="trash-ico" aria-hidden="true">🗑</span><span>מחיקת תלמיד</span>';}
         showToast(`שגיאה במחיקה: ${e&&e.message?e.message:e}`);
       }
     }
   );
+}
+
+async function deleteCurrentStudent(){
+  const s=allStudents.find(x=>x.id===currentSid);
+  if(!s){showToast('תלמיד לא נמצא');return;}
+  await deleteStudentById(currentSid, s.name);
+}
+
+/* Triggered by the inline trash icon on a dashboard student card. The card's
+   wrapping div has its own onclick=openStudent — we must stop propagation so
+   tapping the trash doesn't also drill into the student detail screen. */
+function deleteStudentFromList(sid, ev){
+  if(ev){
+    if(typeof ev.stopPropagation==='function') ev.stopPropagation();
+    if(typeof ev.preventDefault==='function') ev.preventDefault();
+  }
+  const s=allStudents.find(x=>x.id===sid);
+  const name=(s&&s.name)||'התלמיד';
+  deleteStudentById(sid, name);
 }
 
 /* ════════════════ DESCRIPTION ════════════════ */
