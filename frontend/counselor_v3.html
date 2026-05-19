@@ -1108,7 +1108,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     <label class="modal-lbl">שם מלא *</label>
     <input type="text" id="new-name" placeholder="שם מלא">
     <label class="modal-lbl">כיתה *</label>
-    <input type="text" id="new-grade" placeholder="לדוגמה: ז2">
     <label class="modal-lbl">תיאור רקע פנימי  *</label>
     <textarea id="new-description" placeholder="תיאור קצר על הרקע של התלמיד."></textarea>
     <label class="modal-lbl">תמונה</label>
@@ -1119,7 +1118,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
       onchange="handlePhoto(this,'new-photo-drop','new-photo-b64')">
     <input type="hidden" id="new-photo-b64">
     <label class="modal-lbl">קוד כניסה לתלמיד — 4 ספרות *</label>
-    <input type="text" id="new-code" placeholder="לדוגמה: 1234"
       maxlength="4" inputmode="numeric" pattern="[0-9]{4}"
       oninput="this.value=this.value.replace(/[^0-9]/g,'')"
       style="letter-spacing:8px;font-size:20px;font-weight:700;text-align:center">
