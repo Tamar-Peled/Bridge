@@ -1157,9 +1157,39 @@ def delete_student_document(student_id: str, document_id: str):
 
 @app.delete("/students/{student_id}")
 def delete_student(student_id: str):
+    cur = db.table("students").select("id,code,name").eq("id", student_id).execute()
+    if not cur.data:
+        raise HTTPException(status_code=404, detail="תלמיד לא נמצא")
+    student = cur.data[0]
+    student_code = str(student.get("code") or "").strip()
+
+    deleted_children = {}
+
+    def delete_children(table: str, column: str, value: str):
+        if not value:
+            deleted_children[table] = 0
+            return
+        existing = db.table(table).select("id").eq(column, value).execute()
+        rows = existing.data or []
+        if not rows:
+            deleted_children[table] = 0
+            return
+        res = db.table(table).delete().eq(column, value).execute()
+        deleted_rows = _require_db_rows(table, "DELETE cascade", value, res)
+        deleted_children[table] = len(deleted_rows)
+
+    # Delete dependent rows first so no orphan records remain after the
+    # counselor permanently removes a completed student from the system.
+    delete_children("tasks", "student_id", student_id)
+    delete_children("reports", "student_id", student_id)
+    delete_children("logs", "student_id", student_id)
+    delete_children("meeting_notes", "student_id", student_id)
+    delete_children("student_documents", "student_id", student_id)
+    delete_children("student_notes", "student_code", student_code)
+
     res = db.table("students").delete().eq("id", student_id).execute()
     _require_db_rows("students", "DELETE", student_id, res)
-    return {"deleted": True}
+    return {"deleted": True, "deleted_children": deleted_children}
 
 # ═══════════════════ TASKS ════════════════════════════════════
 

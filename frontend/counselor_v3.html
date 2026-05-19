@@ -211,6 +211,17 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   padding:4px 10px;font-size:12px;font-weight:600;
   min-width:140px;max-width:min(280px,92vw);
 }
+.btn-delete-student{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--red-soft);color:var(--red-dk);
+  border:1px solid #f5c6c2;border-radius:var(--radius-sm);
+  padding:5px 12px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:'Heebo',sans-serif;
+  transition:background .12s,transform .12s;
+}
+.btn-delete-student:hover{background:#fad5d1;transform:translateY(-1px)}
+.btn-delete-student:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-delete-student .trash-ico{font-size:14px;line-height:1}
 .detail-subtabs{
   display:flex;gap:8px;margin:12px 0 14px;
   padding:6px;background:var(--card);
@@ -2750,6 +2761,12 @@ async function renderDetail(s){
             <select class="status-select status-select-sm ${selCls}" id="status-sel" onchange="updateStatus(this.value)">
               ${statusOpts}
             </select>
+            <button type="button" class="btn-delete-student" id="btn-delete-student"
+              style="display:${status==='סיים תהליך'?'inline-flex':'none'}"
+              onclick="deleteCurrentStudent()" title="מחיקת התלמיד לצמיתות">
+              <span class="trash-ico" aria-hidden="true">🗑</span>
+              <span>מחיקת תלמיד</span>
+            </button>
           </div>
           <div class="desc-block" onclick="openDescModal()" title="לחצי לעריכה">
             <span class="desc-txt${desc?'':' desc-empty'}" id="desc-span">${desc?escH(desc):'לחצי להוספת תיאור רקע...'}</span>
@@ -4170,14 +4187,56 @@ async function updateStatus(newStatus){
   s.status=newStatus;
   const sel=document.getElementById('status-sel');
   if(sel){sel.className=`status-select status-select-sm ${statusSelCls(newStatus)}`;}
+  const delBtn=document.getElementById('btn-delete-student');
+  if(delBtn){delBtn.style.display=(canonicalStatus(newStatus)==='סיים תהליך')?'inline-flex':'none';}
   try{
     await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({status:newStatus})});
     showToast('רקע התלמיד עודכן ✓');
   }catch(e){
     s.status=prev;
     if(sel){sel.value=canonicalStatus(prev);sel.className=`status-select status-select-sm ${statusSelCls(canonicalStatus(prev))}`;}
+    if(delBtn){delBtn.style.display=(canonicalStatus(prev)==='סיים תהליך')?'inline-flex':'none';}
     showToast(`שגיאה: ${e.message}`);
   }
+}
+
+/* Permanent deletion of a student from the counselor view. Only available
+   when status === 'סיים תהליך' (UI enforces this by hiding the button).
+   Server cascades JSONB fields stored on the students row; auxiliary tables
+   (tasks, notes, meeting_notes, etc.) are not auto-cleaned here — they remain
+   orphaned by student_id but are no longer reachable from the UI since the
+   parent student row is gone. */
+async function deleteCurrentStudent(){
+  const s=allStudents.find(x=>x.id===currentSid);
+  if(!s){showToast('תלמיד לא נמצא');return;}
+  if(canonicalStatus(s.status)!=='סיים תהליך'){
+    showToast('ניתן למחוק רק תלמיד עם סטטוס "סיים תהליך"');return;
+  }
+  const sid=currentSid;
+  const name=s.name||'התלמיד';
+  showAppConfirm(
+    'מחיקת תלמיד לצמיתות',
+    `האם למחוק את ${name} לצמיתות? כל הנתונים הקשורים אליו יוסרו מהמערכת ולא יהיה ניתן לשחזר אותם.`,
+    async ()=>{
+      const btn=document.getElementById('btn-delete-student');
+      if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';}
+      try{
+        const resp=await apiFetch(`/students/${sid}`,{method:'DELETE'});
+        console.log('[deleteCurrentStudent] server response:',resp);
+        const idx=allStudents.findIndex(x=>x.id===sid);
+        if(idx>=0) allStudents.splice(idx,1);
+        if(proactiveById&&proactiveById[sid]) delete proactiveById[sid];
+        currentSid=null;
+        showScreen('screen-main');
+        await loadList();
+        showToast(`${name} נמחק/ה מהמערכת ✓`);
+      }catch(e){
+        console.error('[deleteCurrentStudent] failed:',e);
+        if(btn){btn.disabled=false;btn.innerHTML='<span class="trash-ico" aria-hidden="true">🗑</span><span>מחיקת תלמיד</span>';}
+        showToast(`שגיאה במחיקה: ${e&&e.message?e.message:e}`);
+      }
+    }
+  );
 }
 
 /* ════════════════ DESCRIPTION ════════════════ */
