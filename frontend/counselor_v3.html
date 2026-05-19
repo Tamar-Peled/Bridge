@@ -1313,10 +1313,14 @@ let pendingFileUploads        = []; // staged files: { _id, data, mime, original
 let currentGeneralDocuments   = []; // from GET /students/{id}/documents (table + legacy)
 let _counselorDetailTab       = 'tasks'; // 'tasks' | 'history' — restored after renderDetail
 /* Weekly counselor summaries render as read-only cards by default. This set
-   holds the canonical wkKey strings whose card is currently swapped into an
-   editable textarea (add or edit). renderCounselorDetailHistory consults it
-   when building each week. */
+   holds ENTRY ids whose card is currently swapped into an editable form.
+   renderCounselorDetailHistory consults it when rendering each entry. */
 let _weeklyCounselorEditingKeys = new Set();
+/* Weeks where the user clicked "+ הוסף סיכום פגישת יועצת" and is mid-add.
+   Holds canonical wkKey strings. While present, the renderer also shows
+   an empty editor card with an auto-generated default title underneath
+   the existing entries for that week. */
+let _weeklyCounselorAddingForWeek = new Set();
 /* Weeks the counselor explicitly deleted via the header 🗑 in the current
    session. We can't infer "deleted" purely from DB state because the week
    might still have legitimate student-side data (tasks/reports) the
@@ -2852,17 +2856,122 @@ function removeLikelyStaleNeighborSummaryKeys(summaryMap,wkStart){
   return removed;
 }
 function parseWeeklySummariesFromStudent(stu){
+  /* Legacy "single summary per week" view. Now derived from the entries
+     parser by joining all entries for the week into one text blob. Kept
+     for any callsite that still wants a single string per week (e.g.
+     activity-presence checks). New UI should call parseWeeklyEntriesFromStudent. */
+  const entriesMap=parseWeeklyEntriesFromStudent(stu);
+  const out={};
+  for(const k of Object.keys(entriesMap)){
+    const arr=entriesMap[k]||[];
+    const joined=arr.map(e=>String(e.text||'')).filter(s=>s.trim()).join('\n\n');
+    if(joined.trim()) out[k]=joined;
+  }
+  return out;
+}
+function generateWeeklyEntryId(){
+  return 'we_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10);
+}
+function defaultWeeklyEntryTitle(num){
+  return 'סיכום פגישת יועצת #'+num;
+}
+function normalizeWeeklyEntry(raw,defaultNum,stableIdSeed){
+  /* stableIdSeed is used to derive a deterministic legacy id (e.g. the
+     wkKey + index) so multiple parses of the SAME legacy data produce the
+     SAME id. Otherwise save/verify by id breaks across renders. */
+  if(raw==null) return null;
+  if(typeof raw==='string'){
+    const s=String(raw);
+    if(!s.trim()) return null;
+    return {
+      id:'legacy_'+String(stableIdSeed||defaultNum||1),
+      title:defaultWeeklyEntryTitle(defaultNum||1),
+      text:s,
+      created_at:'',
+    };
+  }
+  if(typeof raw!=='object'||Array.isArray(raw)) return null;
+  const id=String(raw.id||('legacy_'+String(stableIdSeed||defaultNum||1)));
+  const title=String(raw.title!=null?raw.title:defaultWeeklyEntryTitle(defaultNum||1));
+  const text=String(raw.text!=null?raw.text:(raw.summary_text!=null?raw.summary_text:''));
+  const created_at=String(raw.created_at||'');
+  return {id,title,text,created_at};
+}
+function weeklyEntriesForRawValue(rawValue,seedPrefix){
+  /* Accepts a single value out of weekly_counselor_summaries[wkKey].
+     Returns a normalized SummaryEntry[]. Handles three legacy shapes:
+       - string         → wrap as one entry titled "סיכום פגישת יועצת #1"
+       - array          → normalize each item
+       - object (single entry) → wrap as one-entry array
+     `seedPrefix` (typically the wkKey) is used to deterministically derive
+     the legacy id so the same data parses to the same id across calls. */
+  if(rawValue==null) return [];
+  const prefix=String(seedPrefix||'wk');
+  if(typeof rawValue==='string'){
+    const n=normalizeWeeklyEntry(rawValue,1,prefix+'_1');
+    return n?[n]:[];
+  }
+  if(Array.isArray(rawValue)){
+    const out=[];
+    rawValue.forEach((r,idx)=>{
+      const ne=normalizeWeeklyEntry(r,idx+1,prefix+'_'+(idx+1));
+      if(ne) out.push(ne);
+    });
+    return out;
+  }
+  if(typeof rawValue==='object'){
+    const ne=normalizeWeeklyEntry(rawValue,1,prefix+'_1');
+    return ne?[ne]:[];
+  }
+  return [];
+}
+function parseWeeklyEntriesFromStudent(stu){
+  /* Returns { [canonicalWkKey]: SummaryEntry[] } merging any non-canonical
+     legacy keys into the canonical bucket. */
   const raw=rawWeeklySummariesFromStudent(stu);
   const out={};
   for(const k of Object.keys(raw)){
+    if(k==='DIAG_WK') continue;
     const canon=normalizeWeekKey(k);
     if(!canon) continue;
-    const v=raw[k]==null?'':String(raw[k]);
-    // If two raw keys collapse to the same canonical week, prefer non-empty.
-    if(out[canon]==null||out[canon]===''||v!=='') out[canon]=v;
-    if(canon!==String(k)) console.log('[wkKey] summaries normalized',JSON.stringify(k),'→',canon);
+    /* Seed legacy ids with the canonical wkKey so a string-shaped value
+       always parses to id "legacy_<canonWk>_1" across calls. This is what
+       lets save/verify lookups by entry id survive a re-parse. */
+    const entries=weeklyEntriesForRawValue(raw[k],canon);
+    if(!entries.length) continue;
+    if(!out[canon]) out[canon]=[];
+    out[canon].push(...entries);
+    if(canon!==String(k)) console.log('[wkKey] weekly entries normalized',JSON.stringify(k),'→',canon,`(+${entries.length})`);
+  }
+  /* Stable sort each week's entries by created_at ascending so the
+     position-based "#N" auto-default is deterministic. Legacy entries with
+     created_at='' sink to the back. */
+  for(const k of Object.keys(out)){
+    out[k].sort((a,b)=>{
+      const ax=String(a.created_at||'');
+      const bx=String(b.created_at||'');
+      if(!ax&&!bx) return 0;
+      if(!ax) return 1;
+      if(!bx) return -1;
+      return ax.localeCompare(bx);
+    });
   }
   return out;
+}
+function nextWeeklyEntryNumber(entries){
+  /* Compute the next "#N" suffix for a new entry. Walks every existing
+     title looking for the highest "#<digits>" anywhere in it; if none, the
+     next number is entries.length + 1. */
+  let maxN=0;
+  for(const e of entries||[]){
+    const t=String((e&&e.title)||'');
+    const m=t.match(/#(\d+)/);
+    if(m){
+      const n=parseInt(m[1],10);
+      if(Number.isFinite(n)&&n>maxN) maxN=n;
+    }
+  }
+  return Math.max(maxN,(entries||[]).length)+1;
 }
 function addWeekFromIso(iso, intoSet){
   const ms=parseIsoMs(iso);
@@ -3164,77 +3273,123 @@ function buildSessionNotesCardsHtmlForList(notesSorted, opts){
   const nested=mode==='nested';
   return notesSorted.map((n,idx)=>meetingSessionNoteCardHtml(n,idx+1,nested)).join('');
 }
-function weeklyCounselorSummarySectionHtml(wkKey,wkMs,savedText,ord){
-  /* Read-only card by default; the textarea only appears when the user
-     clicks "ערוך" (or when no summary exists yet, i.e. "add" mode). The
-     edit/add toggle is tracked client-side in _weeklyCounselorEditingKeys.
-     `ord` is the student's week ordinal (1-based, computed by
-     weekOrdinalForStudent) — used to mirror the meeting-summary card's
-     "סיכום פגישה #N" sequential title style. */
-  const hasSaved=savedText!=null&&String(savedText).trim().length>0;
-  const isEditing=_weeklyCounselorEditingKeys.has(wkKey);
+function weeklyCounselorSummarySectionHtml(wkKey,wkMs,entries,ord){
+  /* Renders ALL weekly-counselor-summary entries for one week as a stack
+     of cards, plus an inline "+ הוסף" affordance. Each entry can be in
+     read-only or edit mode independently (state held in
+     _weeklyCounselorEditingKeys keyed by entry.id). When the week is in
+     "add" mode (_weeklyCounselorAddingForWeek has wkKey) we also append
+     an empty editor card with an auto-incremented default title. */
+  const list=Array.isArray(entries)?entries:[];
   const aiBlock=`<div class="weekly-ai-out" id="weekly-ai-out-${wkKey}" style="display:none;margin-top:12px;padding:12px 14px;background:rgba(91,183,183,.1);border-radius:12px;text-align:right;border:1px solid rgba(91,183,183,.22)"></div>`;
-  const ordNum=Number(ord);
-  const ordSuffix=Number.isFinite(ordNum)&&ordNum>0?` #${ordNum}`:'';
-  if(hasSaved&&!isEditing){
-    /* CARD view — mirrors the meeting-summary card style so the two
-       sections feel consistent on screen. Header layout is identical to
-       meetingSessionNoteCardHtml: bold title with sequential number on
-       the right (RTL), date range on the left. */
-    const dateLine=weekRangeLabelFromStart(wkMs);
-    const prevPlain=meetingPreviewPlain(String(savedText),3);
-    return `<div class="weekly-subsec">
-      <h4 class="weekly-subsec-h">סיכום פגישת יועצת לשבוע</h4>
-      <div class="rep-card meeting-session-card weekly-counselor-card" id="weekly-sum-card-${wkKey}" style="margin:8px 0;position:relative">
-        <div class="meeting-entry-hdr"><span>סיכום פגישת יועצת${ordSuffix}</span><span>${escH(dateLine)}</span></div>
-        <button type="button" class="meeting-acc-toggle" id="weekly-sum-toggle-${wkKey}" aria-expanded="false" aria-controls="weekly-sum-body-${wkKey}" onclick="toggleWeeklyCounselorSummaryCard('${wkKey}')">
-          <div class="meeting-preview-col">
-            <div class="meeting-preview">${escH(prevPlain)}</div>
-            <div class="meeting-acc-hint">הקישי להרחבה — תוכן מלא</div>
-          </div>
-          <span class="meeting-acc-chevron" aria-hidden="true">▼</span>
-        </button>
-        <div class="meeting-acc-panel" id="weekly-sum-body-${wkKey}" hidden>
-          <div class="meeting-full-text">${escHBr(String(savedText))}</div>
-        </div>
-        <div class="meeting-card-actions">
-          <button type="button" class="btn-icon" onclick="editWeeklyCounselorSummary('${wkKey}')">✏️ עריכה</button>
-          <button type="button" class="btn-icon" title="מחיקת סיכום" onclick="deleteWeeklyCounselorSummary('${wkKey}')">🗑 מחיקה</button>
-          <button type="button" class="btn-icon" onclick="runWeeklyInsightsAI('${wkKey}')" title="ניתוח נפח משימות, תנודתיות שבועית ומצב רגשי">✨ תובנות AI</button>
-        </div>
-      </div>
-      ${aiBlock}
-    </div>`;
-  }
-  /* EDIT / ADD view — textarea + save (+ cancel if editing existing). */
-  const initialValue=isEditing?String(savedText||''):'';
-  const cancelBtn=isEditing?`<button type="button" class="btn-sm" id="weekly-cancel-${wkKey}" onclick="cancelEditWeeklyCounselorSummary('${wkKey}')" style="background:var(--surface,#f1f1f1)">ביטול</button>`:'';
+  const entriesHtml=list.map((e,idx)=>weeklyCounselorEntryHtml(wkKey,wkMs,e,idx+1)).join('');
+  const adding=_weeklyCounselorAddingForWeek.has(String(wkKey));
+  const addBlock=adding
+    ?weeklyCounselorAddEditorHtml(wkKey,wkMs,nextWeeklyEntryNumber(list))
+    :`<div class="weekly-counselor-add-row"><button type="button" class="btn-sm weekly-add-summary-btn" onclick="startAddWeeklyCounselorSummary('${wkKey}')">+ הוסף סיכום פגישת יועצת</button>
+       <button type="button" class="btn-sm" id="weekly-ai-${wkKey}" onclick="runWeeklyInsightsAI('${wkKey}')" title="ניתוח נפח משימות, תנודתיות שבועית ומצב רגשי">✨ תובנות AI</button></div>`;
+  /* Show the section heading once, then the entries (or empty hint) and
+     the +/AI row. */
+  const emptyHint=(!list.length&&!adding)
+    ?'<div class="sec-empty" style="margin:4px 0 8px 0">אין עדיין סיכומי פגישת יועצת לשבוע זה</div>'
+    :'';
   return `<div class="weekly-subsec">
-    <h4 class="weekly-subsec-h">סיכום פגישת יועצת לשבוע</h4>
-    <textarea class="weekly-counselor-ta" id="weekly-sum-ta-${wkKey}" placeholder="כתבי כאן את סיכום המפגש לשבוע...">${escH(initialValue)}</textarea>
-    <div class="weekly-counselor-save-row">
-      <button type="button" class="btn-sm" id="weekly-save-${wkKey}" onclick="saveWeeklyCounselorSummary('${wkKey}')">שמירה</button>
-      ${cancelBtn}
-      <button type="button" class="btn-sm" id="weekly-ai-${wkKey}" onclick="runWeeklyInsightsAI('${wkKey}')" title="ניתוח נפח משימות, תנודתיות שבועית ומצב רגשי">✨ תובנות AI</button>
-    </div>
+    <h4 class="weekly-subsec-h">סיכומי פגישת יועצת לשבוע</h4>
+    ${entriesHtml}
+    ${emptyHint}
+    ${addBlock}
     ${aiBlock}
   </div>`;
 }
-function toggleWeeklyCounselorSummaryCard(wkKey){
-  const btn=document.getElementById('weekly-sum-toggle-'+wkKey);
-  const body=document.getElementById('weekly-sum-body-'+wkKey);
+function weeklyCounselorEntryHtml(wkKey,wkMs,entry,positionNum){
+  /* Either the editable form (if entry.id is in _weeklyCounselorEditingKeys)
+     or the read-only card. The card header mirrors the meeting-session card
+     style: bold title (entry.title) on the right, date range on the left. */
+  const isEditing=_weeklyCounselorEditingKeys.has(String(entry.id));
+  if(isEditing) return weeklyCounselorEntryEditorHtml(wkKey,wkMs,entry,positionNum,false);
+  const dateLine=weekRangeLabelFromStart(wkMs);
+  const text=String(entry.text||'');
+  const prevPlain=meetingPreviewPlain(text,3);
+  const title=String(entry.title||defaultWeeklyEntryTitle(positionNum));
+  const eidAttr=escAttr(String(entry.id));
+  return `<div class="rep-card meeting-session-card weekly-counselor-card" id="weekly-sum-card-${entry.id}" style="margin:8px 0;position:relative">
+    <div class="meeting-entry-hdr"><span>${escH(title)}</span><span>${escH(dateLine)}</span></div>
+    <button type="button" class="meeting-acc-toggle" id="weekly-sum-toggle-${entry.id}" aria-expanded="false" aria-controls="weekly-sum-body-${entry.id}" onclick="toggleWeeklyCounselorSummaryCard('${eidAttr}')">
+      <div class="meeting-preview-col">
+        <div class="meeting-preview">${escH(prevPlain)}</div>
+        <div class="meeting-acc-hint">הקישי להרחבה — תוכן מלא</div>
+      </div>
+      <span class="meeting-acc-chevron" aria-hidden="true">▼</span>
+    </button>
+    <div class="meeting-acc-panel" id="weekly-sum-body-${entry.id}" hidden>
+      <div class="meeting-full-text">${escHBr(text)}</div>
+    </div>
+    <div class="meeting-card-actions">
+      <button type="button" class="btn-icon" onclick="editWeeklyCounselorSummary('${wkKey}','${eidAttr}')">✏️ עריכה</button>
+      <button type="button" class="btn-icon" title="מחיקת סיכום" onclick="deleteWeeklyCounselorSummary('${wkKey}','${eidAttr}')">🗑 מחיקה</button>
+    </div>
+  </div>`;
+}
+function weeklyCounselorEntryEditorHtml(wkKey,wkMs,entry,positionNum,isNew){
+  /* Editor form used for both "edit existing" and "add new". When isNew,
+     the entry id is the literal string "new-<wkKey>" so the save call
+     can recognise it and generate a fresh id at write time. */
+  const id=isNew?('new-'+wkKey):String(entry.id);
+  const title=String(entry.title||defaultWeeklyEntryTitle(positionNum));
+  const text=isNew?'':String(entry.text||'');
+  const cancelHandler=isNew
+    ?`cancelAddWeeklyCounselorSummary('${wkKey}')`
+    :`cancelEditWeeklyCounselorSummary('${wkKey}','${escAttr(id)}')`;
+  return `<div class="rep-card weekly-counselor-card weekly-counselor-editor" id="weekly-sum-editor-${id}" style="margin:8px 0;position:relative;padding:12px 14px">
+    <div class="weekly-counselor-title-row" style="margin-bottom:8px">
+      <input class="weekly-counselor-title-input" id="weekly-sum-title-${id}" type="text" value="${escAttr(title)}" placeholder="כותרת — לדוגמה: סיכום פגישת יועצת #1" style="width:100%;font-weight:700;padding:8px 10px;border-radius:8px;border:1px solid var(--case-border, #e0e0e0);font-size:14px;text-align:right" />
+    </div>
+    <textarea class="weekly-counselor-ta" id="weekly-sum-ta-${id}" placeholder="כתבי כאן את סיכום המפגש לשבוע...">${escH(text)}</textarea>
+    <div class="weekly-counselor-save-row">
+      <button type="button" class="btn-sm" id="weekly-save-${id}" onclick="saveWeeklyCounselorSummary('${wkKey}','${escAttr(id)}')">שמירה</button>
+      <button type="button" class="btn-sm" onclick="${cancelHandler}" style="background:var(--surface,#f1f1f1)">ביטול</button>
+    </div>
+  </div>`;
+}
+function weeklyCounselorAddEditorHtml(wkKey,wkMs,nextNum){
+  /* Synthesizes a SummaryEntry-shaped placeholder for the editor. */
+  const placeholderEntry={id:'new-'+wkKey,title:defaultWeeklyEntryTitle(nextNum),text:'',created_at:''};
+  return weeklyCounselorEntryEditorHtml(wkKey,wkMs,placeholderEntry,nextNum,true);
+}
+function toggleWeeklyCounselorSummaryCard(entryId){
+  /* `entryId` is the SummaryEntry id (not a wkKey) since each week may
+     now have several cards, each with its own expand/collapse state. */
+  const btn=document.getElementById('weekly-sum-toggle-'+entryId);
+  const body=document.getElementById('weekly-sum-body-'+entryId);
   if(!btn||!body) return;
   const open=body.hasAttribute('hidden');
   if(open) body.removeAttribute('hidden');
   else body.setAttribute('hidden','');
   btn.setAttribute('aria-expanded',open?'true':'false');
 }
-function editWeeklyCounselorSummary(wkKey){
-  _weeklyCounselorEditingKeys.add(String(wkKey));
+function editWeeklyCounselorSummary(wkKey,entryId){
+  if(entryId==null){console.warn('[editWeeklyCounselorSummary] missing entryId');return;}
+  _weeklyCounselorEditingKeys.add(String(entryId));
   void renderCounselorDetailHistory();
 }
-function cancelEditWeeklyCounselorSummary(wkKey){
-  _weeklyCounselorEditingKeys.delete(String(wkKey));
+function cancelEditWeeklyCounselorSummary(wkKey,entryId){
+  if(entryId==null) return;
+  _weeklyCounselorEditingKeys.delete(String(entryId));
+  void renderCounselorDetailHistory();
+}
+function startAddWeeklyCounselorSummary(wkKey){
+  const k=String(wkKey);
+  _weeklyCounselorAddingForWeek.add(k);
+  void renderCounselorDetailHistory();
+  /* Focus the new editor's textarea after the next paint so the counselor
+     can start typing immediately. */
+  setTimeout(()=>{
+    const ta=document.getElementById('weekly-sum-ta-new-'+k);
+    try{if(ta) ta.focus();}catch(_){}
+  },50);
+}
+function cancelAddWeeklyCounselorSummary(wkKey){
+  _weeklyCounselorAddingForWeek.delete(String(wkKey));
   void renderCounselorDetailHistory();
 }
 function buildCounselorWeeklyMeetingAccordionHtml(stu){
@@ -3247,7 +3402,7 @@ function buildCounselorWeeklyMeetingAccordionHtml(stu){
   if(!weeks.length){
     return '<div class="sec-empty" style="margin:12px 0">אין שבועות להצגה.</div>';
   }
-  const sumMap=parseWeeklySummariesFromStudent(stu);
+  const entriesMap=parseWeeklyEntriesFromStudent(stu);
   return weeks.map((wkMs,wi)=>{
     const wkEnd=wkMs+7*86400000;
     const wkKey=String(wkMs);
@@ -3258,14 +3413,14 @@ function buildCounselorWeeklyMeetingAccordionHtml(stu){
     const nestedNotes=notesWeek.length
       ?`<div class="weekly-subsec weekly-notes-nested"><h4 class="weekly-subsec-h">סיכומי פגישות מתועדים בשבוע</h4>${buildSessionNotesCardsHtmlForList(notesWeek,{mode:'nested'})}</div>`
       :'';
-    const saved=(sumMap[wkKey]!=null)?sumMap[wkKey]:'';
+    const entriesForWeek=entriesMap[wkKey]||[];
     const open=wi===0?' is-open':'';
     const aria=wi===0?'true':'false';
     const repCount=reportsInWeekSorted(reports,wkMs,wkEnd).filter(r=>{
       if(!r||!r.task_id) return false;
       return (tasks||[]).some(t=>t&&t.id===r.task_id);
     }).length;
-    const summarySection=weeklyCounselorSummarySectionHtml(wkKey,wkMs,saved,ord);
+    const summarySection=weeklyCounselorSummarySectionHtml(wkKey,wkMs,entriesForWeek,ord);
     return `<div class="weekly-meeting-week${open}" id="weekly-week-${wkKey}">
       <div class="weekly-meeting-week-head-wrap">
         <button type="button" class="weekly-meeting-week-head" aria-expanded="${aria}" onclick="toggleWeeklyMeetingWeek('${wkKey}')">
@@ -3509,9 +3664,12 @@ function deleteWeekBundle(wkKeyStr){
 
     /* Step 4 — hide this week's card from the UI for the rest of the
        session. Reload would re-derive cards purely from data, so this only
-       affects what the counselor sees right now without re-fetching. */
+       affects what the counselor sees right now without re-fetching. The
+       full _weeklyCounselorEditingKeys set is cleared since after a bundle
+       wipe the underlying entries no longer exist by id. */
     _userDeletedWeekKeys.add(wkKeyNorm);
-    _weeklyCounselorEditingKeys.delete(wkKeyNorm);
+    _weeklyCounselorEditingKeys.clear();
+    _weeklyCounselorAddingForWeek.delete(wkKeyNorm);
     console.log('[deleteWeekBundle] week marked hidden in session:',wkKeyNorm);
 
     /* Step 5 — force a full re-render from fresh server data so any
@@ -3526,89 +3684,145 @@ function deleteWeekBundle(wkKeyStr){
     showToast('תיעוד היועצת לשבוע נמחק');
   });
 }
-function deleteWeeklyCounselorSummary(wkKeyStr){
+function deleteWeeklyCounselorSummary(wkKeyStr,entryId){
+  /* Per-entry delete. `entryId` identifies a specific SummaryEntry inside
+     weekly_counselor_summaries[wkKey]. */
   if(!currentSid){showToast('לא נבחר תלמיד');return;}
-  showAppConfirm('מחיקת סיכום שבועי','למחוק את סיכום פגישת היועצת לשבוע זה?', async ()=>{
-    await saveWeeklyCounselorSummary(wkKeyStr,{deleteOnly:true});
+  if(!entryId){console.warn('[deleteWeeklyCounselorSummary] missing entryId');showToast('לא ניתן לזהות את הסיכום');return;}
+  showAppConfirm('מחיקת סיכום','למחוק את סיכום פגישת היועצת?', async ()=>{
+    await saveWeeklyCounselorSummary(wkKeyStr,entryId,{deleteOnly:true});
   });
 }
-async function saveWeeklyCounselorSummary(wkKeyStr,opts={}){
-  console.log('[weekly-summary] === saveWeeklyCounselorSummary CALLED ===',{wkKeyStr,opts,currentSid});
+async function saveWeeklyCounselorSummary(wkKeyStr,entryId,opts={}){
+  /* Three modes:
+       - add     (entryId starts with "new-") → create entry, push to array
+       - edit    (existing entryId)           → update entry fields
+       - delete  (opts.deleteOnly)            → remove entry from array
+     Inputs read from the editor form via element ids derived from entryId. */
+  console.log('[weekly-summary] === saveWeeklyCounselorSummary CALLED ===',{wkKeyStr,entryId,opts,currentSid});
   if(!currentSid){
     console.warn('[weekly-summary] aborting: no currentSid');
     showToast('לא נבחר תלמיד');return;
   }
-  const wkKeyType=typeof wkKeyStr;
-  /* Canonicalize the incoming key so a click on any weekly card always
-     targets the same Sunday-00:00-local bucket the renderer used to build
-     that card. The textarea id we generate at render time already uses the
-     canonical value, so normalize-then-lookup keeps everything in lockstep. */
+  if(entryId==null||entryId===''){
+    console.warn('[weekly-summary] aborting: missing entryId');
+    showToast('מזהה סיכום חסר');return;
+  }
   const wkKeyStrNorm=normalizeWeekKey(wkKeyStr)||String(wkKeyStr);
   if(wkKeyStrNorm!==String(wkKeyStr)){
     console.log('[weekly-summary] wkKey normalized at entry:',JSON.stringify(String(wkKeyStr)),'→',wkKeyStrNorm);
   }
+  const eid=String(entryId);
+  const isNew=eid.startsWith('new-');
   const deleting=!!(opts&&opts.deleteOnly);
-  const taId='weekly-sum-ta-'+wkKeyStrNorm;
-  const ta=document.getElementById(taId);
-  // === Textarea diagnostics — exactly the hypothesis to verify ============
-  const allTextareas=Array.from(document.querySelectorAll('[id^="weekly-sum-ta-"]'));
-  const allTextareaSnapshot=allTextareas.map(el=>({
-    id:el.id,
-    valueLen:String(el.value||'').length,
-    valuePreview:String(el.value||'').slice(0,80),
-  }));
-  const focused=document.activeElement;
-  console.group('[weekly-summary] textarea READ');
-  console.log('looked up element id  =',taId);
-  console.log('wkKeyStr (raw)        =',wkKeyStr,'typeof',wkKeyType);
-  console.log('wkKeyStr (normalized) =',wkKeyStrNorm);
-  console.log('textarea found?       =',!!ta);
-  console.log('deleteOnly mode?      =',deleting);
-  if(ta){
-    console.log('textarea.id           =',ta.id);
-    console.log('textarea.value        =',JSON.stringify(ta.value));
-    console.log('textarea.value length =',String(ta.value||'').length);
-    console.log('textarea.value trimmed length =',String(ta.value||'').trim().length);
-    console.log('textarea.defaultValue =',JSON.stringify(ta.defaultValue));
-    console.log('textarea is in DOM?   =',document.body.contains(ta));
+  /* In edit/add modes we need the textarea + title input. In delete mode
+     we only need the entryId; there's no form. */
+  let titleVal='';
+  let textVal='';
+  if(!deleting){
+    const titleEl=document.getElementById('weekly-sum-title-'+eid);
+    const textEl=document.getElementById('weekly-sum-ta-'+eid);
+    const allTas=Array.from(document.querySelectorAll('[id^="weekly-sum-ta-"]')).map(el=>el.id);
+    console.group('[weekly-summary] form READ');
+    console.log('entryId         =',eid);
+    console.log('title input id  =','weekly-sum-title-'+eid,'found?',!!titleEl);
+    console.log('textarea id     =','weekly-sum-ta-'+eid,'found?',!!textEl);
+    console.log('all weekly-sum-ta-* ids =',allTas);
+    console.groupEnd();
+    if(!textEl){
+      console.error('[weekly-summary] aborting: textarea not in DOM',{eid});
+      showToast('שדה הסיכום לא נמצא');return;
+    }
+    titleVal=String(titleEl?titleEl.value:'').trim();
+    textVal=String(textEl.value||'');
   }
-  console.log('document.activeElement=',focused&&focused.id?focused.id:focused&&focused.tagName);
-  console.log('all weekly-sum-ta-* in DOM:',allTextareaSnapshot);
-  console.groupEnd();
-  /* deleteOnly is invoked from the saved read-only CARD (no textarea), or
-     from any other path that doesn't need to read input — only clear the
-     stored key. Don't require a textarea in that case. */
-  if(!ta && !deleting){
-    console.error('[weekly-summary] aborting: textarea element not found in DOM. Expected id =',taId,'existing ids =',allTextareaSnapshot.map(s=>s.id));
-    showToast('שדה הסיכום לא נמצא');return;
-  }
-  const value=ta?String(ta.value||''):'';
-  const willDelete=deleting||!value.trim();
-  console.log('[weekly-summary] branch decision: deleting?',deleting,'→ value trim len =',value.trim().length,'→ will DELETE key?',willDelete);
-  const btn=document.getElementById('weekly-save-'+wkKeyStrNorm);
+  const btn=document.getElementById('weekly-save-'+eid);
   if(btn) setBusy(btn.id,true,'שומר...');
   try{
     const stu=await reloadCurrentStudentFromServer();
-    const wkMs=Number(wkKeyStrNorm);
-    const wkEnd=wkMs+7*86400000;
-    const cur=rawWeeklySummariesFromStudent(stu);
-    console.log('[weekly-summary] BEFORE mutate, raw cur keys =',Object.keys(cur));
-    const removedRangeKeys=removeWeeklySummaryKeysForWeek(cur,wkMs,wkEnd);
-    const removedNeighborKeys=removeLikelyStaleNeighborSummaryKeys(cur,wkMs);
-    if(!willDelete) cur[wkKeyStrNorm]=value;
-    console.log('[weekly-summary] removed keys in current week range =',removedRangeKeys);
-    console.log('[weekly-summary] removed likely stale neighbor keys =',removedNeighborKeys);
-    console.log('[weekly-summary] AFTER mutate, raw cur keys  =',Object.keys(cur),'wkKey present?',Object.prototype.hasOwnProperty.call(cur,wkKeyStrNorm));
+    const raw=rawWeeklySummariesFromStudent(stu);
+    /* Gather all entries currently stored under any raw key that maps to
+       the canonical wkKey (handles legacy non-canonical keys from older
+       UI versions). Then mutate, then rewrite under ONLY the canonical
+       key — collapsing duplicates. */
+    let entries=[];
+    const collapsedRawKeys=[];
+    for(const k of Object.keys(raw)){
+      if(k==='DIAG_WK') continue;
+      const canon=normalizeWeekKey(k);
+      if(canon===wkKeyStrNorm){
+        collapsedRawKeys.push(k);
+        entries=entries.concat(weeklyEntriesForRawValue(raw[k],wkKeyStrNorm));
+      }
+    }
+    entries.sort((a,b)=>{
+      const ax=String(a.created_at||'');
+      const bx=String(b.created_at||'');
+      if(!ax&&!bx) return 0;
+      if(!ax) return 1;
+      if(!bx) return -1;
+      return ax.localeCompare(bx);
+    });
+    console.log('[weekly-summary] entries loaded (before mutate):',entries.length,'collapsed raw keys:',collapsedRawKeys);
+    let mode;
+    if(deleting){
+      mode='delete';
+      const before=entries.length;
+      entries=entries.filter(e=>String(e.id)!==eid);
+      if(entries.length===before){
+        console.warn('[weekly-summary] delete: entryId not found in current week',{eid,ids:entries.map(e=>e.id)});
+      }
+    }else if(isNew){
+      mode='add';
+      const newId=generateWeeklyEntryId();
+      const nextNum=nextWeeklyEntryNumber(entries);
+      const finalTitle=titleVal||defaultWeeklyEntryTitle(nextNum);
+      entries.push({
+        id:newId,
+        title:finalTitle,
+        text:textVal,
+        created_at:new Date().toISOString(),
+      });
+      /* When verifying, look up by the newly generated id. */
+      opts._newGeneratedId=newId;
+    }else{
+      mode='edit';
+      const idx=entries.findIndex(e=>String(e.id)===eid);
+      if(idx<0){
+        throw new Error('הסיכום לא נמצא ברשימה (אולי נמחק במכשיר אחר). רעננו את הדף.');
+      }
+      entries[idx]={
+        ...entries[idx],
+        title:titleVal||entries[idx].title||defaultWeeklyEntryTitle(idx+1),
+        text:textVal,
+        updated_at:new Date().toISOString(),
+      };
+    }
+    /* Build the outgoing weekly_counselor_summaries object: keep everything
+       NOT in this week (incl. DIAG_WK), and write the mutated array under
+       the canonical wkKey (omit if empty so the field stays clean). */
+    const newRaw={};
+    for(const k of Object.keys(raw)){
+      if(k==='DIAG_WK'){newRaw[k]=raw[k];continue;}
+      const canon=normalizeWeekKey(k);
+      if(canon===wkKeyStrNorm) continue;
+      newRaw[k]=raw[k];
+    }
+    if(entries.length) newRaw[wkKeyStrNorm]=entries;
     const url=`/students/${currentSid}`;
-    const bodyObj={weekly_counselor_summaries:cur};
+    const bodyObj={weekly_counselor_summaries:newRaw};
     const bodyStr=JSON.stringify(bodyObj);
-    // === LOUD top-level body log (the one the user asked for) ============
-    console.log('[weekly-summary] OUTBOUND PATCH →',API+url);
-    console.log('[weekly-summary] OUTBOUND BODY (object) →',bodyObj);
-    console.log('[weekly-summary] OUTBOUND BODY (string) →',bodyStr);
-    console.log('[weekly-summary] OUTBOUND BODY length    →',bodyStr.length,'bytes');
-    console.log('[weekly-summary] OUTBOUND wkKey          →',wkKeyStrNorm,'value →',JSON.stringify(cur[wkKeyStrNorm]));
-    console.log('[weekly-summary] DB column being written → weekly_counselor_summaries (jsonb on public.students)');
+    console.group('[weekly-summary] OUTBOUND PATCH');
+    console.log('mode               =',mode);
+    console.log('wkKey norm         =',wkKeyStrNorm);
+    console.log('entryId            =',eid);
+    console.log('title              =',titleVal);
+    console.log('text length        =',textVal.length);
+    console.log('entries count      =',entries.length);
+    console.log('collapsed raw keys =',collapsedRawKeys);
+    console.log('outbound body str  =',bodyStr);
+    console.log('outbound body obj  =',bodyObj);
+    console.groupEnd();
     let saved;
     try{
       saved=await apiFetch(url,{method:'PATCH',body:bodyStr});
@@ -3616,54 +3830,35 @@ async function saveWeeklyCounselorSummary(wkKeyStr,opts={}){
       console.error('[weekly-summary] PATCH FAILED →',err);
       throw err;
     }
-    console.group('[weekly-summary] PATCH response');
-    console.log('full response object =',saved);
-    console.log('typeof response      =',typeof saved,'is null?',saved===null);
-    if(saved && typeof saved==='object'){
-      console.log('response.id                          =',saved.id);
-      console.log('response.weekly_counselor_summaries  =',saved.weekly_counselor_summaries);
-      console.log('  → typeof                           =',typeof saved.weekly_counselor_summaries);
-      const r=saved.weekly_counselor_summaries;
-      if(r && typeof r==='object'){
-        console.log('  → keys                              =',Object.keys(r));
-        console.log('  → ['+wkKeyStrNorm+']                =',JSON.stringify(r[wkKeyStrNorm]));
-      }
-    }
-    console.groupEnd();
+    console.log('[weekly-summary] PATCH response =',saved);
+    /* Verify by reloading from the server and re-parsing entries. */
     const fresh=await reloadCurrentStudentFromServer();
-    const rawFreshSums=rawWeeklySummariesFromStudent(fresh);
-    const serverSums=parseWeeklySummariesFromStudent(fresh);
-    console.group('[weekly-summary] fresh GET /students');
-    console.log('fresh.weekly_counselor_summaries  =',fresh.weekly_counselor_summaries);
-    const keysExpectedGone=[...removedRangeKeys,...removedNeighborKeys].filter(k=>willDelete||String(k)!==wkKeyStrNorm);
-    console.log('raw removed keys still present    =',keysExpectedGone.filter(k=>Object.prototype.hasOwnProperty.call(rawFreshSums,k)));
-    console.log('parsed keys                       =',Object.keys(serverSums));
-    console.log('serverSums['+wkKeyStrNorm+']      =',JSON.stringify(serverSums[wkKeyStrNorm]));
-    console.log('expected to find wkKey?           =',!willDelete);
-    console.groupEnd();
-    const hasKey=Object.prototype.hasOwnProperty.call(serverSums,wkKeyStrNorm);
-    const removedStillPresent=keysExpectedGone
-      .filter(k=>Object.prototype.hasOwnProperty.call(rawFreshSums,k));
-    if(removedStillPresent.length){
-      throw new Error('מפתחות שבוע ישנים לא נמחקו במסד הנתונים: '+removedStillPresent.join(', '));
+    const freshEntries=(parseWeeklyEntriesFromStudent(fresh)[wkKeyStrNorm]||[]);
+    console.log('[weekly-summary] fresh entries for week =',freshEntries);
+    if(mode==='delete'){
+      if(freshEntries.some(e=>String(e.id)===eid)){
+        throw new Error('המחיקה לא נשמרה במסד הנתונים');
+      }
+    }else if(mode==='edit'){
+      const v=freshEntries.find(e=>String(e.id)===eid);
+      if(!v) throw new Error('הסיכום לא נמצא לאחר השמירה');
+      if(String(v.text)!==textVal) throw new Error('תוכן הסיכום לא תואם את מה שנשמר');
+    }else if(mode==='add'){
+      const newId=opts._newGeneratedId;
+      const v=freshEntries.find(e=>String(e.id)===newId);
+      if(!v) throw new Error('הסיכום החדש לא נמצא לאחר השמירה');
     }
-    if(willDelete){
-      if(hasKey) throw new Error('המחיקה לא נשמרה במסד הנתונים');
-    }else if(serverSums[wkKeyStrNorm]!==value){
-      throw new Error('השמירה לא אומתה במסד הנתונים');
-    }
-    /* On successful save/delete the editable textarea collapses back into the
-       read-only summary card (or, when deleted/no-saved-value, into the
-       "add" textarea waiting for new content). */
-    _weeklyCounselorEditingKeys.delete(wkKeyStrNorm);
-    /* Force a full re-render from fresh server data so the weekly card,
-       its textarea, and all sibling cards reflect what's actually in the DB
-       right now. */
+    /* Collapse UI state for this entry/week so the form reverts to a
+     read-only card after success. */
+    if(mode==='add') _weeklyCounselorAddingForWeek.delete(wkKeyStrNorm);
+    else _weeklyCounselorEditingKeys.delete(eid);
     await renderCounselorDetailHistory();
-    showToast(willDelete?'סיכום שבועי נמחק':'סיכום שבועי נשמר ✓');
+    if(mode==='delete') showToast('סיכום נמחק');
+    else if(mode==='add') showToast('סיכום נוסף ✓');
+    else showToast('סיכום עודכן ✓');
   }catch(e){
     console.error('[weekly-summary] error:',e);
-    showToast(`שגיאה: ${e.message}`);
+    showToast(`שגיאה: ${e&&e.message?e.message:String(e)}`);
   }finally{
     if(btn) setBusy(btn.id,false,'שמירה');
   }
