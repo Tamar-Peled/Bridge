@@ -1109,7 +1109,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     <label class="modal-lbl">סטטוס טיפול</label>
     <select id="new-status">
       <option value="בתהליך">בתהליך</option>
-      <option value="נדרש מעקב צמוד">נדרש מעקב צמוד</option>
     </select>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal('modal-add')">ביטול</button>
@@ -1248,12 +1247,14 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 const API = ['localhost', '127.0.0.1'].includes(window.location.hostname)
   ? 'http://127.0.0.1:8000'
   : 'https://bridge-2-rhtw.onrender.com';
-const STATUSES = ['בתהליך','סיים תהליך','נדרש מעקב צמוד'];
+const STATUSES = ['בתהליך','סיים תהליך'];
 
 function canonicalStatus(raw){
+  /* "נדרש מעקב צמוד" was removed from the allowed status list. Anything
+     that previously mapped to it (or stored it directly in the DB) now
+     normalises to "בתהליך" so the UI never has to render an absent option. */
   if(STATUSES.includes(raw)) return raw;
   if(raw==='יציב'||raw==='תקין') return 'סיים תהליך';
-  if(raw==='דורש תשומת לב'||raw==='במעקב'||raw==='נדרשת פעולה') return 'נדרש מעקב צמוד';
   return 'בתהליך';
 }
 function isStatusOkForClearance(s){
@@ -2244,11 +2245,12 @@ function openAiAlertModal(studentId, ev){
     </div>`;
   }
   if(btnsEl){
+    /* "קבל אזהרה" was removed alongside the "נדרש מעקב צמוד" status — its
+       only effect was to flip the student into that status, which no
+       longer exists. The remaining flow lets the counselor silence the
+       alert ("סמן כתקין") or close it without further action. */
     if(status==='בתהליך'){
-      btnsEl.innerHTML=`<button class="btn-cancel" onclick="aiAlertMarkOk()" style="flex:1;background:var(--green-soft);color:var(--green-dk)">סמן כתקין</button>
-        <button class="btn-primary" onclick="aiAlertAccept()" style="flex:1;margin:0">קבל אזהרה</button>`;
-    }else if(status==='נדרש מעקב צמוד'){
-      btnsEl.innerHTML=`<button class="btn-cancel" onclick="aiAlertCloseOnly()" style="flex:1">סגור</button>`;
+      btnsEl.innerHTML=`<button class="btn-cancel" onclick="aiAlertMarkOk()" style="flex:1;background:var(--green-soft);color:var(--green-dk)">סמן כתקין</button>`;
     }else{
       btnsEl.innerHTML=`<button class="btn-cancel" onclick="aiAlertMarkOk()" style="flex:1">סגור</button>`;
     }
@@ -2267,13 +2269,6 @@ function aiAlertMarkOk(){
   aiAlertSilenceCurrent();
   closeModal('modal-ai-alert');
   filterStudents();
-}
-async function aiAlertAccept(){
-  const sid=_aiAlertSid;
-  if(!sid){closeModal('modal-ai-alert');return;}
-  aiAlertSilenceCurrent();
-  closeModal('modal-ai-alert');
-  await setStatusForStudentById(sid,'נדרש מעקב צמוד');
 }
 function aiAlertCloseOnly(){
   aiAlertSilenceCurrent();
@@ -3225,7 +3220,7 @@ function buildTaskWeekDetailHtml(t,reports,wkStart,wkEnd,wkKey,stu){
     body='<p class="sec-empty" style="margin:0;padding:4px 0;font-size:13px">אין שיתוף מהתלמיד בשבוע זה למשימה זו</p>';
   }
   const noteBlock=stu?`<div class="weekly-counselor-task-note-wrap">
-    <label class="weekly-counselor-task-note-lbl" for="wtn-ta-${wkKey}-${tid}">הערה (לעיני היועצת בלבד)</label>
+    <label class="weekly-counselor-task-note-lbl" for="wtn-ta-${wkKey}-${tid}">הערה )</label>
     <textarea class="weekly-counselor-task-note-ta" id="wtn-ta-${wkKey}-${tid}" placeholder="הערה פנימית על המשימה בשבוע זה...">${escH(noteRaw)}</textarea>
     <button type="button" class="weekly-counselor-task-note-save" onclick="saveWeeklyTaskCounselorNote('${wkKey}','${t.id}')">שמירת הערה</button>
   </div>`:'';
@@ -3336,7 +3331,7 @@ function weeklyCounselorSummarySectionHtml(wkKey,wkMs,entries,ord){
   const nextStudentNum=nextWeeklyCounselorSummaryNumberForStudent(stuForCount);
   const addBlock=adding
     ?weeklyCounselorAddEditorHtml(wkKey,wkMs,nextStudentNum)
-    :`<div class="weekly-counselor-add-row"><button type="button" class="btn-sm weekly-add-summary-btn" onclick="startAddWeeklyCounselorSummary('${wkKey}')">+ הוסף סיכום פגישת יועצת</button>
+    :`<div class="weekly-counselor-add-row"><button type="button" class="btn-sm weekly-add-summary-btn" onclick="startAddWeeklyCounselorSummary('${wkKey}')">+ הוסיפי סיכום פגישה</button>
        <button type="button" class="btn-sm" id="weekly-ai-${wkKey}" onclick="runWeeklyInsightsAI('${wkKey}')" title="ניתוח נפח משימות, תנודתיות שבועית ומצב רגשי">✨ תובנות AI</button></div>`;
   /* Show the section heading once, then the entries (or empty hint) and
      the +/AI row. */
