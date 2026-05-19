@@ -2973,6 +2973,38 @@ function nextWeeklyEntryNumber(entries){
   }
   return Math.max(maxN,(entries||[]).length)+1;
 }
+function countAllWeeklyCounselorSummariesForStudent(stu){
+  /* Total weekly_counselor_summaries entries across ALL weeks for this
+     student. Used by the "add new weekly summary" affordances to produce
+     a default title number that increments across the student's whole
+     timeline (not just within the current week). */
+  const map=parseWeeklyEntriesFromStudent(stu);
+  let total=0;
+  for(const k of Object.keys(map||{})){
+    total+=(map[k]||[]).length;
+  }
+  return total;
+}
+function nextWeeklyCounselorSummaryNumberForStudent(stu){
+  /* Prefers the highest "#N" already used across ALL titles (so renaming
+     gaps don't get reused) and falls back to count+1 when no "#N"
+     patterns are present. */
+  const map=parseWeeklyEntriesFromStudent(stu);
+  let maxN=0;
+  let total=0;
+  for(const k of Object.keys(map||{})){
+    for(const e of (map[k]||[])){
+      total++;
+      const t=String((e&&e.title)||'');
+      const m=t.match(/#(\d+)/);
+      if(m){
+        const n=parseInt(m[1],10);
+        if(Number.isFinite(n)&&n>maxN) maxN=n;
+      }
+    }
+  }
+  return Math.max(maxN,total)+1;
+}
 function addWeekFromIso(iso, intoSet){
   const ms=parseIsoMs(iso);
   if(ms==null) return;
@@ -3059,12 +3091,25 @@ function reportsInWeekSorted(reports,wkStart,wkEnd){
   }).sort((a,b)=>(parseIsoMs(a.created_at)||0)-(parseIsoMs(b.created_at)||0));
 }
 function notesInWeekSorted(notes,wkStart,wkEnd){
+  /* Always returns ASCENDING by created_at: oldest at index 0 (rendered
+     at the top of the card stack), newest at the end (rendered at the
+     bottom). meetingSessionNoteCardHtml then numbers them #1..#N in that
+     order, so the "#1" card matches the very first meeting recorded for
+     the week. Tiebreaker on id keeps ordering stable when two notes were
+     saved at the same millisecond (or one is missing created_at). */
   return (notes||[]).filter(meetingNoteIsSession).filter(n=>{
     const wks=n.week_start_ms!=null?Number(normalizeWeekKey(n.week_start_ms)):NaN;
     if(Number.isFinite(wks)&&wks===wkStart) return true;
     const ms=parseIsoMs(n&&n.created_at);
     return ms!=null&&ms>=wkStart&&ms<wkEnd;
-  }).sort((a,b)=>(parseIsoMs(a.created_at)||0)-(parseIsoMs(b.created_at)||0));
+  }).sort((a,b)=>{
+    const am=parseIsoMs(a&&a.created_at);
+    const bm=parseIsoMs(b&&b.created_at);
+    const av=am==null?Number.POSITIVE_INFINITY:am;
+    const bv=bm==null?Number.POSITIVE_INFINITY:bm;
+    if(av!==bv) return av-bv;
+    return String(a&&a.id||'').localeCompare(String(b&&b.id||''));
+  });
 }
 function taskTitleForReport(r,tasks){
   if(r&&r.task_id){
@@ -3284,8 +3329,13 @@ function weeklyCounselorSummarySectionHtml(wkKey,wkMs,entries,ord){
   const aiBlock=`<div class="weekly-ai-out" id="weekly-ai-out-${wkKey}" style="display:none;margin-top:12px;padding:12px 14px;background:rgba(91,183,183,.1);border-radius:12px;text-align:right;border:1px solid rgba(91,183,183,.22)"></div>`;
   const entriesHtml=list.map((e,idx)=>weeklyCounselorEntryHtml(wkKey,wkMs,e,idx+1)).join('');
   const adding=_weeklyCounselorAddingForWeek.has(String(wkKey));
+  /* Default "#N" for a new entry is keyed off the student's TOTAL count
+     of weekly counselor summaries (across all weeks) rather than the
+     count inside this specific week. Keeps numbering monotonic over time. */
+  const stuForCount=allStudents.find(x=>x.id===currentSid);
+  const nextStudentNum=nextWeeklyCounselorSummaryNumberForStudent(stuForCount);
   const addBlock=adding
-    ?weeklyCounselorAddEditorHtml(wkKey,wkMs,nextWeeklyEntryNumber(list))
+    ?weeklyCounselorAddEditorHtml(wkKey,wkMs,nextStudentNum)
     :`<div class="weekly-counselor-add-row"><button type="button" class="btn-sm weekly-add-summary-btn" onclick="startAddWeeklyCounselorSummary('${wkKey}')">+ הוסף סיכום פגישת יועצת</button>
        <button type="button" class="btn-sm" id="weekly-ai-${wkKey}" onclick="runWeeklyInsightsAI('${wkKey}')" title="ניתוח נפח משימות, תנודתיות שבועית ומצב רגשי">✨ תובנות AI</button></div>`;
   /* Show the section heading once, then the entries (or empty hint) and
@@ -3775,7 +3825,10 @@ async function saveWeeklyCounselorSummary(wkKeyStr,entryId,opts={}){
     }else if(isNew){
       mode='add';
       const newId=generateWeeklyEntryId();
-      const nextNum=nextWeeklyEntryNumber(entries);
+      /* Default title number uses the student-wide count of existing
+         weekly counselor summaries so the auto-suffix doesn't reset every
+         week. Only used when the counselor leaves the title blank. */
+      const nextNum=nextWeeklyCounselorSummaryNumberForStudent(stu);
       const finalTitle=titleVal||defaultWeeklyEntryTitle(nextNum);
       entries.push({
         id:newId,
@@ -3895,8 +3948,13 @@ function openWeeklyMeetingNoteModal(wkKeyStr, opts){
     if(opts&&opts.prefillTitle===false){
       titleInp.value='';
     }else{
-      const ord=weekOrdinalForStudent(Number(wk),stu,currentTasks,currentReports,currentNotes);
-      titleInp.value=formatWeekAccordionTitleLine(Number(wk),ord);
+      /* Default title number counts across all existing weekly counselor
+         summaries for this student (not the current week ordinal) so the
+         counter advances every time a new summary is added — e.g. if four
+         summaries already exist anywhere in the timeline, the new draft
+         starts at "Week 5 – ...". The counselor can still edit the title. */
+      const nextNum=nextWeeklyCounselorSummaryNumberForStudent(stu);
+      titleInp.value=formatWeekAccordionTitleLine(Number(wk),nextNum);
     }
   }
   document.getElementById('modal-weekly-meeting').classList.add('show');
