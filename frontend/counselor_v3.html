@@ -1312,6 +1312,11 @@ let _newMeetingUploadToken    = 0;  // ignore stale progress UI
 let pendingFileUploads        = []; // staged files: { _id, data, mime, originalName, displayName, target }
 let currentGeneralDocuments   = []; // from GET /students/{id}/documents (table + legacy)
 let _counselorDetailTab       = 'tasks'; // 'tasks' | 'history' — restored after renderDetail
+/* Weekly counselor summaries render as read-only cards by default. This set
+   holds the canonical wkKey strings whose card is currently swapped into an
+   editable textarea (add or edit). renderCounselorDetailHistory consults it
+   when building each week. */
+let _weeklyCounselorEditingKeys = new Set();
 // dashboard proactive alerts (per student id)
 let proactiveById  = {}; // { [id]: computeProactiveAlert(...) }
 
@@ -3104,6 +3109,72 @@ function buildSessionNotesCardsHtmlForList(notesSorted, opts){
   const nested=mode==='nested';
   return notesSorted.map((n,idx)=>meetingSessionNoteCardHtml(n,idx+1,nested)).join('');
 }
+function weeklyCounselorSummarySectionHtml(wkKey,wkMs,savedText){
+  /* Read-only card by default; the textarea only appears when the user
+     clicks "ערוך" (or when no summary exists yet, i.e. "add" mode). The
+     edit/add toggle is tracked client-side in _weeklyCounselorEditingKeys. */
+  const hasSaved=savedText!=null&&String(savedText).trim().length>0;
+  const isEditing=_weeklyCounselorEditingKeys.has(wkKey);
+  const aiBlock=`<div class="weekly-ai-out" id="weekly-ai-out-${wkKey}" style="display:none;margin-top:12px;padding:12px 14px;background:rgba(91,183,183,.1);border-radius:12px;text-align:right;border:1px solid rgba(91,183,183,.22)"></div>`;
+  if(hasSaved&&!isEditing){
+    /* CARD view — mirrors the meeting-summary card style so the two
+       sections feel consistent on screen. */
+    const dateLine=weekRangeLabelFromStart(wkMs);
+    const prevPlain=meetingPreviewPlain(String(savedText),3);
+    return `<div class="weekly-subsec">
+      <h4 class="weekly-subsec-h">סיכום פגישת יועצת לשבוע</h4>
+      <div class="rep-card meeting-session-card weekly-counselor-card" id="weekly-sum-card-${wkKey}" style="margin:8px 0">
+        <div class="meeting-entry-hdr"><span>סיכום פגישת יועצת</span><span>${escH(dateLine)}</span></div>
+        <button type="button" class="meeting-acc-toggle" id="weekly-sum-toggle-${wkKey}" aria-expanded="false" aria-controls="weekly-sum-body-${wkKey}" onclick="toggleWeeklyCounselorSummaryCard('${wkKey}')">
+          <div class="meeting-preview-col">
+            <div class="meeting-preview">${escH(prevPlain)}</div>
+            <div class="meeting-acc-hint">הקישי להרחבה — תוכן מלא</div>
+          </div>
+          <span class="meeting-acc-chevron" aria-hidden="true">▼</span>
+        </button>
+        <div class="meeting-acc-panel" id="weekly-sum-body-${wkKey}" hidden>
+          <div class="meeting-full-text">${escHBr(String(savedText))}</div>
+        </div>
+        <div class="meeting-card-actions">
+          <button type="button" class="btn-icon" onclick="editWeeklyCounselorSummary('${wkKey}')">✏️ עריכה</button>
+          <button type="button" class="btn-icon" title="מחיקת סיכום" onclick="deleteWeeklyCounselorSummary('${wkKey}')">🗑 מחיקה</button>
+          <button type="button" class="btn-icon" onclick="runWeeklyInsightsAI('${wkKey}')" title="ניתוח נפח משימות, תנודתיות שבועית ומצב רגשי">✨ תובנות AI</button>
+        </div>
+      </div>
+      ${aiBlock}
+    </div>`;
+  }
+  /* EDIT / ADD view — textarea + save (+ cancel if editing existing). */
+  const initialValue=isEditing?String(savedText||''):'';
+  const cancelBtn=isEditing?`<button type="button" class="btn-sm" id="weekly-cancel-${wkKey}" onclick="cancelEditWeeklyCounselorSummary('${wkKey}')" style="background:var(--surface,#f1f1f1)">ביטול</button>`:'';
+  return `<div class="weekly-subsec">
+    <h4 class="weekly-subsec-h">סיכום פגישת יועצת לשבוע</h4>
+    <textarea class="weekly-counselor-ta" id="weekly-sum-ta-${wkKey}" placeholder="כתבי כאן את סיכום המפגש לשבוע...">${escH(initialValue)}</textarea>
+    <div class="weekly-counselor-save-row">
+      <button type="button" class="btn-sm" id="weekly-save-${wkKey}" onclick="saveWeeklyCounselorSummary('${wkKey}')">שמירה</button>
+      ${cancelBtn}
+      <button type="button" class="btn-sm" id="weekly-ai-${wkKey}" onclick="runWeeklyInsightsAI('${wkKey}')" title="ניתוח נפח משימות, תנודתיות שבועית ומצב רגשי">✨ תובנות AI</button>
+    </div>
+    ${aiBlock}
+  </div>`;
+}
+function toggleWeeklyCounselorSummaryCard(wkKey){
+  const btn=document.getElementById('weekly-sum-toggle-'+wkKey);
+  const body=document.getElementById('weekly-sum-body-'+wkKey);
+  if(!btn||!body) return;
+  const open=body.hasAttribute('hidden');
+  if(open) body.removeAttribute('hidden');
+  else body.setAttribute('hidden','');
+  btn.setAttribute('aria-expanded',open?'true':'false');
+}
+function editWeeklyCounselorSummary(wkKey){
+  _weeklyCounselorEditingKeys.add(String(wkKey));
+  void renderCounselorDetailHistory();
+}
+function cancelEditWeeklyCounselorSummary(wkKey){
+  _weeklyCounselorEditingKeys.delete(String(wkKey));
+  void renderCounselorDetailHistory();
+}
 function buildCounselorWeeklyMeetingAccordionHtml(stu){
   const tasks=currentTasks||[];
   const reports=currentReports||[];
@@ -3132,6 +3203,7 @@ function buildCounselorWeeklyMeetingAccordionHtml(stu){
       if(!r||!r.task_id) return false;
       return (tasks||[]).some(t=>t&&t.id===r.task_id);
     }).length;
+    const summarySection=weeklyCounselorSummarySectionHtml(wkKey,wkMs,saved);
     return `<div class="weekly-meeting-week${open}" id="weekly-week-${wkKey}">
       <div class="weekly-meeting-week-head-wrap">
         <button type="button" class="weekly-meeting-week-head" aria-expanded="${aria}" onclick="toggleWeeklyMeetingWeek('${wkKey}')">
@@ -3148,16 +3220,7 @@ function buildCounselorWeeklyMeetingAccordionHtml(stu){
       </div>
       <div class="weekly-meeting-week-body">
         ${taskSections}
-        <div class="weekly-subsec">
-          <h4 class="weekly-subsec-h">סיכום פגישת יועצת לשבוע</h4>
-          <textarea class="weekly-counselor-ta" id="weekly-sum-ta-${wkKey}" placeholder="כתבי כאן את סיכום המפגש לשבוע...">${escH(saved)}</textarea>
-          <div class="weekly-counselor-save-row">
-            <button type="button" class="btn-sm" id="weekly-save-${wkKey}" onclick="saveWeeklyCounselorSummary('${wkKey}')">שמירה</button>
-            <button type="button" class="btn-sm" id="weekly-delete-summary-${wkKey}" onclick="deleteWeeklyCounselorSummary('${wkKey}')" style="background:var(--red-soft);color:var(--red-dk)">מחיקה</button>
-            <button type="button" class="btn-sm" id="weekly-ai-${wkKey}" onclick="runWeeklyInsightsAI('${wkKey}')" title="ניתוח נפח משימות, תנודתיות שבועית ומצב רגשי">✨ תובנות AI</button>
-          </div>
-          <div class="weekly-ai-out" id="weekly-ai-out-${wkKey}" style="display:none;margin-top:12px;padding:12px 14px;background:rgba(91,183,183,.1);border-radius:12px;text-align:right;border:1px solid rgba(91,183,183,.22)"></div>
-        </div>
+        ${summarySection}
         ${nestedNotes}
       </div>
     </div>`;
@@ -3249,16 +3312,29 @@ function editWeekTitle(wkKeyStr){
   });
 }
 function deleteWeekBundle(wkKeyStr){
-  if(!currentSid){showToast('לא נבחר תלמיד');return;}
+  console.log('[deleteWeekBundle] === CALLED ===',{wkKeyStr,currentSid});
+  if(!currentSid){
+    console.warn('[deleteWeekBundle] aborting: no currentSid');
+    showToast('לא נבחר תלמיד');return;
+  }
   const wkKeyNorm=normalizeWeekKey(wkKeyStr)||String(wkKeyStr);
+  console.log('[deleteWeekBundle] wkKey raw =',wkKeyStr,'normalized =',wkKeyNorm);
   showAppConfirm('מחיקת תיעוד שבוע','יימחקו סיכומי הפגישות של השבוע, סיכום היועצת לשבוע, כותרת מותאמת והערות פנימיות למשימות. משימות ושיתופי התלמיד לא יימחקו.', async ()=>{
+    console.log('[deleteWeekBundle] user confirmed — starting deletion');
     await reloadMeetingNotes();
     const stu=await reloadCurrentStudentFromServer();
-    if(!stu){showToast('תלמיד לא נמצא — לא ניתן למחוק');return;}
+    if(!stu){
+      console.error('[deleteWeekBundle] aborting: student not found on server');
+      showToast('תלמיד לא נמצא — לא ניתן למחוק');return;
+    }
     const wkMs=Number(wkKeyNorm);
-    if(!Number.isFinite(wkMs)){showToast('שבוע לא תקין');return;}
+    if(!Number.isFinite(wkMs)){
+      console.error('[deleteWeekBundle] aborting: wkMs not finite',wkKeyNorm);
+      showToast('שבוע לא תקין');return;
+    }
     const wkEnd=wkMs+7*86400000;
     const notesWeek=notesInWeekSorted(currentNotes||[],wkMs,wkEnd);
+    console.log('[deleteWeekBundle] meeting notes in week =',notesWeek.length);
 
     /* Step 1 — delete every meeting note that belongs to this week.
        Each call is awaited individually so that any backend failure
@@ -3266,9 +3342,12 @@ function deleteWeekBundle(wkKeyStr){
        instead of being hidden behind a later "deleted" toast. */
     const failedNotes=[];
     for(const n of notesWeek){
+      console.log('[deleteWeekBundle] DELETE meeting-note',n.id);
       try{
-        await apiFetch(`/meeting-notes/${encodeURIComponent(String(n.id))}`,{method:'DELETE'});
+        const resp=await apiFetch(`/meeting-notes/${encodeURIComponent(String(n.id))}`,{method:'DELETE'});
+        console.log('[deleteWeekBundle]   → response',resp);
       }catch(e){
+        console.error('[deleteWeekBundle]   → failed',e);
         failedNotes.push({id:n.id,err:e&&e.message?e.message:String(e)});
       }
     }
@@ -3479,16 +3558,14 @@ async function saveWeeklyCounselorSummary(wkKeyStr,opts={}){
     }else if(serverSums[wkKeyStrNorm]!==value){
       throw new Error('השמירה לא אומתה במסד הנתונים');
     }
+    /* On successful save/delete the editable textarea collapses back into the
+       read-only summary card (or, when deleted/no-saved-value, into the
+       "add" textarea waiting for new content). */
+    _weeklyCounselorEditingKeys.delete(wkKeyStrNorm);
     /* Force a full re-render from fresh server data so the weekly card,
        its textarea, and all sibling cards reflect what's actually in the DB
        right now. */
     await renderCounselorDetailHistory();
-    /* Defensive UI sync: re-render replaces the host innerHTML so the old
-       textarea node is gone, but if the user navigated to a collapsed week
-       card we still want the value the user expects. Re-acquire by id after
-       the render and explicitly set it from the just-verified server state. */
-    const taAfter=document.getElementById(taId);
-    if(taAfter) taAfter.value=willDelete?'':(serverSums[wkKeyStrNorm]!=null?serverSums[wkKeyStrNorm]:value);
     showToast(willDelete?'סיכום שבועי נמחק':'סיכום שבועי נשמר ✓');
   }catch(e){
     console.error('[weekly-summary] error:',e);
@@ -3983,8 +4060,16 @@ async function saveNoteCore(text, isAiFlow, opts={}){
     }
     draftSessionAttachments=[];
     editingSessionAttachments=[];
+    /* Clear every meeting-summary input so the modal (or any inline form) is
+       ready for a brand-new entry on the next open. Title is intentionally
+       blanked too — openWeeklyMeetingNoteModal re-prefills it from the
+       active week if needed. */
     const taM=getNoteDraftTa();
     if(taM) taM.value='';
+    const modalTitle=document.getElementById('modal-week-note-title');
+    if(modalTitle) modalTitle.value='';
+    const modalBody=document.getElementById('modal-week-note-body');
+    if(modalBody) modalBody.value='';
     _noteIsAi=false;
     _editingNoteId=null;
     await refreshAfterNoteSave({preserveKeyPointsDraft:noteType==='session'});
