@@ -3277,18 +3277,17 @@ function deleteWeekBundle(wkKeyStr){
       return;
     }
 
-    /* Step 2 — PATCH the student row so the weekly summary text,
-       custom label, and per-task notes for this week are actually
-       persisted as gone in the database. Lookups use the canonical
-       (normalized) wkKey so legacy raw keys from older writes still match. */
-    const sums=rawWeeklySummariesFromStudent(stu);
-    const removedSummaryKeys=removeWeeklySummaryKeysForWeek(sums,wkMs,wkEnd);
-    const removedNeighborSummaryKeys=removeLikelyStaleNeighborSummaryKeys(sums,wkMs);
-    const ex=parseCounselorWeeklyExtras(stu);
-    delete ex.week_labels[wkKeyNorm];
-    Object.keys(ex.task_notes).forEach(k=>{
-      if(k.startsWith(wkKeyNorm+'_')) delete ex.task_notes[k];
-    });
+    /* Step 2 — full wipe of the counselor weekly JSONB columns.
+       Per explicit user request, deleting a week bundle clears the entire
+       weekly_counselor_summaries map (and the matching counselor_weekly_extras
+       maps), keeping ONLY the "DIAG_WK" diagnostic marker if present. This
+       guarantees no stale key from a prior session (e.g. an off-by-one-week
+       key written by an older build) can survive a delete. */
+    const rawSums=rawWeeklySummariesFromStudent(stu);
+    const sumsBefore={...rawSums};
+    const sums={};
+    if(Object.prototype.hasOwnProperty.call(rawSums,'DIAG_WK')) sums.DIAG_WK=rawSums.DIAG_WK;
+    const ex={week_labels:{},task_notes:{}};
 
     try{
       const url=`/students/${currentSid}`;
@@ -3302,9 +3301,8 @@ function deleteWeekBundle(wkKeyStr){
       console.log('wkKey raw                     =',wkKeyStr);
       console.log('wkKey normalized              =',wkKeyNorm);
       console.log('week range                    =',new Date(wkMs).toString(),'→',new Date(wkEnd).toString());
-      console.log('removed summary keys in range =',removedSummaryKeys);
-      console.log('removed stale neighbor keys   =',removedNeighborSummaryKeys);
-      console.log('remaining summary keys        =',Object.keys(sums));
+      console.log('summary keys BEFORE wipe      =',Object.keys(sumsBefore));
+      console.log('summary keys AFTER wipe       =',Object.keys(sums),'(DIAG_WK preserved if present)');
       console.log('PATCH url                     =',API+url);
       console.log('PATCH body (object)           =',bodyObj);
       console.log('PATCH body (string)           =',bodyStr);
@@ -3324,23 +3322,22 @@ function deleteWeekBundle(wkKeyStr){
 
     /* Step 3 — verify the backend actually persisted the deletion.
        Previously the UI just trusted the response, which made silent
-       PATCH failures look like a successful delete. */
+       PATCH failures look like a successful delete. After a full wipe
+       the only key allowed to survive is the DIAG_WK diagnostic marker. */
     const fresh=await reloadCurrentStudentFromServer();
     const rawServerSums=rawWeeklySummariesFromStudent(fresh);
-    const serverSums=parseWeeklySummariesFromStudent(fresh);
     const serverEx=parseCounselorWeeklyExtras(fresh);
     const serverLabels=serverEx.week_labels||{};
     const serverTaskNotes=serverEx.task_notes||{};
-    const removedStillPresent=[...removedSummaryKeys,...removedNeighborSummaryKeys]
-      .filter(k=>Object.prototype.hasOwnProperty.call(rawServerSums,k));
-    const stillHasSummary=Object.prototype.hasOwnProperty.call(serverSums,wkKeyNorm);
-    const stillHasLabel=Object.prototype.hasOwnProperty.call(serverLabels,wkKeyNorm);
-    const stillHasTaskNote=Object.keys(serverTaskNotes).some(k=>k.startsWith(wkKeyNorm+'_'));
-    if(removedStillPresent.length||stillHasSummary||stillHasLabel||stillHasTaskNote){
-      console.error('[deleteWeekBundle] verify failed',{
-        removedStillPresent,
+    const unexpectedSummaryKeys=Object.keys(rawServerSums).filter(k=>k!=='DIAG_WK');
+    const unexpectedLabelKeys=Object.keys(serverLabels);
+    const unexpectedTaskNoteKeys=Object.keys(serverTaskNotes);
+    if(unexpectedSummaryKeys.length||unexpectedLabelKeys.length||unexpectedTaskNoteKeys.length){
+      console.error('[deleteWeekBundle] verify failed — keys still present after wipe',{
+        unexpectedSummaryKeys,
+        unexpectedLabelKeys,
+        unexpectedTaskNoteKeys,
         rawServerSums,
-        serverSums,
         serverLabels,
         serverTaskNotes,
       });
@@ -3348,9 +3345,15 @@ function deleteWeekBundle(wkKeyStr){
       return;
     }
 
-    /* Step 4 — only NOW update local cache and re-render. */
+    /* Step 4 — force a full re-render from fresh server data so any
+       stale week card disappears immediately and the textarea reflects
+       the wiped state without waiting for the next user interaction. */
     await reloadMeetingNotes();
     await renderCounselorDetailHistory();
+    /* Belt-and-suspenders: clear every weekly summary textarea still in the
+       DOM after re-render so a momentary stale render can't leave old text
+       on screen. */
+    document.querySelectorAll('[id^="weekly-sum-ta-"]').forEach(el=>{el.value='';});
     showToast('תיעוד היועצת לשבוע נמחק');
   });
 }
@@ -3473,11 +3476,19 @@ async function saveWeeklyCounselorSummary(wkKeyStr,opts={}){
     }
     if(willDelete){
       if(hasKey) throw new Error('המחיקה לא נשמרה במסד הנתונים');
-      ta.value='';
     }else if(serverSums[wkKeyStrNorm]!==value){
       throw new Error('השמירה לא אומתה במסד הנתונים');
     }
+    /* Force a full re-render from fresh server data so the weekly card,
+       its textarea, and all sibling cards reflect what's actually in the DB
+       right now. */
     await renderCounselorDetailHistory();
+    /* Defensive UI sync: re-render replaces the host innerHTML so the old
+       textarea node is gone, but if the user navigated to a collapsed week
+       card we still want the value the user expects. Re-acquire by id after
+       the render and explicitly set it from the just-verified server state. */
+    const taAfter=document.getElementById(taId);
+    if(taAfter) taAfter.value=willDelete?'':(serverSums[wkKeyStrNorm]!=null?serverSums[wkKeyStrNorm]:value);
     showToast(willDelete?'סיכום שבועי נמחק':'סיכום שבועי נשמר ✓');
   }catch(e){
     console.error('[weekly-summary] error:',e);
