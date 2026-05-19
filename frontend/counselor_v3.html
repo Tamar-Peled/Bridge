@@ -2902,14 +2902,37 @@ function collectCounselorWeekStartMsSet(stu,tasks,reports,notes){
     const n=Number(prefix);
     if(Number.isFinite(n)) set.add(n);
   });
-  /* Hide weeks the user just deleted in this session even if they would
-     otherwise be re-added (e.g. current-week or weeks with surviving
-     reports/tasks). Reload of the page bypasses this set — by then the DB
-     side has already been wiped so the card only resurfaces when it really
-     has independent student activity. */
+  /* Hide weeks the counselor has explicitly deleted — both this session
+     (_userDeletedWeekKeys, for immediate UI feedback before the next fetch)
+     AND across reloads (ex.hidden_weeks, persisted in
+     counselor_weekly_extras on the server). A hidden week is "vetoed" from
+     the rendered set ONLY when there's no surviving activity for it
+     (no reports/notes/tasks/summary/label/task_note). The moment any data
+     appears for that week, the veto auto-clears so the card re-appears —
+     that's how the user "manually re-adds" a previously deleted week. */
+  const hiddenSet=new Set();
+  for(const k of (ex.hidden_weeks||[])){
+    const n=Number(k);
+    if(Number.isFinite(n)) hiddenSet.add(n);
+  }
   for(const k of _userDeletedWeekKeys){
     const n=Number(k);
-    if(Number.isFinite(n)) set.delete(n);
+    if(Number.isFinite(n)) hiddenSet.add(n);
+  }
+  if(hiddenSet.size){
+    const labelMap=ex.week_labels||{};
+    const taskNoteMap=ex.task_notes||{};
+    for(const wkMs of [...set]){
+      if(!hiddenSet.has(wkMs)) continue;
+      const wkStr=String(wkMs);
+      const hasSum=Object.prototype.hasOwnProperty.call(sums,wkStr);
+      const hasLabel=Object.prototype.hasOwnProperty.call(labelMap,wkStr);
+      const hasTaskNote=Object.keys(taskNoteMap).some(k=>k.startsWith(wkStr+'_'));
+      const hasActivity=weekHasCounselorActivity(wkMs);
+      if(!hasSum&&!hasLabel&&!hasTaskNote&&!hasActivity){
+        set.delete(wkMs);
+      }
+    }
   }
   return set;
 }
@@ -2960,9 +2983,10 @@ function weekTaskNoteKey(wkKey,taskId){
 }
 function parseCounselorWeeklyExtras(stu){
   const d=stu&&stu.counselor_weekly_extras;
-  if(!d||typeof d!=='object') return {week_labels:{},task_notes:{}};
+  if(!d||typeof d!=='object') return {week_labels:{},task_notes:{},hidden_weeks:[]};
   const rawWl=d.week_labels&&typeof d.week_labels==='object'?d.week_labels:{};
   const rawTn=d.task_notes&&typeof d.task_notes==='object'?d.task_notes:{};
+  const rawHw=Array.isArray(d.hidden_weeks)?d.hidden_weeks:[];
   /* Normalize every week-bucketed key through normalizeWeekKey so legacy
      entries written by older versions of the UI collapse onto the same
      canonical key the renderer uses today. task_notes keys are composite —
@@ -2987,7 +3011,15 @@ function parseCounselorWeeklyExtras(stu){
     if(tn[newKey]==null||String(tn[newKey]||'').trim()==='') tn[newKey]=rawTn[k];
     if(newKey!==String(k)) console.log('[wkKey] task_notes normalized',JSON.stringify(k),'→',newKey);
   }
-  return {week_labels:wl,task_notes:tn};
+  /* hidden_weeks is a server-persisted list of canonical wkKey strings the
+     counselor has explicitly removed via deleteWeekBundle. Stored as an
+     array (not an object) because we only need membership, not values. */
+  const hwSet=new Set();
+  for(const k of rawHw){
+    const canon=normalizeWeekKey(k);
+    if(canon) hwSet.add(canon);
+  }
+  return {week_labels:wl,task_notes:tn,hidden_weeks:[...hwSet]};
 }
 function formatWeekDisplayTitle(wkMs,ordinal,stu){
   const wl=parseCounselorWeeklyExtras(stu).week_labels;
@@ -3147,13 +3179,7 @@ function weeklyCounselorSummarySectionHtml(wkKey,wkMs,savedText){
     return `<div class="weekly-subsec">
       <h4 class="weekly-subsec-h">סיכום פגישת יועצת לשבוע</h4>
       <div class="rep-card meeting-session-card weekly-counselor-card" id="weekly-sum-card-${wkKey}" style="margin:8px 0;position:relative">
-        <div class="meeting-entry-hdr" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-          <span>סיכום פגישת יועצת</span>
-          <span style="display:inline-flex;align-items:center;gap:6px">
-            <span>${escH(dateLine)}</span>
-            <button type="button" class="btn-week-tool danger" title="מחיקת סיכום זה בלבד" aria-label="מחיקת סיכום פגישת יועצת לשבוע" onclick="event.stopPropagation();deleteWeeklyCounselorSummary('${wkKey}')" style="font-size:14px;padding:2px 6px;line-height:1">🗑</button>
-          </span>
-        </div>
+        <div class="meeting-entry-hdr"><span>${escH(dateLine)}</span></div>
         <button type="button" class="meeting-acc-toggle" id="weekly-sum-toggle-${wkKey}" aria-expanded="false" aria-controls="weekly-sum-body-${wkKey}" onclick="toggleWeeklyCounselorSummaryCard('${wkKey}')">
           <div class="meeting-preview-col">
             <div class="meeting-preview">${escH(prevPlain)}</div>
@@ -3308,11 +3334,16 @@ async function saveWeeklyTaskCounselorNote(wkKey,taskId){
   const raw=(ta&&ta.value!=null)?String(ta.value):'';
   if(raw.trim()) ex.task_notes[key]=raw;
   else delete ex.task_notes[key];
+  /* Preserve hidden_weeks across this PATCH so a saved task note doesn't
+     accidentally bring back previously hidden weeks (unless THIS week is
+     hidden — saving fresh data for it is an explicit re-add). */
+  const hiddenWeeks=(ex.hidden_weeks||[]).filter(k=>String(k)!==wkKeyNorm);
+  if(_userDeletedWeekKeys.has(wkKeyNorm)) _userDeletedWeekKeys.delete(wkKeyNorm);
   try{
     const updated=await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({
-      counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes}
+      counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes,hidden_weeks:hiddenWeeks}
     })});
-    if(stu) stu.counselor_weekly_extras=updated.counselor_weekly_extras!=null?updated.counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes};
+    if(stu) stu.counselor_weekly_extras=updated.counselor_weekly_extras!=null?updated.counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes,hidden_weeks:hiddenWeeks};
     showToast('הערה נשמרה ✓');
   }catch(e){showToast(e.message||String(e));}
 }
@@ -3330,9 +3361,12 @@ function editWeekTitle(wkKeyStr){
       const t=String(v).trim();
       if(t) ex.week_labels[wkKeyNorm]=t;
       else delete ex.week_labels[wkKeyNorm];
+      /* Renaming a previously hidden week is a manual re-add. */
+      const hiddenWeeks=(ex.hidden_weeks||[]).filter(k=>String(k)!==wkKeyNorm);
+      if(_userDeletedWeekKeys.has(wkKeyNorm)) _userDeletedWeekKeys.delete(wkKeyNorm);
       try{
         const updated=await apiFetch(`/students/${currentSid}`,{method:'PATCH',body:JSON.stringify({
-          counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes}
+          counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes,hidden_weeks:hiddenWeeks}
         })});
         if(stu) stu.counselor_weekly_extras=updated.counselor_weekly_extras;
         await renderCounselorDetailHistory();
@@ -3395,13 +3429,20 @@ function deleteWeekBundle(wkKeyStr){
     const sumsBefore={...rawSums};
     const sums={};
     if(Object.prototype.hasOwnProperty.call(rawSums,'DIAG_WK')) sums.DIAG_WK=rawSums.DIAG_WK;
-    const ex={week_labels:{},task_notes:{}};
+    /* Preserve other previously-hidden weeks while adding the freshly
+       deleted one. hidden_weeks survives the JSONB wipe explicitly so the
+       week stays out of the UI across page reloads. */
+    const prevEx=parseCounselorWeeklyExtras(stu);
+    const prevHidden=new Set(prevEx.hidden_weeks||[]);
+    prevHidden.add(wkKeyNorm);
+    const hiddenWeeksArr=[...prevHidden];
+    const ex={week_labels:{},task_notes:{},hidden_weeks:hiddenWeeksArr};
 
     try{
       const url=`/students/${currentSid}`;
       const bodyObj={
         weekly_counselor_summaries:sums,
-        counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes},
+        counselor_weekly_extras:{week_labels:ex.week_labels,task_notes:ex.task_notes,hidden_weeks:ex.hidden_weeks},
       };
       const bodyStr=JSON.stringify(bodyObj);
       console.group('[deleteWeekBundle] PATCH payload');
@@ -3411,6 +3452,7 @@ function deleteWeekBundle(wkKeyStr){
       console.log('week range                    =',new Date(wkMs).toString(),'→',new Date(wkEnd).toString());
       console.log('summary keys BEFORE wipe      =',Object.keys(sumsBefore));
       console.log('summary keys AFTER wipe       =',Object.keys(sums),'(DIAG_WK preserved if present)');
+      console.log('hidden_weeks (persisted to DB)=',hiddenWeeksArr);
       console.log('PATCH url                     =',API+url);
       console.log('PATCH body (object)           =',bodyObj);
       console.log('PATCH body (string)           =',bodyStr);
@@ -3437,14 +3479,18 @@ function deleteWeekBundle(wkKeyStr){
     const serverEx=parseCounselorWeeklyExtras(fresh);
     const serverLabels=serverEx.week_labels||{};
     const serverTaskNotes=serverEx.task_notes||{};
+    const serverHidden=new Set(serverEx.hidden_weeks||[]);
     const unexpectedSummaryKeys=Object.keys(rawServerSums).filter(k=>k!=='DIAG_WK');
     const unexpectedLabelKeys=Object.keys(serverLabels);
     const unexpectedTaskNoteKeys=Object.keys(serverTaskNotes);
-    if(unexpectedSummaryKeys.length||unexpectedLabelKeys.length||unexpectedTaskNoteKeys.length){
-      console.error('[deleteWeekBundle] verify failed — keys still present after wipe',{
+    const hiddenMissing=!serverHidden.has(wkKeyNorm);
+    if(unexpectedSummaryKeys.length||unexpectedLabelKeys.length||unexpectedTaskNoteKeys.length||hiddenMissing){
+      console.error('[deleteWeekBundle] verify failed — wipe/hidden_weeks not persisted',{
         unexpectedSummaryKeys,
         unexpectedLabelKeys,
         unexpectedTaskNoteKeys,
+        hiddenMissing,
+        serverHidden:[...serverHidden],
         rawServerSums,
         serverLabels,
         serverTaskNotes,
@@ -3452,6 +3498,7 @@ function deleteWeekBundle(wkKeyStr){
       showToast('המחיקה לא נשמרה במסד הנתונים. נסי שוב.');
       return;
     }
+    console.log('[deleteWeekBundle] hidden_weeks confirmed on server =',[...serverHidden]);
 
     /* Step 4 — hide this week's card from the UI for the rest of the
        session. Reload would re-derive cards purely from data, so this only
