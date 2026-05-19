@@ -1317,6 +1317,14 @@ let _counselorDetailTab       = 'tasks'; // 'tasks' | 'history' — restored aft
    editable textarea (add or edit). renderCounselorDetailHistory consults it
    when building each week. */
 let _weeklyCounselorEditingKeys = new Set();
+/* Weeks the counselor explicitly deleted via the header 🗑 in the current
+   session. We can't infer "deleted" purely from DB state because the week
+   might still have legitimate student-side data (tasks/reports) the
+   counselor explicitly chose not to delete. Adding the wkKey here makes
+   collectCounselorWeekStartMsSet skip the card immediately. Resets on
+   reload — by which point the DB is already wiped of counselor bundle data
+   and the card would only reappear if real student activity remains. */
+let _userDeletedWeekKeys = new Set();
 // dashboard proactive alerts (per student id)
 let proactiveById  = {}; // { [id]: computeProactiveAlert(...) }
 
@@ -2894,6 +2902,15 @@ function collectCounselorWeekStartMsSet(stu,tasks,reports,notes){
     const n=Number(prefix);
     if(Number.isFinite(n)) set.add(n);
   });
+  /* Hide weeks the user just deleted in this session even if they would
+     otherwise be re-added (e.g. current-week or weeks with surviving
+     reports/tasks). Reload of the page bypasses this set — by then the DB
+     side has already been wiped so the card only resurfaces when it really
+     has independent student activity. */
+  for(const k of _userDeletedWeekKeys){
+    const n=Number(k);
+    if(Number.isFinite(n)) set.delete(n);
+  }
   return set;
 }
 function weekRangeLabelFromStart(wkStartMs){
@@ -3123,8 +3140,14 @@ function weeklyCounselorSummarySectionHtml(wkKey,wkMs,savedText){
     const prevPlain=meetingPreviewPlain(String(savedText),3);
     return `<div class="weekly-subsec">
       <h4 class="weekly-subsec-h">סיכום פגישת יועצת לשבוע</h4>
-      <div class="rep-card meeting-session-card weekly-counselor-card" id="weekly-sum-card-${wkKey}" style="margin:8px 0">
-        <div class="meeting-entry-hdr"><span>סיכום פגישת יועצת</span><span>${escH(dateLine)}</span></div>
+      <div class="rep-card meeting-session-card weekly-counselor-card" id="weekly-sum-card-${wkKey}" style="margin:8px 0;position:relative">
+        <div class="meeting-entry-hdr" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <span>סיכום פגישת יועצת</span>
+          <span style="display:inline-flex;align-items:center;gap:6px">
+            <span>${escH(dateLine)}</span>
+            <button type="button" class="btn-week-tool danger" title="מחיקת סיכום זה בלבד" aria-label="מחיקת סיכום פגישת יועצת לשבוע" onclick="event.stopPropagation();deleteWeeklyCounselorSummary('${wkKey}')" style="font-size:14px;padding:2px 6px;line-height:1">🗑</button>
+          </span>
+        </div>
         <button type="button" class="meeting-acc-toggle" id="weekly-sum-toggle-${wkKey}" aria-expanded="false" aria-controls="weekly-sum-body-${wkKey}" onclick="toggleWeeklyCounselorSummaryCard('${wkKey}')">
           <div class="meeting-preview-col">
             <div class="meeting-preview">${escH(prevPlain)}</div>
@@ -3424,7 +3447,14 @@ function deleteWeekBundle(wkKeyStr){
       return;
     }
 
-    /* Step 4 — force a full re-render from fresh server data so any
+    /* Step 4 — hide this week's card from the UI for the rest of the
+       session. Reload would re-derive cards purely from data, so this only
+       affects what the counselor sees right now without re-fetching. */
+    _userDeletedWeekKeys.add(wkKeyNorm);
+    _weeklyCounselorEditingKeys.delete(wkKeyNorm);
+    console.log('[deleteWeekBundle] week marked hidden in session:',wkKeyNorm);
+
+    /* Step 5 — force a full re-render from fresh server data so any
        stale week card disappears immediately and the textarea reflects
        the wiped state without waiting for the next user interaction. */
     await reloadMeetingNotes();
