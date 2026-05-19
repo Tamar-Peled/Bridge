@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BRIDGE – יועצת</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#5BB7B7" />
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="icon-512.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Bridge" />
+<meta name="mobile-web-app-capable" content="yes" />
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 /* ══════════ TOKENS — teal + charcoal ══════════ */
@@ -3332,7 +3340,7 @@ function weeklyCounselorSummarySectionHtml(wkKey,wkMs,entries,ord){
   const addBlock=adding
     ?weeklyCounselorAddEditorHtml(wkKey,wkMs,nextStudentNum)
     :`<div class="weekly-counselor-add-row"><button type="button" class="btn-sm weekly-add-summary-btn" onclick="startAddWeeklyCounselorSummary('${wkKey}')">+ הוסיפי סיכום פגישה</button>
-       <button type="button" class="btn-sm" id="weekly-ai-${wkKey}" onclick="runWeeklyInsightsAI('${wkKey}')" title="ניתוח נפח משימות, תנודתיות שבועית ומצב רגשי">✨ תובנות AI</button></div>`;
+       <button type="button" class="btn-sm" id="weekly-ai-${wkKey}" onclick="runWeeklyInsightsAI('${wkKey}')" title="ניתוח נפח משימות ומצב רגשי">✨ תובנות AI</button></div>`;
   /* Show the section heading once, then the entries (or empty hint) and
      the +/AI row. */
   const emptyHint=(!list.length&&!adding)
