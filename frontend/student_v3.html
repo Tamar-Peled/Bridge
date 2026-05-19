@@ -1038,7 +1038,11 @@ async function doLogin(){
     studentCode=code;
     me=await api(`/students/login/${code}`);
     const firstName=(me.name||'').trim().split(/\s+/)[0]||me.name||'';
-    document.getElementById('w-name').textContent=`וואי ${firstName}, כמה הצלחת השבוע!`;
+    /* The real greeting (celebration vs. soft "welcome back") is decided in
+       renderHome() once we know how many weekly tasks were actually completed.
+       Set the friendly default here so there's no flash of the celebration
+       text before the data loads. */
+    document.getElementById('w-name').textContent=`היי, ${firstName}! כיף שחזרת!`;
     document.getElementById('w-grade').textContent=me.grade;
     showScreen('sc-home');
     setStudentTab('tasks');
@@ -1090,6 +1094,23 @@ function renderHome(){
   const doneCount  =weeklyTasks.filter(t=>t.done).length;
   const total      =weeklyTasks.length;
   const pct        =total?Math.round(doneCount/total*100):0;
+
+  /* Banner: celebrate only once the student has actually completed 2+ tasks
+     this week. Below that threshold, fall back to a soft "welcome back"
+     greeting and hide the progress bar entirely so it doesn't read as
+     pressure when the student has barely started. */
+  const firstName=((me&&me.name)||'').trim().split(/\s+/)[0]||(me&&me.name)||'';
+  const wName=document.getElementById('w-name');
+  const progressBlock=document.querySelector('.week-progress-visual');
+  const celebrate=doneCount>=2;
+  if(wName){
+    wName.textContent=celebrate
+      ?`וואי ${firstName}, כמה הצלחת השבוע!`
+      :`היי, ${firstName}! כיף שחזרת!`;
+  }
+  if(progressBlock){
+    progressBlock.style.display=celebrate?'':'none';
+  }
 
   document.getElementById('prog-fill').style.width=`${pct}%`;
   const pctNum=document.getElementById('week-pct-num');
