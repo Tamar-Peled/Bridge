@@ -615,6 +615,12 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/ping")
+def ping():
+    """Lightweight keep-alive for Render cron / uptime pings (prevents cold starts)."""
+    return {"status": "ok"}
+
+
 @app.get("/diag/db")
 def diag_db():
     """
