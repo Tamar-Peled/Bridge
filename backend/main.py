@@ -1316,6 +1316,22 @@ def get_reports(student_id: str):
 @app.post("/reports")
 def create_report(report: ReportCreate):
     payload = strip_none(report.model_dump())
+    # If the student already rated confidence at task-select time, keep it on
+    # the report row too (for counselor timeline / exports) even when the client
+    # omits confidence_score on submit.
+    if not payload.get("confidence_score") and payload.get("task_id"):
+        try:
+            t_res = (
+                db.table("tasks")
+                .select("confidence_score")
+                .eq("id", payload["task_id"])
+                .limit(1)
+                .execute()
+            )
+            if t_res.data and t_res.data[0].get("confidence_score") is not None:
+                payload["confidence_score"] = t_res.data[0]["confidence_score"]
+        except Exception:
+            pass
     res = db.table("reports").insert(payload).execute()
     if not res.data:
         raise HTTPException(status_code=500, detail="שגיאה בשמירת דיווח")

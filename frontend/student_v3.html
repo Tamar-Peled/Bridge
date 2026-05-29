@@ -1554,6 +1554,8 @@ async function submitReport(){
       const idx=myReports.findIndex(r=>r.id===fReportId);
       if(idx!==-1) myReports[idx]={...myReports[idx],...saved};
     }else{
+      const taskRow=myTasks.find(x=>x.id===fTaskId);
+      const confForReport=fConfScore??(taskRow&&taskRow.confidence_score)??null;
       // POST new report
       saved=await api('/reports',{
         method:'POST',
@@ -1564,7 +1566,7 @@ async function submitReport(){
           mood:fMood,
           text:text||null,
           audio_url,
-          confidence_score:fConfScore||null,
+          confidence_score:confForReport,
         }),
       });
       myReports.push(saved);

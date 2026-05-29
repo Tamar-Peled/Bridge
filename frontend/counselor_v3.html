@@ -357,6 +357,9 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .weekly-feedback-task{font-weight:700;font-size:14px;margin-bottom:4px}
 .weekly-feedback-meta{font-size:12px;color:var(--mid);margin-bottom:6px}
 .weekly-feedback-text{font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.task-activity-expectation{border-right:3px solid #f6d365}
+.task-activity-share{border-right:3px solid rgba(91,183,183,.45)}
+.task-activity-item .weekly-feedback-task{font-size:13px;color:var(--primary-dk);margin-bottom:6px}
 .weekly-counselor-ta{width:100%;min-height:100px;resize:vertical;padding:10px 12px;border-radius:10px;border:1px solid var(--border);font:inherit;font-size:14px;line-height:1.5;text-align:right}
 .weekly-counselor-save-row{display:flex;justify-content:flex-end;margin-top:8px;flex-wrap:wrap;gap:8px}
 .weekly-counselor-add-row{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin-top:10px}
@@ -1017,6 +1020,13 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     gap:12px;
   }
   #students-list .student-card{margin-bottom:0}
+
+  /* Alert labels on student cards: allow wrap inside narrow grid columns */
+  #students-list .dashboard-alert-row{width:100%;min-width:0}
+  #students-list .system-flag-label{
+    white-space:normal;max-width:100%;line-height:1.35;
+    text-align:right;word-break:break-word;
+  }
 
   /* detail screen — slightly wider content */
   #screen-detail .content{max-width:780px}
@@ -2660,7 +2670,6 @@ function renderList(list){
     const alertParts=[];
     if(showAlerts&&pa.inactive7){
       alertParts.push(`<div class="dashboard-alert-row">
-          <span class="reason-tag">7 days inactive</span>
           <button type="button" class="system-flag-label" title="${tip}" onclick="openAiAlertModal('${s.id}',event)">שימי לב לחוסר פעילות של התלמיד</button>
         </div>`);
     }
@@ -3275,30 +3284,69 @@ function tasksInWeekScopeTasks(wkStart,wkEnd,tasks,reports){
 function reportsForTaskInWeek(taskId,reports,wkStart,wkEnd){
   return reportsInWeekSorted(reports,wkStart,wkEnd).filter(r=>r&&r.task_id===taskId);
 }
+function formatStarRating(score){
+  const n=Number(score);
+  if(!Number.isFinite(n)||n<1||n>5) return '';
+  return '⭐'.repeat(Math.round(n))+` (${Math.round(n)}/5)`;
+}
+function reportsForTaskSorted(reports,taskId,taskName){
+  return (reports||[])
+    .filter(r=>r&&(r.task_id===taskId||(taskName&&r.task_name===taskName)))
+    .slice()
+    .sort((a,b)=>(parseIsoMs(a.created_at)||0)-(parseIsoMs(b.created_at)||0));
+}
+/* Chronological student activity on one task: pre-task star rating (from
+   tasks.confidence_score + selected_at) then post-task share(s) from reports. */
+function buildTaskStudentActivityTimelineHtml(task,reports){
+  const events=[];
+  if(task&&task.selected&&task.confidence_score!=null&&task.confidence_score!==''){
+    const atMs=parseIsoMs(task.selected_at)||parseIsoMs(task.created_at);
+    if(atMs){
+      events.push({kind:'expectation',at:atMs,score:Number(task.confidence_score)});
+    }
+  }
+  const reps=reportsForTaskSorted(reports,task&&task.id,task&&task.text);
+  for(const r of reps){
+    const atMs=parseIsoMs(r.created_at);
+    if(atMs) events.push({kind:'share',at:atMs,report:r});
+  }
+  events.sort((a,b)=>a.at-b.at);
+  if(!events.length){
+    return '<p class="sec-empty" style="margin:0;padding:4px 0;font-size:13px">אין עדיין פעילות מהתלמיד על משימה זו</p>';
+  }
+  return events.map(ev=>{
+    if(ev.kind==='expectation'){
+      const when=fmtTime(new Date(ev.at).toISOString());
+      return `<div class="weekly-feedback-item task-activity-item task-activity-expectation">
+        <div class="weekly-feedback-task">ציפיית הצלחה (לפני המשימה)</div>
+        <div class="weekly-feedback-meta">${escH(formatStarRating(ev.score))}${when?' · '+escH(when):''}</div>
+      </div>`;
+    }
+    const r=ev.report;
+    const mood=escH(r.mood||'');
+    const time=escH(fmtTime(r.created_at)||'');
+    const txt=(r.text!=null&&String(r.text).trim())
+      ?`<div class="weekly-feedback-text">${escHBr(r.text)}</div>`
+      :'<div class="weekly-feedback-text" style="color:var(--light);font-style:italic">ללא טקסט</div>';
+    const audio=r.audio_url
+      ?`<div class="rep-audio" style="margin-top:8px"><audio controls src="${escH(r.audio_url)}"></audio></div>`
+      :'';
+    return `<div class="weekly-feedback-item task-activity-item task-activity-share">
+      <div class="weekly-feedback-task">שיתוף אחרי המשימה</div>
+      <div class="weekly-feedback-meta">${mood}${mood&&time?' · ':''}${time}</div>
+      ${txt}${audio}
+    </div>`;
+  }).join('');
+}
 function buildTaskWeekDetailHtml(t,reports,wkStart,wkEnd,wkKey,stu){
   const reps=reportsForTaskInWeek(t.id,reports,wkStart,wkEnd);
   const tid=safeWeeklyDomId(t.id);
   const ex=parseCounselorWeeklyExtras(stu);
   const noteKey=weekTaskNoteKey(wkKey,t.id);
   const noteRaw=String(ex.task_notes[noteKey]||'');
-  let body='';
-  if(reps.length){
-    body=reps.map(r=>{
-      const mood=escH(r.mood||'');
-      const time=escH(fmtTime(r.created_at)||'');
-      const txt=(r.text!=null&&String(r.text).trim())?`<div class="weekly-feedback-text">${escHBr(r.text)}</div>`:'';
-      const audio=r.audio_url?`<div class="rep-audio" style="margin-top:8px"><audio controls src="${escH(r.audio_url)}"></audio></div>`:'';
-      const conf=r.confidence_score?`<div class="weekly-feedback-meta">⭐ ביטחון עצמי: ${r.confidence_score}/5</div>`:'';
-      return `<div class="weekly-feedback-item" style="margin-bottom:8px">
-        <div class="weekly-feedback-meta">${mood}${mood&&time?' · ':''}${time}</div>
-        ${conf}${txt}${audio}
-      </div>`;
-    }).join('');
-  }else{
-    body='<p class="sec-empty" style="margin:0;padding:4px 0;font-size:13px">אין שיתוף מהתלמיד בשבוע זה למשימה זו</p>';
-  }
+  const body=buildTaskStudentActivityTimelineHtml(t,reps);
   const noteBlock=stu?`<div class="weekly-counselor-task-note-wrap">
-    <label class="weekly-counselor-task-note-lbl" for="wtn-ta-${wkKey}-${tid}">הערה )</label>
+    <label class="weekly-counselor-task-note-lbl" for="wtn-ta-${wkKey}-${tid}">הערה </label>
     <textarea class="weekly-counselor-task-note-ta" id="wtn-ta-${wkKey}-${tid}" placeholder="הערה פנימית על המשימה בשבוע זה...">${escH(noteRaw)}</textarea>
     <button type="button" class="weekly-counselor-task-note-save" onclick="saveWeeklyTaskCounselorNote('${wkKey}','${t.id}')">שמירת הערה</button>
   </div>`:'';
@@ -4352,24 +4400,13 @@ async function savePhoto(){
 function openTaskModal(taskId){
   const task=currentTasks.find(t=>t.id===taskId);if(!task)return;
   _mtrTaskId=taskId;
-  const rep=currentReports.find(r=>r.task_id===taskId||r.task_name===task.text);
+  const reps=reportsForTaskSorted(currentReports,taskId,task.text);
+  const hasExpectation=task.selected&&task.confidence_score!=null&&task.confidence_score!=='';
   document.getElementById('mtr-title').textContent=task.text;
-  document.getElementById('mtr-status').textContent=rep?'שיתוף מהתלמיד':'';
-  let body;
-  if(rep){
-    const confH=rep.confidence_score?`<div class="rep-conf">⭐ ביטחון עצמי: ${rep.confidence_score}/5</div>`:'';
-    const audioH=rep.audio_url?`<div class="rep-audio"><audio controls src="${escH(rep.audio_url)}"></audio></div>`:'';
-    body=`<div class="rep-card${rep.is_new?' rep-unseen':''}">
-      <div class="rep-top">
-        <span class="rep-mood">${escH(rep.mood)}</span>
-        <span class="rep-time">${fmtTime(rep.created_at)}</span>
-      </div>
-      ${rep.text?`<div class="rep-body">${escH(rep.text)}</div>`:''}
-      ${audioH}${confH}
-    </div>`;
-  }else{
-    body='<div class="sec-empty" style="padding:14px 0">אין עדיין שיתוף מהתלמיד על משימה זו</div>';
-  }
+  document.getElementById('mtr-status').textContent=hasExpectation&&reps.length
+    ?'ציפייה ושיתוף מהתלמיד'
+    :(hasExpectation?'ציפיית הצלחה לפני המשימה':(reps.length?'שיתוף מהתלמיד':''));
+  const body=buildTaskStudentActivityTimelineHtml(task,reps);
   document.getElementById('mtr-body').innerHTML=body;
   document.getElementById('modal-task-rep').classList.add('show');
 }
