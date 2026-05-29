@@ -1081,7 +1081,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 <div id="screen-landing" class="screen active">
   <div class="logo-box">B</div>
   <div class="landing-title">BRIDGE</div>
-  <div class="landing-welcome">ברוכים הבאים ל-BRIDGE</div>
   <div class="landing-desc">כניסת יועצת — ניהול תלמידים ותיעוד מקצועי</div>
   <button class="btn-primary" onclick="enterCounselor()">כניסה למערכת</button>
   <div class="footer-txt">BRIDGE © 2026 — כל הזכויות שמורות</div>
@@ -2652,20 +2651,29 @@ function renderList(list){
     const aiStillDetected=!!pa.aiStillDetected;
     const fp=pa.silenceFingerprint||'';
     const silenced=isSystemFlagSilenced(s.id, fp);
-    const showAiLabel=aiStillDetected&&!silenced;
+    const showAlerts=aiStillDetected&&!silenced;
     const cardCls=`student-card`;
     const av=s.photo
       ?`<div class="s-avatar"><img src="${escH(s.photo)}" alt="" onerror="this.parentElement.textContent='${escH(s.name[0])}'"></div>`
       :`<div class="s-avatar">${escH(s.name[0])}</div>`;
-    const reasonTags=(showAiLabel&&(pa.tags||[]).length)
-      ?`<div class="s-badges" style="margin-top:6px">${pa.tags.map(t=>`<span class="reason-tag">${escH(t)}</span>`).join('')}</div>`
-      :'';
     const tip=escH(pa.reasonHebrew||'');
-    const sysLbl = showAiLabel
-      ? `<div class="dashboard-alert-row">
-          <button type="button" class="system-flag-label" title="${tip}" onclick="openAiAlertModal('${s.id}',event)">⚠️ אזהרה לתשומת לב</button>
-        </div>`
-      : '';
+    const alertParts=[];
+    if(showAlerts&&pa.inactive7){
+      alertParts.push(`<div class="dashboard-alert-row">
+          <span class="reason-tag">7 days inactive</span>
+          <button type="button" class="system-flag-label" title="${tip}" onclick="openAiAlertModal('${s.id}',event)">שימי לב לחוסר פעילות של התלמיד</button>
+        </div>`);
+    }
+    if(showAlerts&&pa.isDistressed){
+      alertParts.push(`<div class="dashboard-alert-row">
+          <button type="button" class="system-flag-label" title="${tip}" onclick="openAiAlertModal('${s.id}',event)">שימי לב לשיתופים של התלמיד</button>
+        </div>`);
+    }
+    const sysLbl=alertParts.join('');
+    const extraTags=(pa.tags||[]).filter(t=>t!=='7 days inactive');
+    const reasonTags=(showAlerts&&extraTags.length)
+      ?`<div class="s-badges" style="margin-top:6px">${extraTags.map(t=>`<span class="reason-tag">${escH(t)}</span>`).join('')}</div>`
+      :'';
     /* Inline trash button on the dashboard card for completed students,
        so the counselor doesn't have to drill into the detail screen just to
        remove a student whose process is already finished. Stop propagation
@@ -2834,7 +2842,7 @@ async function renderDetail(s){
         <div class="add-row" style="justify-content:center">
           <input class="add-input" id="task-inp" placeholder="הוסף משימה לבנק..."
             onkeydown="if(event.key==='Enter')addTask()">
-          <button class="btn-sm" id="btn-task-ai" title="הצעת משימה חכמה מהבנק לפי הקשר המלא" onclick="getAiTaskRecommendation()">✨</button>
+          <button class="btn-sm" id="btn-task-ai" title="הצעת משימה חכמה מהבנק לפי הקשר המלא" onclick="getAiTaskRecommendation()">הצעת AI</button>
           <button class="btn-sm" onclick="addTask()">+</button>
         </div>
         <div class="ai-reason-tip" id="task-ai-reason" title="AI Reasoning"></div>
@@ -4131,7 +4139,6 @@ async function renderCounselorDetailHistory(preSnap){
           <button type="button" class="btn-add-meeting-minimal" onclick="openWeeklyMeetingNoteModal(null)" title="הוסף סיכום פגישה (שבוע נוכחי)" aria-label="הוסף סיכום פגישה">+</button>
         </div>
       </div>
-      <p class="sec-case-note" style="text-align:center">לכל שבוע: משימות ושיתופים, סיכום יועצת, וסיכומי פגישות. השתמשי ב־+ למעלה לסיכום פגישה חדש.</p>
       ${weeklyMeetingsHtml}
     </div>
     <div class="sec">
@@ -4391,7 +4398,7 @@ async function getAiTaskRecommendation(){
   const tip=document.getElementById('task-ai-reason');
   if(!currentSid){showToast('לא נבחר תלמיד');return;}
   if(tip){tip.classList.remove('show');tip.textContent='';tip.removeAttribute('title');}
-  setBusy('btn-task-ai',true,'✨');
+  setBusy('btn-task-ai',true,'הצעת AI');
   try{
     const data=await apiFetch(`/get-ai-task-recommendation/${currentSid}`,{method:'POST'});
     const title=(data && data.recommended_task_title)||'';
@@ -4409,7 +4416,7 @@ async function getAiTaskRecommendation(){
       showToast('לא נמצאה הצעה');
     }
   }catch(e){showToast(`שגיאה: ${e.message}`);}
-  finally{setBusy('btn-task-ai',false,'✨');}
+  finally{setBusy('btn-task-ai',false,'הצעת AI');}
 }
 
 function delTask(taskId){
