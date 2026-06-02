@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="Bridge" />
 <meta name="mobile-web-app-capable" content="yes" />
-<meta name="bridge-api" content="" />
+<meta name="bridge-api" content="https://bridge-production-f1aa.up.railway.app" />
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 /* ══════════ TOKENS — light, clean ══════════ */
@@ -705,7 +705,7 @@ function resolveApiBase(){
   const meta=document.querySelector('meta[name="bridge-api"]');
   const fromMeta=meta&&meta.getAttribute('content')&&meta.getAttribute('content').trim();
   if(fromMeta) return fromMeta.replace(/\/$/,'');
-  return 'https://bridge-2-rhtw.onrender.com';
+  return 'https://bridge-production-f1aa.up.railway.app';
 }
 const API=resolveApiBase();
 

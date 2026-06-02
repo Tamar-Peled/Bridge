@@ -461,6 +461,39 @@ def get_chain_weekly_insights():
 # ═══════════════════ HELPERS ══════════════════════════════════
 
 STUDENT_LIST_COLUMNS = "id,name,grade,status,code,photo,created_at"
+# Dashboard roster: omit photo (often a large base64 data URL) — loaded on detail open.
+DASHBOARD_STUDENT_COLUMNS = "id,name,grade,status,code,created_at"
+DASHBOARD_TASK_COLUMNS = "id,student_id,selected,done,selected_at,created_at"
+DASHBOARD_REPORT_COLUMNS = "id,student_id,mood,text,created_at"
+_DASHBOARD_DROP_FIELDS = frozenset({"audio_url", "photo", "file_data", "file_content", "content_base64"})
+_DASHBOARD_LARGE_VALUE_MIN = 2048
+
+
+def _is_large_embedded_value(value) -> bool:
+    if not isinstance(value, str):
+        return False
+    s = value.strip()
+    if not s or len(s) < _DASHBOARD_LARGE_VALUE_MIN:
+        return False
+    if s.startswith("data:"):
+        return True
+    if len(s) > 8000 and re.match(r"^[A-Za-z0-9+/=\s]+$", s[:200]):
+        return True
+    return False
+
+
+def _slim_row_for_dashboard(row: dict) -> dict:
+    """Drop heavy blob fields from dashboard payloads."""
+    if not isinstance(row, dict):
+        return row
+    out = {}
+    for key, value in row.items():
+        if key in _DASHBOARD_DROP_FIELDS:
+            continue
+        if _is_large_embedded_value(value):
+            continue
+        out[key] = value
+    return out
 
 STATUSES_CANONICAL = ("בתהליך", "סיים תהליך")
 
@@ -1051,47 +1084,54 @@ async def extract_document_text(file: UploadFile = File(...)):
 @app.get("/students/dashboard")
 def get_students_dashboard():
     """
-    Counselor dashboard: slim student rows + proactive alerts + tasks/reports cache
-    in 3 DB round-trips instead of 1 + 2N client requests.
+    Counselor dashboard: slim student rows + proactive alerts in 3 DB round-trips.
+    Omits audio_url, base64 photos, and student_data_cache (detail view loads full data).
     """
     students_res = (
         db.table("students")
-        .select(STUDENT_LIST_COLUMNS)
+        .select(DASHBOARD_STUDENT_COLUMNS)
         .order("created_at")
         .execute()
     )
-    students = students_res.data or []
+    students = [_slim_row_for_dashboard(s) for s in (students_res.data or [])]
     if not students:
-        return {"students": [], "proactive_by_id": {}, "student_data_cache": {}}
+        return {"students": [], "proactive_by_id": {}}
 
     ids = [s["id"] for s in students if s.get("id")]
-    tasks_res = db.table("tasks").select("*").in_("student_id", ids).execute()
-    reports_res = db.table("reports").select("*").in_("student_id", ids).execute()
+    tasks_res = (
+        db.table("tasks")
+        .select(DASHBOARD_TASK_COLUMNS)
+        .in_("student_id", ids)
+        .execute()
+    )
+    reports_res = (
+        db.table("reports")
+        .select(DASHBOARD_REPORT_COLUMNS)
+        .in_("student_id", ids)
+        .execute()
+    )
 
     tasks_by_student: Dict[str, list] = defaultdict(list)
     reports_by_student: Dict[str, list] = defaultdict(list)
     for t in tasks_res.data or []:
         sid = t.get("student_id")
         if sid:
-            tasks_by_student[str(sid)].append(t)
+            tasks_by_student[str(sid)].append(_slim_row_for_dashboard(t))
     for r in reports_res.data or []:
         sid = r.get("student_id")
         if sid:
-            reports_by_student[str(sid)].append(r)
+            reports_by_student[str(sid)].append(_slim_row_for_dashboard(r))
 
     proactive_by_id: Dict[str, dict] = {}
-    student_data_cache: Dict[str, dict] = {}
     for s in students:
         sid = str(s["id"])
         tasks = tasks_by_student.get(sid, [])
         reports = reports_by_student.get(sid, [])
         proactive_by_id[sid] = compute_proactive_alert(s, tasks, reports)
-        student_data_cache[sid] = {"tasks": tasks, "reports": reports}
 
     return {
         "students": students,
         "proactive_by_id": proactive_by_id,
-        "student_data_cache": student_data_cache,
     }
 
 

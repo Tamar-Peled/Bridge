@@ -13,8 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="Bridge" />
 <meta name="mobile-web-app-capable" content="yes" />
-<!-- Production backend (Railway): set your Railway URL here, e.g. https://your-app.up.railway.app -->
-<meta name="bridge-api" content="" />
+<meta name="bridge-api" content="https://bridge-production-f1aa.up.railway.app" />
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 /* ══════════ TOKENS — teal + charcoal ══════════ */
@@ -1302,8 +1301,7 @@ function resolveApiBase(){
   const meta=document.querySelector('meta[name="bridge-api"]');
   const fromMeta=meta&&meta.getAttribute('content')&&meta.getAttribute('content').trim();
   if(fromMeta) return fromMeta.replace(/\/$/,'');
-  /* Legacy Render fallback — set <meta name="bridge-api"> to your Railway URL in production */
-  return 'https://bridge-2-rhtw.onrender.com';
+  return 'https://bridge-production-f1aa.up.railway.app';
 }
 const API=resolveApiBase();
 const LIST_REFRESH_MS=5*60*1000;
@@ -2674,15 +2672,6 @@ async function loadList(){
       allStudents=Array.isArray(data&&data.students)?data.students:[];
       proactiveById=(data&&data.proactive_by_id)||{};
       studentDataCache={};
-      const cacheBlock=(data&&data.student_data_cache)||{};
-      for(const sid of Object.keys(cacheBlock)){
-        const block=cacheBlock[sid]||{};
-        studentDataCache[sid]={
-          tasks:Array.isArray(block.tasks)?block.tasks:[],
-          reports:Array.isArray(block.reports)?block.reports:[],
-          fetchedAt:Date.now(),
-        };
-      }
     }catch(dashErr){
       console.warn('[loadList] dashboard endpoint failed, falling back to legacy N+1:',dashErr);
       await loadListLegacyNPlusOne();
