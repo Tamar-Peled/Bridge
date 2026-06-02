@@ -16,7 +16,7 @@ ALTER TABLE IF EXISTS public.student_notes DISABLE ROW LEVEL SECURITY;
 -- ── 1. students: add missing columns ────────────────────────
 ALTER TABLE public.students
   ADD COLUMN IF NOT EXISTS description  text          DEFAULT '',
-  ADD COLUMN IF NOT EXISTS photo        text          DEFAULT '',   -- base64 or storage URL
+  ADD COLUMN IF NOT EXISTS photo        text          DEFAULT '',   -- public Storage URL (legacy rows may still hold base64 until migrated)
   ADD COLUMN IF NOT EXISTS general_files jsonb       DEFAULT '[]'::jsonb;  -- counselor file cabinet (not shown to student app)
 
 -- ── 2. reports: add task_id FK + audio + confidence ─────────

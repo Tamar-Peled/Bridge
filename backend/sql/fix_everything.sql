@@ -86,6 +86,17 @@ ALTER TABLE public.students
 ALTER TABLE public.students DISABLE ROW LEVEL SECURITY;
 
 
+-- 3b) Storage bucket for student profile photos (public URLs in students.photo) ─
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('student-photos', 'student-photos', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DROP POLICY IF EXISTS "student_photos_public_read" ON storage.objects;
+CREATE POLICY "student_photos_public_read"
+  ON storage.objects FOR SELECT TO public
+  USING (bucket_id = 'student-photos');
+
+
 -- 4) reports: task FK + audio + confidence + indexes ────────────────────────
 ALTER TABLE public.reports
   ADD COLUMN IF NOT EXISTS task_id          uuid    REFERENCES public.tasks(id) ON DELETE SET NULL,

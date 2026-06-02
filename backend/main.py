@@ -461,12 +461,119 @@ def get_chain_weekly_insights():
 # ═══════════════════ HELPERS ══════════════════════════════════
 
 STUDENT_LIST_COLUMNS = "id,name,grade,status,code,photo,created_at"
-# Dashboard roster: omit photo (often a large base64 data URL) — loaded on detail open.
-DASHBOARD_STUDENT_COLUMNS = "id,name,grade,status,code,created_at"
+DASHBOARD_STUDENT_COLUMNS = "id,name,grade,status,code,photo,created_at"
 DASHBOARD_TASK_COLUMNS = "id,student_id,selected,done,selected_at,created_at"
 DASHBOARD_REPORT_COLUMNS = "id,student_id,mood,text,created_at"
-_DASHBOARD_DROP_FIELDS = frozenset({"audio_url", "photo", "file_data", "file_content", "content_base64"})
+_DASHBOARD_DROP_FIELDS = frozenset({"audio_url", "file_data", "file_content", "content_base64"})
 _DASHBOARD_LARGE_VALUE_MIN = 2048
+
+
+def _student_photos_bucket() -> str:
+    return (os.getenv("SUPABASE_PHOTOS_BUCKET") or "student-photos").strip()
+
+
+def _is_http_url(value: Optional[str]) -> bool:
+    s = (value or "").strip().lower()
+    return s.startswith("http://") or s.startswith("https://")
+
+
+def _is_embedded_photo_data(value: Optional[str]) -> bool:
+    s = (value or "").strip()
+    if not s or _is_http_url(s):
+        return False
+    if s.startswith("data:image/"):
+        return True
+    return len(s) > 256 and bool(re.match(r"^[A-Za-z0-9+/=\s]+$", s[:120] or ""))
+
+
+def _storage_upload_student_photo(student_id: str, data: str) -> str:
+    """Upload avatar bytes to Supabase Storage; returns public URL."""
+    try:
+        raw, detected_mime = _decode_upload_data(data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    if len(raw) > 512 * 1024:
+        raise HTTPException(status_code=400, detail="תמונת פרופיל גדולה מדי (מקס׳ 512KB)")
+    mime = (detected_mime or "image/jpeg").strip()
+    ext = "jpg"
+    if "png" in mime:
+        ext = "png"
+    elif "webp" in mime:
+        ext = "webp"
+    bucket = _student_photos_bucket()
+    path = f"{student_id}/avatar.{ext}"
+    file_opts = {"content-type": mime, "upsert": "true"}
+    try:
+        db.storage.from_(bucket).upload(path, raw, file_opts)
+    except Exception as e:
+        err = str(e)
+        hint = ""
+        if _supabase_jwt_role(supabase_key) == "anon":
+            hint = (
+                " SUPABASE_KEY should be the service_role secret for Storage uploads."
+            )
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"העלאת תמונה ל-Storage נכשלה (bucket={bucket!r}): {err}.{hint} "
+                "צרי bucket 'student-photos' (Public) והריצי sql/storage_policies_student_photos.sql."
+            ),
+        ) from e
+    pub = db.storage.from_(bucket).get_public_url(path)
+    url = pub if isinstance(pub, str) else str(getattr(pub, "data", pub) or pub)
+    return url.strip()
+
+
+def _ensure_student_photo_url(student_id: str, photo: Optional[str]) -> str:
+    """
+    Return a public photo URL for API responses.
+    Legacy base64 values are uploaded once to Storage and the DB row is updated.
+    """
+    s = (photo or "").strip()
+    if not s:
+        return ""
+    if _is_http_url(s):
+        return s
+    if not _is_embedded_photo_data(s):
+        return ""
+    try:
+        url = _storage_upload_student_photo(student_id, s)
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[photo] migrate upload failed student_id={student_id!r}: {e!s}")
+        return ""
+    try:
+        db.table("students").update({"photo": url}).eq("id", student_id).execute()
+    except Exception as e:
+        print(f"[photo] migrate DB update failed student_id={student_id!r}: {e!s}")
+    return url
+
+
+def _photo_for_api(student_id: str, photo: Optional[str]) -> str:
+    """Never return embedded base64 to clients — URL or empty string."""
+    s = (photo or "").strip()
+    if not s:
+        return ""
+    if _is_http_url(s):
+        return s
+    if _is_embedded_photo_data(s):
+        return _ensure_student_photo_url(student_id, s)
+    return ""
+
+
+def _student_with_photo_url(row: dict) -> dict:
+    if not isinstance(row, dict):
+        return row
+    out = dict(row)
+    sid = str(out.get("id") or "")
+    if sid:
+        out["photo"] = _photo_for_api(sid, out.get("photo"))
+    elif out.get("photo") and not _is_http_url(out.get("photo")):
+        out["photo"] = ""
+    return out
 
 
 def _is_large_embedded_value(value) -> bool:
@@ -1085,7 +1192,7 @@ async def extract_document_text(file: UploadFile = File(...)):
 def get_students_dashboard():
     """
     Counselor dashboard: slim student rows + proactive alerts in 3 DB round-trips.
-    Omits audio_url, base64 photos, and student_data_cache (detail view loads full data).
+    Student photos are public Storage URLs only (never base64).
     """
     students_res = (
         db.table("students")
@@ -1093,7 +1200,12 @@ def get_students_dashboard():
         .order("created_at")
         .execute()
     )
-    students = [_slim_row_for_dashboard(s) for s in (students_res.data or [])]
+    students = []
+    for raw in students_res.data or []:
+        row = _slim_row_for_dashboard(raw)
+        sid = str(raw.get("id") or "")
+        row["photo"] = _photo_for_api(sid, raw.get("photo")) if sid else ""
+        students.append(row)
     if not students:
         return {"students": [], "proactive_by_id": {}}
 
@@ -1144,7 +1256,7 @@ def get_students():
         .order("created_at")
         .execute()
     )
-    return res.data
+    return [_student_with_photo_url(s) for s in (res.data or [])]
 
 # ⚠️ ROUTE ORDER: /students/login BEFORE /students/{id}
 @app.get("/students/login/{code}")
@@ -1162,7 +1274,7 @@ def get_student_counselor(student_id: str):
     res = db.table("students").select("*").eq("id", student_id).execute()
     if not res.data:
         raise HTTPException(status_code=404, detail="תלמיד לא נמצא")
-    return res.data[0]
+    return _student_with_photo_url(res.data[0])
 
 @app.get("/students/{student_id}")
 def get_student(student_id: str):
@@ -1177,23 +1289,43 @@ def get_student(student_id: str):
 
 @app.post("/students")
 def create_student(student: StudentCreate):
-    res = db.table("students").insert(student.model_dump()).execute()
+    data = student.model_dump()
+    photo_raw = (data.pop("photo", None) or "").strip()
+    data["photo"] = ""
+    res = db.table("students").insert(data).execute()
     if not res.data:
         raise HTTPException(status_code=500, detail="שגיאה ביצירת תלמיד")
-    return res.data[0]
+    row = res.data[0]
+    sid = str(row.get("id") or "")
+    if photo_raw and sid:
+        url = _ensure_student_photo_url(sid, photo_raw)
+        if url:
+            upd = db.table("students").update({"photo": url}).eq("id", sid).execute()
+            rows = upd.data or []
+            if rows:
+                row = rows[0]
+            else:
+                row = {**row, "photo": url}
+    return _student_with_photo_url(row)
 
 @app.patch("/students/{student_id}")
 def patch_student(student_id: str, data: StudentPatch):
     payload = strip_none(data.model_dump())
     if not payload:
         raise HTTPException(status_code=400, detail="אין שדות לעדכון")
+    if "photo" in payload:
+        raw = payload.get("photo")
+        if raw is None or not str(raw).strip():
+            payload["photo"] = ""
+        else:
+            payload["photo"] = _ensure_student_photo_url(student_id, str(raw))
     try:
         res = db.table("students").update(payload).eq("id", student_id).execute()
     except Exception as e:
         print(f"[DB] EXC table='students' op=PATCH id={student_id!r} err={e!s}")
         raise HTTPException(status_code=500, detail=f"שגיאה בעדכון תלמיד: {e!s}") from e
     rows = _require_db_rows("students", "PATCH", student_id, res, payload)
-    return rows[0]
+    return _student_with_photo_url(rows[0])
 
 
 def _key_point_matches(p: dict, target: KeyPointDelete) -> bool:

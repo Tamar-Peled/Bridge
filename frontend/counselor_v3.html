@@ -2442,6 +2442,25 @@ function escAttr(s){
 function escHBr(s){
   return String(s||'').split(/\r?\n/).map(escH).join('<br>');
 }
+function isStudentPhotoUrl(photo){
+  const p=String(photo||'').trim();
+  return /^https?:\/\//i.test(p);
+}
+/** Dashboard/list: Storage URL only. Detail may still show local data URL preview before save. */
+function studentAvatarHtml(s,{lazy=false}={}){
+  const initial=escH((s&&s.name?s.name[0]:'')||'?');
+  const url=isStudentPhotoUrl(s&&s.photo)?escH(s.photo):'';
+  if(!url) return `<div class="s-avatar">${initial}</div>`;
+  const lazyAttr=lazy?' loading="lazy" decoding="async"':'';
+  return `<div class="s-avatar"><img src="${url}" alt=""${lazyAttr} onerror="this.parentElement.textContent='${initial}'"></div>`;
+}
+function studentDetailAvatarInner(s){
+  const initial=escH((s&&s.name?s.name[0]:'')||'?');
+  const p=String(s&&s.photo||'').trim();
+  if(!p) return initial;
+  const src=escH(p);
+  return `<img src="${src}" alt="" onerror="this.parentElement.innerHTML='${initial}';">`;
+}
 function meetingPreviewPlain(full,maxLines){
   const t=String(full||'');
   if(!t.trim()) return '';
@@ -2695,9 +2714,7 @@ function renderList(list){
     const silenced=isSystemFlagSilenced(s.id, fp);
     const showAlerts=aiStillDetected&&!silenced;
     const cardCls=`student-card`;
-    const av=s.photo
-      ?`<div class="s-avatar"><img src="${escH(s.photo)}" alt="" onerror="this.parentElement.textContent='${escH(s.name[0])}'"></div>`
-      :`<div class="s-avatar">${escH(s.name[0])}</div>`;
+    const av=studentAvatarHtml(s,{lazy:true});
     const tip=escH(pa.reasonHebrew||'');
     const alertParts=[];
     if(showAlerts&&pa.inactive7){
@@ -2819,9 +2836,7 @@ async function renderDetail(s){
 
   const avBg=status==='סיים תהליך'?'var(--green-soft)':
              status==='נדרש מעקב צמוד'?'var(--red-soft)':'var(--yellow-soft)';
-  const avInner=s.photo
-    ?`<img src="${escH(s.photo)}" alt="" onerror="this.parentElement.innerHTML='${escH(s.name[0])}';">`
-    :escH(s.name[0]);
+  const avInner=studentDetailAvatarInner(s);
 
   const statusOpts=STATUSES.map(v=>`<option value="${v}"${v===status?' selected':''}>${v}</option>`).join('');
 
@@ -4438,9 +4453,9 @@ async function savePhoto(){
   if(!b64){showToast('לא נבחרה תמונה');return;}
   setBusy('btn-photo-save',true,'שמור תמונה');
   try{
-    await apiFetch(`/students/${_photoSid}`,{method:'PATCH',body:JSON.stringify({photo:b64})});
+    const updated=await apiFetch(`/students/${_photoSid}`,{method:'PATCH',body:JSON.stringify({photo:b64})});
     const s=allStudents.find(x=>x.id===_photoSid);
-    if(s) s.photo=b64;
+    if(s) s.photo=(updated&&updated.photo)||'';
     closeModal('modal-photo');showToast('תמונה עודכנה ✓');
     await renderDetail(allStudents.find(x=>x.id===_photoSid));
   }catch(e){showToast(`שגיאה: ${e.message}`);}
