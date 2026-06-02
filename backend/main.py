@@ -5,9 +5,10 @@ BRIDGE – FastAPI Backend v3
 from fastapi import FastAPI, HTTPException, UploadFile, File, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Dict
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
+from collections import defaultdict
 import os
 import io
 import re
@@ -257,9 +258,6 @@ class StudentDocumentRename(BaseModel):
     file_name: str = Field(..., min_length=1, max_length=255)
 
 
-llm_v4 = ChatOpenAI(model="gpt-4o", temperature=0.3, api_key=api_key)
-structured_llm_v4 = llm_v4.with_structured_output(AnalysisResultV4)
-
 prompt_v4 = ChatPromptTemplate.from_messages([
     ("system",
      "את/ה 'Concise Counselor Assistant' — עוזר/ת ליועצת חינוכית בצורה עניינית וקצרה. "
@@ -292,11 +290,6 @@ prompt_v4 = ChatPromptTemplate.from_messages([
 """),
 ])
 
-chain_v4 = prompt_v4 | structured_llm_v4
-
-llm_key_points = ChatOpenAI(model="gpt-4o", temperature=0.25, api_key=api_key)
-structured_llm_key_points = llm_key_points.with_structured_output(KeyPointsDraftResult)
-
 prompt_key_points = ChatPromptTemplate.from_messages([
     (
         "system",
@@ -327,16 +320,11 @@ prompt_key_points = ChatPromptTemplate.from_messages([
     ),
 ])
 
-chain_key_points = prompt_key_points | structured_llm_key_points
-
 
 class PracticalTaskRecommendation(BaseModel):
     recommended_task_title: str
     reasoning: str
 
-
-llm_task_rec = ChatOpenAI(model="gpt-4o", temperature=0.25, api_key=api_key)
-structured_llm_task_rec = llm_task_rec.with_structured_output(PracticalTaskRecommendation)
 
 prompt_task_rec = ChatPromptTemplate.from_messages([
     ("system",
@@ -372,11 +360,6 @@ prompt_task_rec = ChatPromptTemplate.from_messages([
 {mission_bank_titles}
 """),
 ])
-
-chain_task_rec = prompt_task_rec | structured_llm_task_rec
-
-llm_weekly_insights = ChatOpenAI(model="gpt-4o", temperature=0.25, api_key=api_key)
-structured_llm_weekly_insights = llm_weekly_insights.with_structured_output(WeeklyInsightsAIResult)
 
 WEEKLY_INSIGHTS_SYSTEM = """You are an educational AI assistant analyzing student progress. Your goal is to identify meaningful trends and provide actionable insights for school counselors.
 
@@ -436,9 +419,190 @@ Respond with JSON only: trend (1-2 sentences), recommended_focus (1-2 sentences)
     ]
 )
 
-chain_weekly_insights = prompt_weekly_insights | structured_llm_weekly_insights
+# Lazy LLM chains — ChatOpenAI clients are created on first AI request (faster cold start).
+_chain_v4 = None
+_chain_key_points = None
+_chain_task_rec = None
+_chain_weekly_insights = None
+
+
+def get_chain_v4():
+    global _chain_v4
+    if _chain_v4 is None:
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.3, api_key=api_key)
+        _chain_v4 = prompt_v4 | llm.with_structured_output(AnalysisResultV4)
+    return _chain_v4
+
+
+def get_chain_key_points():
+    global _chain_key_points
+    if _chain_key_points is None:
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.25, api_key=api_key)
+        _chain_key_points = prompt_key_points | llm.with_structured_output(KeyPointsDraftResult)
+    return _chain_key_points
+
+
+def get_chain_task_rec():
+    global _chain_task_rec
+    if _chain_task_rec is None:
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.25, api_key=api_key)
+        _chain_task_rec = prompt_task_rec | llm.with_structured_output(PracticalTaskRecommendation)
+    return _chain_task_rec
+
+
+def get_chain_weekly_insights():
+    global _chain_weekly_insights
+    if _chain_weekly_insights is None:
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.25, api_key=api_key)
+        _chain_weekly_insights = prompt_weekly_insights | llm.with_structured_output(WeeklyInsightsAIResult)
+    return _chain_weekly_insights
+
 
 # ═══════════════════ HELPERS ══════════════════════════════════
+
+STUDENT_LIST_COLUMNS = "id,name,grade,status,code,photo,created_at"
+
+STATUSES_CANONICAL = ("בתהליך", "סיים תהליך")
+
+_RE_NEG_EMOJI = re.compile(r"(?:😣|😟|😔)")
+_RE_POS_EMOJI = re.compile(r"(?:😊|🙂|😌|😀|😃|😄|👍|💪|✨|🎉)")
+_RE_NEG_HE = re.compile(
+    r"(?:עצוב|לחוץ|נורא|גרוע|רע|מעצבן|בדידות|חרדה|מצוק|נשבר|בעייתי|בעיה|מעצבנ|נשברתי|מצב רע|בלא)"
+)
+_RE_POS_HE = re.compile(
+    r"(?:טוב|טובה|מצוין|יופי|מצו|בסדר|נשמע|כיף|שמח|נחמד|קל|הקלה|נראה|מצחיק|אחלה|מעולה|הרגשתי)"
+)
+
+
+def canonical_status(raw: Optional[str]) -> str:
+    if raw in STATUSES_CANONICAL:
+        return raw
+    if raw in ("יציב", "תקין"):
+        return "סיים תהליך"
+    return "בתהליך"
+
+
+def _parse_iso_ms(iso: Optional[str]) -> Optional[int]:
+    if not iso:
+        return None
+    try:
+        s = str(iso).replace(" ", "T")
+        if s.endswith("Z"):
+            s = s[:-1] + "+00:00"
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return int(dt.timestamp() * 1000)
+    except Exception:
+        return None
+
+
+def _days_since_ms(ms: Optional[int]) -> float:
+    if not ms:
+        return float("inf")
+    return (datetime.now(timezone.utc).timestamp() * 1000 - ms) / (1000 * 60 * 60 * 24)
+
+
+def _is_negative_emoji_mood(mood_raw: Optional[str]) -> bool:
+    return bool(_RE_NEG_EMOJI.search(str(mood_raw or "")))
+
+
+def _is_positive_emoji_mood(mood_raw: Optional[str]) -> bool:
+    mood = str(mood_raw or "")
+    if _is_negative_emoji_mood(mood):
+        return False
+    return bool(_RE_POS_EMOJI.search(mood))
+
+
+def _is_positive_sentiment_text(text: Optional[str]) -> bool:
+    t = str(text or "").strip()
+    if not t:
+        return True
+    if _RE_NEG_HE.search(t):
+        return False
+    if _RE_POS_HE.search(t):
+        return True
+    return len(t) < 48
+
+
+def _should_relax_ai_flag(reports: list) -> bool:
+    if not reports:
+        return False
+    reps = sorted(reports, key=lambda r: _parse_iso_ms(r.get("created_at")) or 0, reverse=True)
+    latest = reps[0]
+    return _is_positive_emoji_mood(latest.get("mood")) and _is_positive_sentiment_text(latest.get("text"))
+
+
+def compute_proactive_alert(student: dict, tasks: list, reports: list) -> dict:
+    """Mirror of frontend computeProactiveAlert — dashboard warning badges."""
+    if canonical_status(student.get("status")) != "בתהליך":
+        return {
+            "needs": False,
+            "aiStillDetected": False,
+            "relaxedByPositiveData": False,
+            "inactive7": False,
+            "isDistressed": False,
+            "tags": [],
+            "reasonHebrew": "",
+            "silenceFingerprint": "",
+        }
+    tags: List[str] = []
+    inactive7 = False
+    is_distressed = False
+
+    weekly_picked = any(t and t.get("selected") for t in tasks or [])
+    pick_times = [_parse_iso_ms(t.get("selected_at")) for t in (tasks or []) if t]
+    pick_times = [x for x in pick_times if x is not None]
+    latest_pick_ms = max(pick_times) if pick_times else None
+    created_ms = _parse_iso_ms(student.get("created_at"))
+    baseline_ms = latest_pick_ms or created_ms
+
+    if not weekly_picked and _days_since_ms(baseline_ms) > 7:
+        inactive7 = True
+        tags.append("7 days inactive")
+
+    reps = sorted(reports or [], key=lambda r: _parse_iso_ms(r.get("created_at")) or 0)
+    last3 = reps[-3:]
+    three_neg_emoji = len(last3) == 3 and all(_is_negative_emoji_mood(r.get("mood")) for r in last3)
+    weekly_uncompleted = len([t for t in (tasks or []) if t and t.get("selected") and not t.get("done")])
+    too_many_weekly_incomplete = weekly_uncompleted >= 3
+
+    if three_neg_emoji or too_many_weekly_incomplete:
+        is_distressed = True
+        if too_many_weekly_incomplete:
+            tags.append("3+ weekly incomplete")
+
+    reason_parts = []
+    if inactive7:
+        reason_parts.append("ללא בחירת משימה שבועית מעל 7 ימים")
+    if three_neg_emoji:
+        reason_parts.append("3 אימוג'ים עצובים ברצף")
+    if too_many_weekly_incomplete:
+        reason_parts.append(f"{weekly_uncompleted} משימות שבועיות שלא הושלמו")
+    reason_hebrew = " · ".join(reason_parts)
+
+    last3_key = ",".join(str(r.get("id") or r.get("created_at") or "") for r in last3)
+    silence_fingerprint = "|".join([
+        "1" if inactive7 else "0",
+        "1" if three_neg_emoji else "0",
+        str(weekly_uncompleted) if too_many_weekly_incomplete else "0",
+        last3_key,
+    ])
+
+    base_signals = inactive7 or is_distressed
+    relaxed = base_signals and _should_relax_ai_flag(reports)
+    ai_still = base_signals and not relaxed
+
+    return {
+        "needs": ai_still,
+        "aiStillDetected": ai_still,
+        "relaxedByPositiveData": relaxed,
+        "inactive7": inactive7,
+        "isDistressed": is_distressed,
+        "tags": tags,
+        "reasonHebrew": reason_hebrew,
+        "silenceFingerprint": silence_fingerprint if ai_still else "",
+    }
 
 def strip_none(d: dict) -> dict:
     return {k: v for k, v in d.items() if v is not None}
@@ -884,9 +1048,62 @@ async def extract_document_text(file: UploadFile = File(...)):
 
 # ═══════════════════ STUDENTS ═════════════════════════════════
 
+@app.get("/students/dashboard")
+def get_students_dashboard():
+    """
+    Counselor dashboard: slim student rows + proactive alerts + tasks/reports cache
+    in 3 DB round-trips instead of 1 + 2N client requests.
+    """
+    students_res = (
+        db.table("students")
+        .select(STUDENT_LIST_COLUMNS)
+        .order("created_at")
+        .execute()
+    )
+    students = students_res.data or []
+    if not students:
+        return {"students": [], "proactive_by_id": {}, "student_data_cache": {}}
+
+    ids = [s["id"] for s in students if s.get("id")]
+    tasks_res = db.table("tasks").select("*").in_("student_id", ids).execute()
+    reports_res = db.table("reports").select("*").in_("student_id", ids).execute()
+
+    tasks_by_student: Dict[str, list] = defaultdict(list)
+    reports_by_student: Dict[str, list] = defaultdict(list)
+    for t in tasks_res.data or []:
+        sid = t.get("student_id")
+        if sid:
+            tasks_by_student[str(sid)].append(t)
+    for r in reports_res.data or []:
+        sid = r.get("student_id")
+        if sid:
+            reports_by_student[str(sid)].append(r)
+
+    proactive_by_id: Dict[str, dict] = {}
+    student_data_cache: Dict[str, dict] = {}
+    for s in students:
+        sid = str(s["id"])
+        tasks = tasks_by_student.get(sid, [])
+        reports = reports_by_student.get(sid, [])
+        proactive_by_id[sid] = compute_proactive_alert(s, tasks, reports)
+        student_data_cache[sid] = {"tasks": tasks, "reports": reports}
+
+    return {
+        "students": students,
+        "proactive_by_id": proactive_by_id,
+        "student_data_cache": student_data_cache,
+    }
+
+
 @app.get("/students")
 def get_students():
-    res = db.table("students").select("*").order("created_at").execute()
+    """Slim list for counselor roster — heavy JSONB fields loaded on demand."""
+    res = (
+        db.table("students")
+        .select(STUDENT_LIST_COLUMNS)
+        .order("created_at")
+        .execute()
+    )
     return res.data
 
 # ⚠️ ROUTE ORDER: /students/login BEFORE /students/{id}
@@ -896,6 +1113,15 @@ def student_login_by_code(code: str):
     res = db.table("students").select("id,name,grade").eq("code", code).execute()
     if not res.data:
         raise HTTPException(status_code=404, detail="קוד לא נמצא")
+    return res.data[0]
+
+
+@app.get("/students/{student_id}/counselor")
+def get_student_counselor(student_id: str):
+    """Full student row for counselor detail/history (includes JSONB + description)."""
+    res = db.table("students").select("*").eq("id", student_id).execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="תלמיד לא נמצא")
     return res.data[0]
 
 @app.get("/students/{student_id}")
@@ -1682,7 +1908,7 @@ def analyze_student(student_id: str):
             f"{latest_mood or 'לא דווח'}"
             + (f" — {latest_text.strip()}" if latest_text and latest_text.strip() else "")
         )
-        result = chain_v4.invoke({
+        result = get_chain_v4().invoke({
             "student_description": student.get("description", "לא צוין"),
             "latest_report": latest_report_str,
             "weekly_assigned_not_done": "\n".join(fmt_weekly_not_done(t) for t in weekly_assigned_not_done) or "אין",
@@ -1723,7 +1949,7 @@ def weekly_insights_ai(student_id: str, body: WeeklyInsightsAIRequest):
 
         counselor_description = (student.get("description") or "").strip().replace("\n", " ")[:800] or "לא צוין"
 
-        result = chain_weekly_insights.invoke(
+        result = get_chain_weekly_insights().invoke(
             {
                 "counselor_description": counselor_description,
                 "this_week_label": _week_span_label(cur_s),
@@ -1857,7 +2083,7 @@ def get_ai_task_recommendation(student_id: str):
     try:
         ctx = _counselor_full_context(student_id)
         bank_texts = ctx.pop("_bank_texts")
-        result = chain_task_rec.invoke({
+        result = get_chain_task_rec().invoke({
             "counselor_description": ctx["counselor_description"],
             "meeting_notes_history": ctx["meeting_notes_history"],
             "student_reports": ctx["student_reports"],
@@ -1915,7 +2141,7 @@ def draft_key_points(student_id: str):
     try:
         ctx = _counselor_full_context(student_id)
         ctx.pop("_bank_texts", None)
-        result = chain_key_points.invoke({
+        result = get_chain_key_points().invoke({
             "counselor_description": ctx["counselor_description"],
             "meeting_notes_history": ctx["meeting_notes_history"],
             "student_reports": ctx["student_reports"],

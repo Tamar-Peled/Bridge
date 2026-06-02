@@ -13,6 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="Bridge" />
 <meta name="mobile-web-app-capable" content="yes" />
+<meta name="bridge-api" content="" />
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 /* ══════════ TOKENS — light, clean ══════════ */
@@ -698,9 +699,15 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 
 <script>
 /* ══════════ CONFIG & STATE ══════════ */
-const API = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-  ? 'http://127.0.0.1:8000'
-  : 'https://bridge-2-rhtw.onrender.com';
+function resolveApiBase(){
+  if(['localhost','127.0.0.1'].includes(window.location.hostname))
+    return 'http://127.0.0.1:8000';
+  const meta=document.querySelector('meta[name="bridge-api"]');
+  const fromMeta=meta&&meta.getAttribute('content')&&meta.getAttribute('content').trim();
+  if(fromMeta) return fromMeta.replace(/\/$/,'');
+  return 'https://bridge-2-rhtw.onrender.com';
+}
+const API=resolveApiBase();
 
 let me           = null;   // { id, name, grade }
 let studentCode  = null;   // 4-digit login code (for /notes API only; not persisted)

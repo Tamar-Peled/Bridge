@@ -13,6 +13,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="Bridge" />
 <meta name="mobile-web-app-capable" content="yes" />
+<!-- Production backend (Railway): set your Railway URL here, e.g. https://your-app.up.railway.app -->
+<meta name="bridge-api" content="" />
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 /* ══════════ TOKENS — teal + charcoal ══════════ */
@@ -1294,9 +1296,17 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 
 <script>
 /* ════════════════ CONFIG ════════════════ */
-const API = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-  ? 'http://127.0.0.1:8000'
-  : 'https://bridge-2-rhtw.onrender.com';
+function resolveApiBase(){
+  if(['localhost','127.0.0.1'].includes(window.location.hostname))
+    return 'http://127.0.0.1:8000';
+  const meta=document.querySelector('meta[name="bridge-api"]');
+  const fromMeta=meta&&meta.getAttribute('content')&&meta.getAttribute('content').trim();
+  if(fromMeta) return fromMeta.replace(/\/$/,'');
+  /* Legacy Render fallback — set <meta name="bridge-api"> to your Railway URL in production */
+  return 'https://bridge-2-rhtw.onrender.com';
+}
+const API=resolveApiBase();
+const LIST_REFRESH_MS=5*60*1000;
 const STATUSES = ['בתהליך','סיים תהליך'];
 
 function canonicalStatus(raw){
@@ -1382,6 +1392,22 @@ let _weeklyCounselorAddingForWeek = new Set();
 let _userDeletedWeekKeys = new Set();
 // dashboard proactive alerts (per student id)
 let proactiveById  = {}; // { [id]: computeProactiveAlert(...) }
+let studentDataCache = {}; // { [id]: { tasks, reports, fetchedAt } } from dashboard batch
+let _lastListLoadMs = 0;
+
+function mergeStudentIntoList(fresh){
+  if(!fresh||!fresh.id) return fresh;
+  const idx=allStudents.findIndex(x=>String(x.id)===String(fresh.id));
+  if(idx>=0) allStudents[idx]={...allStudents[idx],...fresh};
+  else allStudents.push(fresh);
+  return fresh;
+}
+function studentHasFullProfile(s){
+  return !!(s&&Object.prototype.hasOwnProperty.call(s,'description'));
+}
+function invalidateStudentCache(sid){
+  if(sid&&studentDataCache[sid]) delete studentDataCache[sid];
+}
 
 /* ════════════════ HTTP ════════════════ */
 async function apiFetch(path, opts={}){
@@ -1901,13 +1927,9 @@ async function reloadMeetingNotes(){
 }
 async function reloadCurrentStudentFromServer(){
   if(!currentSid) return null;
-  const list=await apiFetch('/students');
-  if(!Array.isArray(list)) throw new Error('תשובת תלמידים לא תקינה מהשרת');
-  const fresh=list.find(x=>String(x.id)===String(currentSid));
-  if(!fresh) throw new Error('תלמיד לא נמצא');
-  const idx=allStudents.findIndex(x=>String(x.id)===String(currentSid));
-  if(idx>=0) allStudents[idx]=fresh;
-  else allStudents.push(fresh);
+  const fresh=await apiFetch(`/students/${currentSid}/counselor`);
+  if(!fresh||!fresh.id) throw new Error('תלמיד לא נמצא');
+  mergeStudentIntoList(fresh);
   return fresh;
 }
 
@@ -2625,26 +2647,47 @@ async function enterCounselor(){showScreen('screen-main');await loadList();}
 function goBack(){showScreen('screen-main');loadList();}
 
 /* ════════════════ LIST ════════════════ */
+async function loadListLegacyNPlusOne(){
+  allStudents=await apiFetch('/students');
+  proactiveById={};
+  studentDataCache={};
+  await mapPool(allStudents, 6, async (s)=>{
+    try{
+      const [tasks,reports]=await Promise.all([
+        apiFetch(`/tasks/${s.id}`),
+        apiFetch(`/reports/${s.id}`),
+      ]);
+      proactiveById[s.id]=computeProactiveAlert(s, tasks, reports);
+      studentDataCache[s.id]={tasks,reports,fetchedAt:Date.now()};
+    }catch(_){
+      proactiveById[s.id]={needs:false,aiStillDetected:false,relaxedByPositiveData:false,inactive7:false,isDistressed:false,tags:[],reasonHebrew:'',silenceFingerprint:''};
+    }
+  });
+}
+
 async function loadList(){
   const el=document.getElementById('students-list');
   el.innerHTML='<div class="loading-box"><span class="spinner spinner-dk"></span> טוען...</div>';
   try{
-    allStudents=await apiFetch('/students');
-    proactiveById={};
-
-    // Fetch per-student tasks+reports to power proactive alerts (bounded concurrency)
-    await mapPool(allStudents, 6, async (s)=>{
-      try{
-        const [tasks,reports]=await Promise.all([
-          apiFetch(`/tasks/${s.id}`),
-          apiFetch(`/reports/${s.id}`),
-        ]);
-        proactiveById[s.id]=computeProactiveAlert(s, tasks, reports);
-      }catch(_){
-        proactiveById[s.id]={needs:false,aiStillDetected:false,relaxedByPositiveData:false,inactive7:false,isDistressed:false,tags:[],reasonHebrew:'',silenceFingerprint:''};
+    try{
+      const data=await apiFetch('/students/dashboard');
+      allStudents=Array.isArray(data&&data.students)?data.students:[];
+      proactiveById=(data&&data.proactive_by_id)||{};
+      studentDataCache={};
+      const cacheBlock=(data&&data.student_data_cache)||{};
+      for(const sid of Object.keys(cacheBlock)){
+        const block=cacheBlock[sid]||{};
+        studentDataCache[sid]={
+          tasks:Array.isArray(block.tasks)?block.tasks:[],
+          reports:Array.isArray(block.reports)?block.reports:[],
+          fetchedAt:Date.now(),
+        };
       }
-    });
-
+    }catch(dashErr){
+      console.warn('[loadList] dashboard endpoint failed, falling back to legacy N+1:',dashErr);
+      await loadListLegacyNPlusOne();
+    }
+    _lastListLoadMs=Date.now();
     filterStudents();
   }catch(e){
     el.innerHTML=`<div class="loading-box">שגיאה: ${escH(e.message)}</div>`;
@@ -2731,19 +2774,38 @@ async function openStudent(id){
   _counselorDetailTab='tasks';showScreen('screen-detail');
   document.getElementById('detail-content').innerHTML='<div class="loading-box"><span class="spinner spinner-dk"></span> טוען...</div>';
   try{
-    const [tasks,reports,notes,docs]=await Promise.all([
-      apiFetch(`/tasks/${id}`),
-      apiFetch(`/reports/${id}`),
+    const stu=allStudents.find(x=>x.id===id);
+    const cached=studentDataCache[id];
+    const profilePromise=studentHasFullProfile(stu)
+      ?Promise.resolve(stu)
+      :apiFetch(`/students/${id}/counselor`).then(full=>mergeStudentIntoList(full));
+    const tasksPromise=cached&&Array.isArray(cached.tasks)
+      ?Promise.resolve(cached.tasks)
+      :apiFetch(`/tasks/${id}`);
+    const reportsPromise=cached&&Array.isArray(cached.reports)
+      ?Promise.resolve(cached.reports)
+      :apiFetch(`/reports/${id}`);
+    const [profile,tasks,reports,notes,docs]=await Promise.all([
+      profilePromise,
+      tasksPromise,
+      reportsPromise,
       apiFetch(`/meeting-notes/${id}`).catch(e=>{
         showToast(`סיכומי פגישות: ${e.message}`);
         return [];
       }),
       apiFetch(`/students/${id}/documents`).catch(()=>[]),
     ]);
+    studentDataCache[id]={
+      tasks:Array.isArray(tasks)?tasks:[],
+      reports:Array.isArray(reports)?reports:[],
+      fetchedAt:Date.now(),
+    };
     apiFetch(`/reports/${id}/mark-seen`,{method:'PATCH'}).catch(()=>{});
-    currentTasks=tasks;currentReports=reports;currentNotes=notes||[];
+    currentTasks=studentDataCache[id].tasks;
+    currentReports=studentDataCache[id].reports;
+    currentNotes=notes||[];
     currentGeneralDocuments=Array.isArray(docs)?docs:[];
-    await renderDetail(allStudents.find(x=>x.id===id));
+    await renderDetail(allStudents.find(x=>x.id===id)||profile);
   }catch(e){
     document.getElementById('detail-content').innerHTML=`<div class="loading-box">שגיאה: ${escH(e.message)}</div>`;
   }
@@ -4425,6 +4487,7 @@ async function addTask(){
   try{
     const t=await apiFetch('/tasks',{method:'POST',body:JSON.stringify({student_id:currentSid,text})});
     inp.value='';currentTasks.push(t);
+    invalidateStudentCache(currentSid);
     await renderDetail(allStudents.find(x=>x.id===currentSid));
     showToast('משימה נוספה לבנק ✓');
   }catch(e){showToast(`שגיאה: ${e.message}`);}
@@ -4463,6 +4526,7 @@ function delTask(taskId){
         await apiFetch(`/tasks/${taskId}`,{method:'DELETE'});
         currentTasks=currentTasks.filter(t=>t.id!==taskId);
         currentReports=currentReports.filter(r=>r.task_id!==taskId);
+        invalidateStudentCache(currentSid);
         await renderDetail(allStudents.find(x=>x.id===currentSid));
         showToast('משימה נמחקה');
       }catch(e){showToast(`שגיאה: ${e.message}`);}
@@ -4679,7 +4743,9 @@ async function addSug(i){
   const text=window._sug[i];if(!text)return;
   try{
     const t=await apiFetch('/tasks',{method:'POST',body:JSON.stringify({student_id:currentSid,text})});
-    currentTasks.push(t);await renderDetail(allStudents.find(x=>x.id===currentSid));
+    currentTasks.push(t);
+    invalidateStudentCache(currentSid);
+    await renderDetail(allStudents.find(x=>x.id===currentSid));
     document.getElementById(`sg-${i}`).style.opacity='.4';
     document.querySelector(`#sg-${i} .sug-btn.add`).textContent='✓ נוסף';
     showToast('משימה נוספה לבנק ✓');
@@ -4689,7 +4755,13 @@ async function addSug(i){
 /* ════════════════ AUTO REFRESH ════════════════ */
 setInterval(()=>{
   if(document.getElementById('screen-main').classList.contains('active')) loadList();
-},30_000);
+},LIST_REFRESH_MS);
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible') return;
+  if(!document.getElementById('screen-main').classList.contains('active')) return;
+  if(Date.now()-_lastListLoadMs<60000) return;
+  loadList();
+});
 </script>
 </body>
 </html>
