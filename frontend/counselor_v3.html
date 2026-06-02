@@ -3094,20 +3094,25 @@ function weeklyEntryPreviewText(entry){
   }
   return parts.join('\n\n');
 }
+const WEEKLY_AI_SECTION_TITLE='הצעת AI';
+const WEEKLY_AI_ATTR_LABEL='נכתב על ידי AI';
+function weeklyAiAttributionBadge(fromAi){
+  return fromAi!==false?`<span class="weekly-entry-ai-badge">${WEEKLY_AI_ATTR_LABEL}</span>`:'';
+}
 function weeklyEntryAiInsightsReadHtml(insights){
   const list=normalizeAiInsightsList(insights);
   if(!list.length) return '';
   const items=list.map(ai=>{
-    const badge=ai.from_ai!==false?'<span class="weekly-entry-ai-badge">הצעת AI</span>':'';
+    const badge=weeklyAiAttributionBadge(ai.from_ai);
     return `<div class="weekly-entry-ai-item">${badge}<div class="weekly-entry-ai-text">${escHBr(ai.text)}</div></div>`;
   }).join('');
-  return `<div class="weekly-entry-ai-section weekly-counselor-ai-block"><h5 class="weekly-entry-ai-h">AI Insights</h5>${items}</div>`;
+  return `<div class="weekly-entry-ai-section weekly-counselor-ai-block"><h5 class="weekly-entry-ai-h">${WEEKLY_AI_SECTION_TITLE}</h5>${items}</div>`;
 }
 function weeklyEntryAiInsightsEditorHtml(entryId,insights){
   const list=normalizeAiInsightsList(insights);
   const items=list.map(ai=>{
     const aiId=escAttr(String(ai.id));
-    const badge=ai.from_ai!==false?'<span class="weekly-entry-ai-badge">הצעת AI</span>':'';
+    const badge=weeklyAiAttributionBadge(ai.from_ai);
     return `<div class="weekly-entry-ai-item-editor" data-ai-id="${aiId}">
       <div class="weekly-entry-ai-item-head">${badge}
         <button type="button" class="btn-icon" title="מחק תובנה" onclick="removeWeeklyAiInsightItem('${escAttr(entryId)}','${aiId}')">🗑</button>
@@ -3116,9 +3121,32 @@ function weeklyEntryAiInsightsEditorHtml(entryId,insights){
     </div>`;
   }).join('');
   return `<div class="weekly-counselor-ai-block">
-    <h5 class="weekly-entry-ai-h">AI Insights</h5>
+    <h5 class="weekly-entry-ai-h">${WEEKLY_AI_SECTION_TITLE}</h5>
     <div class="weekly-entry-ai-list" id="weekly-sum-ai-list-${escAttr(entryId)}">${items}</div>
   </div>`;
+}
+function weeklyEntryToStoredShape(entry){
+  const o={
+    id:String(entry.id),
+    title:String(entry.title||''),
+    text:String(entry.text!=null?entry.text:''),
+    created_at:String(entry.created_at||''),
+  };
+  if(entry.updated_at) o.updated_at=entry.updated_at;
+  const insights=normalizeAiInsightsList(entry.ai_insights);
+  if(insights.length){
+    o.ai_insights=insights.map(ai=>({id:ai.id,text:ai.text,from_ai:ai.from_ai!==false}));
+  }
+  return o;
+}
+function weeklyAiInsightsPayloadEqual(a,b){
+  const na=normalizeAiInsightsList(a);
+  const nb=normalizeAiInsightsList(b);
+  if(na.length!==nb.length) return false;
+  for(let i=0;i<na.length;i++){
+    if(String(na[i].text||'')!==String(nb[i].text||'')) return false;
+  }
+  return true;
 }
 function defaultWeeklyEntryTitle(num){
   return 'סיכום פגישה #'+num;
@@ -3755,12 +3783,31 @@ function getWeeklyCounselorEditorEntryId(wkKey){
   }
   return null;
 }
-function ensureWeeklySummaryEditorOpen(wkKey,onReady){
+function getLatestWeeklyCounselorEntryForWeek(stu,wkKey){
   const k=String(normalizeWeekKey(wkKey)||wkKey);
-  const existing=getWeeklyCounselorEditorEntryId(k);
-  if(existing){onReady(existing);return;}
-  startAddWeeklyCounselorSummary(k);
-  setTimeout(()=>onReady('new-'+k),80);
+  const entries=(parseWeeklyEntriesFromStudent(stu)[k]||[]);
+  if(!entries.length) return null;
+  return entries[entries.length-1];
+}
+async function resolveWeeklySummaryEntryForAiInsight(wkKey,onReady){
+  /* Never auto-creates a new meeting summary — only the open draft or the
+     latest saved summary for this week (opened for edit). */
+  const k=String(normalizeWeekKey(wkKey)||wkKey);
+  const draftId=getWeeklyCounselorEditorEntryId(k);
+  if(draftId){
+    onReady(draftId);
+    return;
+  }
+  const stu=allStudents.find(x=>x.id===currentSid);
+  const latest=getLatestWeeklyCounselorEntryForWeek(stu,k);
+  if(latest&&latest.id){
+    const eid=String(latest.id);
+    _weeklyCounselorEditingKeys.add(eid);
+    await renderCounselorDetailHistory();
+    setTimeout(()=>onReady(eid),60);
+    return;
+  }
+  showToast('פתחי או הוסיפי סיכום פגישה לשבוע לפני הוספת תובנת AI');
 }
 function collectAiInsightsFromEditor(entryId){
   const list=document.getElementById('weekly-sum-ai-list-'+entryId);
@@ -3782,7 +3829,7 @@ function appendWeeklyAiInsightToEditor(entryId,text){
   const block=document.createElement('div');
   block.className='weekly-entry-ai-item-editor';
   block.dataset.aiId=aiId;
-  block.innerHTML=`<div class="weekly-entry-ai-item-head"><span class="weekly-entry-ai-badge">הצעת AI</span>
+  block.innerHTML=`<div class="weekly-entry-ai-item-head"><span class="weekly-entry-ai-badge">${WEEKLY_AI_ATTR_LABEL}</span>
       <button type="button" class="btn-icon" title="מחק תובנה" onclick="removeWeeklyAiInsightItem('${escAttr(entryId)}','${escAttr(aiId)}')">🗑</button>
     </div>
     <textarea class="weekly-entry-ai-ta" data-ai-id="${escAttr(aiId)}" placeholder="תוכן התובנה..."></textarea>`;
@@ -3808,9 +3855,11 @@ function addWeeklyInsightToSummaryDraft(wkKeyStr,field){
   const isTrend=field==='trend';
   const text=String(isTrend?pack.trend:pack.recommended_focus||'').trim();
   if(!text){showToast('אין תוכן להוספה');return;}
-  ensureWeeklySummaryEditorOpen(k,(entryId)=>{
+  void resolveWeeklySummaryEntryForAiInsight(k,(entryId)=>{
     appendWeeklyAiInsightToEditor(entryId,text);
-    showToast('נוסף ל-AI Insights — ניתן לערוך לפני השמירה');
+    showToast('נוסף ל־'+WEEKLY_AI_SECTION_TITLE+' — ניתן לערוך לפני השמירה');
+    const editor=document.getElementById('weekly-sum-editor-'+entryId);
+    try{editor&&editor.scrollIntoView({behavior:'smooth',block:'nearest'});}catch(_){}
   });
 }
 function buildCounselorWeeklyMeetingAccordionHtml(stu){
@@ -4240,7 +4289,7 @@ async function saveWeeklyCounselorSummary(wkKeyStr,entryId,opts={}){
       if(canon===wkKeyStrNorm) continue;
       newRaw[k]=raw[k];
     }
-    if(entries.length) newRaw[wkKeyStrNorm]=entries;
+    if(entries.length) newRaw[wkKeyStrNorm]=entries.map(weeklyEntryToStoredShape);
     const url=`/students/${currentSid}`;
     const bodyObj={weekly_counselor_summaries:newRaw};
     const bodyStr=JSON.stringify(bodyObj);
@@ -4250,6 +4299,7 @@ async function saveWeeklyCounselorSummary(wkKeyStr,entryId,opts={}){
     console.log('entryId            =',eid);
     console.log('title              =',titleVal);
     console.log('text length        =',textVal.length);
+    console.log('ai_insights count  =',deleting?0:aiInsightsVal.length);
     console.log('entries count      =',entries.length);
     console.log('collapsed raw keys =',collapsedRawKeys);
     console.log('outbound body str  =',bodyStr);
@@ -4275,10 +4325,16 @@ async function saveWeeklyCounselorSummary(wkKeyStr,entryId,opts={}){
       const v=freshEntries.find(e=>String(e.id)===eid);
       if(!v) throw new Error('הסיכום לא נמצא לאחר השמירה');
       if(String(v.text)!==textVal) throw new Error('תוכן הסיכום לא תואם את מה שנשמר');
+      if(!weeklyAiInsightsPayloadEqual(v.ai_insights,aiInsightsVal)){
+        throw new Error('תובנות AI לא נשמרו — נסי שוב');
+      }
     }else if(mode==='add'){
       const newId=opts._newGeneratedId;
       const v=freshEntries.find(e=>String(e.id)===newId);
       if(!v) throw new Error('הסיכום החדש לא נמצא לאחר השמירה');
+      if(aiInsightsVal.length&&!weeklyAiInsightsPayloadEqual(v.ai_insights,aiInsightsVal)){
+        throw new Error('תובנות AI לא נשמרו — נסי שוב');
+      }
     }
     /* Collapse UI state for this entry/week so the form reverts to a
      read-only card after success. */
@@ -4384,7 +4440,7 @@ async function runWeeklyInsightsAI(wkKeyStr){
         `<div class="weekly-ai-insight-item"><div class="weekly-ai-block"><strong>מגמה:</strong><br>${tr||'<span class="sec-empty">—</span>'}</div>${trendBtn}</div>`+
         `<div class="weekly-ai-insight-item"><div class="weekly-ai-block"><strong>מיקוד מומלץ לפגישה הבאה:</strong><br>${rf||'<span class="sec-empty">—</span>'}</div>${focusBtn}</div>`;
     }
-    showToast('תובנות AI הוכנו — לחצי + הוסף לסיכום כדי להוסיף ל-AI Insights');
+    showToast('תובנות AI הוכנו — לחצי + הוסף לסיכום כדי להוסיף ל־'+WEEKLY_AI_SECTION_TITLE);
   }catch(e){
     showToast(`שגיאה: ${e.message}`);
   }finally{
