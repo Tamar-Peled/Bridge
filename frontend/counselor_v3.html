@@ -3106,11 +3106,19 @@ function normalizeAiInsightsList(raw){
   if(!raw) return [];
   if(!Array.isArray(raw)) return [];
   const out=[];
+  const seen=new Set();
   raw.forEach((item,idx)=>{
     const n=normalizeAiInsight(item,idx);
-    if(n) out.push(n);
+    if(!n) return;
+    const key=String(n.title||'')+'\x00'+String(n.text||'');
+    if(seen.has(key)) return;
+    seen.add(key);
+    out.push(n);
   });
   return out;
+}
+function dedupeAiInsightsByTitleText(list){
+  return normalizeAiInsightsList(list);
 }
 function weeklyEntryPreviewText(entry){
   const parts=[];
@@ -3173,7 +3181,7 @@ function weeklyEntryToStoredShape(entry){
     created_at:String(entry.created_at||''),
   };
   if(entry.updated_at) o.updated_at=entry.updated_at;
-  const insights=normalizeAiInsightsList(entry.ai_insights);
+  const insights=dedupeAiInsightsByTitleText(entry.ai_insights);
   if(insights.length){
     o.ai_insights=insights.map(ai=>({
       id:ai.id,
@@ -3194,13 +3202,17 @@ function weeklyAiInsightsPayloadEqual(a,b){
   }
   return true;
 }
+function weeklyAiInsightEditorItems(list){
+  if(!list) return [];
+  return Array.from(list.querySelectorAll(':scope > .weekly-entry-ai-item-editor'));
+}
 function weeklyAiInsightAlreadyInEditor(entryId,title,text){
   const list=document.getElementById('weekly-sum-ai-list-'+entryId);
   if(!list) return false;
   const tit=String(title||'').trim();
   const body=String(text||'').trim();
   let found=false;
-  list.querySelectorAll('.weekly-entry-ai-item-editor').forEach(el=>{
+  weeklyAiInsightEditorItems(list).forEach(el=>{
     const ta=el.querySelector('textarea.weekly-entry-ai-ta');
     const inp=el.querySelector('.weekly-entry-ai-title-inp');
     const et=(ta&&ta.value!=null)?String(ta.value).trim():'';
@@ -3870,7 +3882,7 @@ function collectAiInsightsFromEditor(entryId){
   const list=document.getElementById('weekly-sum-ai-list-'+entryId);
   if(!list) return [];
   const out=[];
-  list.querySelectorAll('.weekly-entry-ai-item-editor').forEach(el=>{
+  weeklyAiInsightEditorItems(list).forEach(el=>{
     const ta=el.querySelector('textarea.weekly-entry-ai-ta');
     const titleInp=el.querySelector('.weekly-entry-ai-title-inp');
     const text=(ta&&ta.value!=null)?String(ta.value).trim():'';
@@ -3879,7 +3891,7 @@ function collectAiInsightsFromEditor(entryId){
     const title=(titleInp&&titleInp.value!=null)?String(titleInp.value).trim():'';
     out.push({id,title,text,from_ai:true});
   });
-  return out;
+  return dedupeAiInsightsByTitleText(out);
 }
 function appendWeeklyAiInsightToEditor(entryId,text,title){
   const list=document.getElementById('weekly-sum-ai-list-'+entryId);
@@ -3891,12 +3903,10 @@ function appendWeeklyAiInsightToEditor(entryId,text,title){
     return false;
   }
   const aiId=generateWeeklyAiInsightId();
-  const block=document.createElement('div');
-  block.className='weekly-entry-ai-item-editor';
-  block.dataset.aiId=aiId;
-  block.innerHTML=weeklyAiInsightEditorItemHtml(entryId,{id:aiId,title:insightTitle,text:body,from_ai:true});
-  list.appendChild(block);
-  const ta=block.querySelector('textarea.weekly-entry-ai-ta');
+  /* Insert a single editor row — do not wrap in another .weekly-entry-ai-item-editor
+     or collectAiInsightsFromEditor will save the same insight twice. */
+  list.insertAdjacentHTML('beforeend',weeklyAiInsightEditorItemHtml(entryId,{id:aiId,title:insightTitle,text:body,from_ai:true}));
+  const ta=list.querySelector(':scope > .weekly-entry-ai-item-editor:last-child textarea.weekly-entry-ai-ta');
   if(ta){
     try{ta.focus();}catch(_){}
   }
@@ -3906,7 +3916,7 @@ function removeWeeklyAiInsightItem(entryId,aiId){
   const list=document.getElementById('weekly-sum-ai-list-'+entryId);
   if(!list) return;
   const target=String(aiId);
-  list.querySelectorAll('.weekly-entry-ai-item-editor').forEach(el=>{
+  weeklyAiInsightEditorItems(list).forEach(el=>{
     if(String(el.dataset.aiId)===target) el.remove();
   });
 }
@@ -4272,7 +4282,7 @@ async function saveWeeklyCounselorSummary(wkKeyStr,entryId,opts={}){
     }
     titleVal=String(titleEl?titleEl.value:'').trim();
     textVal=String(textEl.value||'');
-    aiInsightsVal=collectAiInsightsFromEditor(eid);
+    aiInsightsVal=dedupeAiInsightsByTitleText(collectAiInsightsFromEditor(eid));
     if(!textVal.trim()&&!aiInsightsVal.length){
       showToast('נא למלא סיכום ידני או להוסיף תובנות AI');
       return;
