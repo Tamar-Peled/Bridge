@@ -367,6 +367,15 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .weekly-counselor-add-row>.btn-sm{width:100%;padding:12px 14px;font-size:14px;white-space:normal;line-height:1.3}
 .weekly-counselor-add-row>.weekly-add-summary-btn{background:var(--card);color:var(--primary);border:1.5px dashed var(--primary)}
 .weekly-counselor-add-row>.weekly-add-summary-btn:hover{background:rgba(91,183,183,.08)}
+.weekly-ai-out .weekly-ai-insight-item{
+  margin-top:10px;padding-top:10px;border-top:1px dashed rgba(91,183,183,.25);
+}
+.weekly-ai-out .weekly-ai-insight-item:first-child{margin-top:0;padding-top:0;border-top:none}
+.weekly-ai-out .weekly-ai-add-btn{
+  margin-top:8px;width:100%;background:var(--card);color:var(--primary);
+  border:1.5px dashed var(--primary);
+}
+.weekly-ai-out .weekly-ai-add-btn:hover{background:rgba(91,183,183,.08)}
 .weekly-notes-nested .meeting-session-card{margin:10px 0}
 .weekly-task-stack{display:flex;flex-direction:column;gap:8px}
 .weekly-task-compact{
@@ -1380,6 +1389,8 @@ let _weeklyCounselorEditingKeys = new Set();
    an empty editor card with an auto-generated default title underneath
    the existing entries for that week. */
 let _weeklyCounselorAddingForWeek = new Set();
+/* Latest ✨ תובנות AI result per week (wkKey → { trend, recommended_focus }) for "+ הוסף". */
+let _weeklyAiInsightsByWeek = {};
 /* Weeks the counselor explicitly deleted via the header 🗑 in the current
    session. We can't infer "deleted" purely from DB state because the week
    might still have legitimate student-side data (tasks/reports) the
@@ -3238,6 +3249,12 @@ function reportsInWeekSorted(reports,wkStart,wkEnd){
     return ms!=null&&ms>=wkStart&&ms<wkEnd;
   }).sort((a,b)=>(parseIsoMs(a.created_at)||0)-(parseIsoMs(b.created_at)||0));
 }
+function countMeetingSummariesForWeek(wkMs,wkEnd,notes,weeklyEntries){
+  /* Session notes (meeting_notes) + inline weekly counselor summaries (JSONB). */
+  const sessionCount=notesInWeekSorted(notes,wkMs,wkEnd).length;
+  const counselorCount=Array.isArray(weeklyEntries)?weeklyEntries.length:0;
+  return sessionCount+counselorCount;
+}
 function notesInWeekSorted(notes,wkStart,wkEnd){
   /* Always returns ASCENDING by created_at: oldest at index 0 (rendered
      at the top of the card stack), newest at the end (rendered at the
@@ -3629,6 +3646,56 @@ function cancelAddWeeklyCounselorSummary(wkKey){
   _weeklyCounselorAddingForWeek.delete(String(wkKey));
   void renderCounselorDetailHistory();
 }
+function getWeeklyCounselorSummaryDraftTa(wkKey){
+  const k=String(normalizeWeekKey(wkKey)||wkKey);
+  if(_weeklyCounselorAddingForWeek.has(k)){
+    const taNew=document.getElementById('weekly-sum-ta-new-'+k);
+    if(taNew) return taNew;
+  }
+  const stu=allStudents.find(x=>x.id===currentSid);
+  const entries=(parseWeeklyEntriesFromStudent(stu)[k]||[]);
+  for(const e of entries){
+    const eid=String(e.id||'');
+    if(!eid||!_weeklyCounselorEditingKeys.has(eid)) continue;
+    const ta=document.getElementById('weekly-sum-ta-'+eid);
+    if(ta) return ta;
+  }
+  return null;
+}
+function appendTextToWeeklyCounselorDraft(ta,block){
+  if(!ta||!block) return;
+  const cur=(ta.value||'').trim();
+  ta.value=cur?`${cur}\n\n${block}`:block;
+  try{ta.focus();}catch(_){}
+}
+function appendInsightToWeeklyCounselorDraft(wkKey,text,sectionLabel){
+  const k=String(normalizeWeekKey(wkKey)||wkKey);
+  const block=sectionLabel?`${sectionLabel}\n${text}`:text;
+  let ta=getWeeklyCounselorSummaryDraftTa(k);
+  if(ta){
+    appendTextToWeeklyCounselorDraft(ta,block);
+    showToast('נוסף לטיוטת הסיכום — ערכי ושמרי');
+    return;
+  }
+  startAddWeeklyCounselorSummary(k);
+  setTimeout(()=>{
+    ta=document.getElementById('weekly-sum-ta-new-'+k);
+    if(ta){
+      appendTextToWeeklyCounselorDraft(ta,block);
+      showToast('נוסף לטיוטת הסיכום — ערכי ושמרי');
+    }
+  },80);
+}
+function addWeeklyInsightToSummaryDraft(wkKeyStr,field){
+  const k=String(normalizeWeekKey(wkKeyStr)||wkKeyStr);
+  const pack=_weeklyAiInsightsByWeek[k];
+  if(!pack){showToast('אין תובנות — הריצי תובנות AI קודם');return;}
+  const isTrend=field==='trend';
+  const text=(isTrend?pack.trend:pack.recommended_focus)||'';
+  if(!String(text).trim()){showToast('אין תוכן להוספה');return;}
+  const label=isTrend?'מגמה (AI):':'מיקוד מומלץ לפגישה הבאה (AI):';
+  appendInsightToWeeklyCounselorDraft(k,text,label);
+}
 function buildCounselorWeeklyMeetingAccordionHtml(stu){
   const tasks=currentTasks||[];
   const reports=currentReports||[];
@@ -3663,7 +3730,7 @@ function buildCounselorWeeklyMeetingAccordionHtml(stu){
         <button type="button" class="weekly-meeting-week-head" aria-expanded="${aria}" onclick="toggleWeeklyMeetingWeek('${wkKey}')">
           <div>
             <div>${escH(titleLine)}</div>
-            <div class="weekly-week-meta">משימות ושיתופים בשבוע · משובים: ${repCount} · סיכומי פגישה: ${notesWeek.length}</div>
+            <div class="weekly-week-meta">משימות ושיתופים בשבוע · משובים: ${repCount} · סיכומי פגישה: ${countMeetingSummariesForWeek(wkMs,wkEnd,notes,entriesForWeek)}</div>
           </div>
           <span class="weekly-acc-chevron" aria-hidden="true">▼</span>
         </button>
@@ -4175,14 +4242,24 @@ async function runWeeklyInsightsAI(wkKeyStr){
       method:'POST',
       body:JSON.stringify({week_start_ms:Number(wkKeyNorm)}),
     });
+    const trendRaw=String((data&&data.trend)||'').trim();
+    const focusRaw=String((data&&data.recommended_focus)||'').trim();
+    _weeklyAiInsightsByWeek[wkKeyNorm]={trend:trendRaw,recommended_focus:focusRaw};
     if(out){
       out.style.display='block';
-      const tr=escHBr((data&&data.trend)||'');
-      const rf=escHBr((data&&data.recommended_focus)||'');
-      out.innerHTML=`<div class="weekly-ai-block"><strong>מגמה:</strong><br>${tr}</div>`+
-        `<div class="weekly-ai-block" style="margin-top:10px"><strong>מיקוד מומלץ לפגישה הבאה:</strong><br>${rf}</div>`;
+      const tr=escHBr(trendRaw);
+      const rf=escHBr(focusRaw);
+      const trendBtn=trendRaw
+        ?`<button type="button" class="btn-sm weekly-ai-add-btn" onclick="addWeeklyInsightToSummaryDraft('${escAttr(wkKeyNorm)}','trend')">+ הוסף לסיכום</button>`
+        :'';
+      const focusBtn=focusRaw
+        ?`<button type="button" class="btn-sm weekly-ai-add-btn" onclick="addWeeklyInsightToSummaryDraft('${escAttr(wkKeyNorm)}','focus')">+ הוסף לסיכום</button>`
+        :'';
+      out.innerHTML=
+        `<div class="weekly-ai-insight-item"><div class="weekly-ai-block"><strong>מגמה:</strong><br>${tr||'<span class="sec-empty">—</span>'}</div>${trendBtn}</div>`+
+        `<div class="weekly-ai-insight-item"><div class="weekly-ai-block"><strong>מיקוד מומלץ לפגישה הבאה:</strong><br>${rf||'<span class="sec-empty">—</span>'}</div>${focusBtn}</div>`;
     }
-    showToast('תובנות AI הוכנו ✓');
+    showToast('תובנות AI הוכנו — לחצי + הוסף לסיכום כדי להכניס לטיוטה');
   }catch(e){
     showToast(`שגיאה: ${e.message}`);
   }finally{
