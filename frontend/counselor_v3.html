@@ -376,6 +376,29 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   border:1.5px dashed var(--primary);
 }
 .weekly-ai-out .weekly-ai-add-btn:hover{background:rgba(91,183,183,.08)}
+.weekly-counselor-notes-lbl,.weekly-entry-ai-h{
+  font-size:12px;font-weight:800;color:var(--mid);margin:0 0 6px;text-align:right;
+}
+.weekly-counselor-ai-block{
+  margin-top:14px;padding-top:12px;border-top:1px dashed rgba(91,183,183,.35);
+}
+.weekly-entry-ai-h{font-size:13px;font-weight:800;color:var(--primary-dk);margin:0 0 10px}
+.weekly-entry-ai-item,.weekly-entry-ai-item-editor{
+  margin-bottom:10px;padding:10px 12px;background:rgba(91,183,183,.08);
+  border:1px solid rgba(91,183,183,.2);border-radius:10px;text-align:right;
+}
+.weekly-entry-ai-item:last-child,.weekly-entry-ai-item-editor:last-child{margin-bottom:0}
+.weekly-entry-ai-badge{
+  display:inline-block;font-size:10px;font-weight:700;color:var(--mid);
+  letter-spacing:.02em;margin-bottom:6px;opacity:.9;
+}
+.weekly-entry-ai-item-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.weekly-entry-ai-text{font-size:13px;line-height:1.5;color:var(--dark)}
+.weekly-entry-ai-ta{
+  width:100%;min-height:64px;resize:vertical;padding:8px 10px;border-radius:8px;
+  border:1px solid rgba(91,183,183,.35);font:inherit;font-size:13px;line-height:1.45;
+  text-align:right;background:#fff;
+}
 .weekly-notes-nested .meeting-session-card{margin:10px 0}
 .weekly-task-stack{display:flex;flex-direction:column;gap:8px}
 .weekly-task-compact{
@@ -3031,6 +3054,72 @@ function parseWeeklySummariesFromStudent(stu){
 function generateWeeklyEntryId(){
   return 'we_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10);
 }
+function generateWeeklyAiInsightId(){
+  return 'ai_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10);
+}
+function normalizeAiInsight(raw,idx){
+  if(raw==null) return null;
+  if(typeof raw==='string'){
+    const s=String(raw).trim();
+    if(!s) return null;
+    return {id:'ai_legacy_'+(idx||0),text:s,from_ai:true};
+  }
+  if(typeof raw==='object'&&!Array.isArray(raw)){
+    const text=String(raw.text!=null?raw.text:'').trim();
+    if(!text) return null;
+    return {
+      id:String(raw.id||generateWeeklyAiInsightId()),
+      text,
+      from_ai:raw.from_ai!==false,
+    };
+  }
+  return null;
+}
+function normalizeAiInsightsList(raw){
+  if(!raw) return [];
+  if(!Array.isArray(raw)) return [];
+  const out=[];
+  raw.forEach((item,idx)=>{
+    const n=normalizeAiInsight(item,idx);
+    if(n) out.push(n);
+  });
+  return out;
+}
+function weeklyEntryPreviewText(entry){
+  const parts=[];
+  const t=String(entry&&entry.text||'').trim();
+  if(t) parts.push(t);
+  for(const ai of normalizeAiInsightsList(entry&&entry.ai_insights)){
+    if(ai.text) parts.push(ai.text);
+  }
+  return parts.join('\n\n');
+}
+function weeklyEntryAiInsightsReadHtml(insights){
+  const list=normalizeAiInsightsList(insights);
+  if(!list.length) return '';
+  const items=list.map(ai=>{
+    const badge=ai.from_ai!==false?'<span class="weekly-entry-ai-badge">הצעת AI</span>':'';
+    return `<div class="weekly-entry-ai-item">${badge}<div class="weekly-entry-ai-text">${escHBr(ai.text)}</div></div>`;
+  }).join('');
+  return `<div class="weekly-entry-ai-section weekly-counselor-ai-block"><h5 class="weekly-entry-ai-h">AI Insights</h5>${items}</div>`;
+}
+function weeklyEntryAiInsightsEditorHtml(entryId,insights){
+  const list=normalizeAiInsightsList(insights);
+  const items=list.map(ai=>{
+    const aiId=escAttr(String(ai.id));
+    const badge=ai.from_ai!==false?'<span class="weekly-entry-ai-badge">הצעת AI</span>':'';
+    return `<div class="weekly-entry-ai-item-editor" data-ai-id="${aiId}">
+      <div class="weekly-entry-ai-item-head">${badge}
+        <button type="button" class="btn-icon" title="מחק תובנה" onclick="removeWeeklyAiInsightItem('${escAttr(entryId)}','${aiId}')">🗑</button>
+      </div>
+      <textarea class="weekly-entry-ai-ta" data-ai-id="${aiId}" placeholder="תוכן התובנה...">${escH(ai.text)}</textarea>
+    </div>`;
+  }).join('');
+  return `<div class="weekly-counselor-ai-block">
+    <h5 class="weekly-entry-ai-h">AI Insights</h5>
+    <div class="weekly-entry-ai-list" id="weekly-sum-ai-list-${escAttr(entryId)}">${items}</div>
+  </div>`;
+}
 function defaultWeeklyEntryTitle(num){
   return 'סיכום פגישה #'+num;
 }
@@ -3047,6 +3136,7 @@ function normalizeWeeklyEntry(raw,defaultNum,stableIdSeed){
       title:defaultWeeklyEntryTitle(defaultNum||1),
       text:s,
       created_at:'',
+      ai_insights:[],
     };
   }
   if(typeof raw!=='object'||Array.isArray(raw)) return null;
@@ -3054,7 +3144,8 @@ function normalizeWeeklyEntry(raw,defaultNum,stableIdSeed){
   const title=String(raw.title!=null?raw.title:defaultWeeklyEntryTitle(defaultNum||1));
   const text=String(raw.text!=null?raw.text:(raw.summary_text!=null?raw.summary_text:''));
   const created_at=String(raw.created_at||'');
-  return {id,title,text,created_at};
+  const ai_insights=normalizeAiInsightsList(raw.ai_insights);
+  return {id,title,text,created_at,ai_insights};
 }
 function weeklyEntriesForRawValue(rawValue,seedPrefix){
   /* Accepts a single value out of weekly_counselor_summaries[wkKey].
@@ -3563,7 +3654,8 @@ function weeklyCounselorEntryHtml(wkKey,wkMs,entry,positionNum){
   if(isEditing) return weeklyCounselorEntryEditorHtml(wkKey,wkMs,entry,positionNum,false);
   const dateLine=weekRangeLabelFromStart(wkMs);
   const text=String(entry.text||'');
-  const prevPlain=meetingPreviewPlain(text,3);
+  const prevPlain=meetingPreviewPlain(weeklyEntryPreviewText(entry),3);
+  const aiReadBlock=weeklyEntryAiInsightsReadHtml(entry.ai_insights);
   const title=String(entry.title||defaultWeeklyEntryTitle(positionNum));
   const eidAttr=escAttr(String(entry.id));
   return `<div class="rep-card meeting-session-card weekly-counselor-card" id="weekly-sum-card-${entry.id}" style="margin:8px 0;position:relative">
@@ -3576,7 +3668,8 @@ function weeklyCounselorEntryHtml(wkKey,wkMs,entry,positionNum){
       <span class="meeting-acc-chevron" aria-hidden="true">▼</span>
     </button>
     <div class="meeting-acc-panel" id="weekly-sum-body-${entry.id}" hidden>
-      <div class="meeting-full-text">${escHBr(text)}</div>
+      ${text.trim()?`<div class="meeting-full-text">${escHBr(text)}</div>`:'<p class="sec-empty" style="margin:0 0 8px 0">אין סיכום ידני</p>'}
+      ${aiReadBlock}
     </div>
     <div class="meeting-card-actions">
       <button type="button" class="btn-icon" onclick="editWeeklyCounselorSummary('${wkKey}','${eidAttr}')">✏️ עריכה</button>
@@ -3591,6 +3684,7 @@ function weeklyCounselorEntryEditorHtml(wkKey,wkMs,entry,positionNum,isNew){
   const id=isNew?('new-'+wkKey):String(entry.id);
   const title=String(entry.title||defaultWeeklyEntryTitle(positionNum));
   const text=isNew?'':String(entry.text||'');
+  const aiInsights=isNew?[]:normalizeAiInsightsList(entry.ai_insights);
   const cancelHandler=isNew
     ?`cancelAddWeeklyCounselorSummary('${wkKey}')`
     :`cancelEditWeeklyCounselorSummary('${wkKey}','${escAttr(id)}')`;
@@ -3598,7 +3692,11 @@ function weeklyCounselorEntryEditorHtml(wkKey,wkMs,entry,positionNum,isNew){
     <div class="weekly-counselor-title-row" style="margin-bottom:8px">
       <input class="weekly-counselor-title-input" id="weekly-sum-title-${id}" type="text" value="${escAttr(title)}" placeholder="כותרת — לדוגמה: סיכום פגישה #1" style="width:100%;font-weight:700;padding:8px 10px;border-radius:8px;border:1px solid var(--case-border, #e0e0e0);font-size:14px;text-align:right" />
     </div>
-    <textarea class="weekly-counselor-ta" id="weekly-sum-ta-${id}" placeholder="כתבי כאן את סיכום המפגש לשבוע...">${escH(text)}</textarea>
+    <div class="weekly-counselor-notes-block">
+      <div class="weekly-counselor-notes-lbl">סיכום המפגש (יועצת)</div>
+      <textarea class="weekly-counselor-ta" id="weekly-sum-ta-${id}" placeholder="כתבי כאן את סיכום המפגש לשבוע...">${escH(text)}</textarea>
+    </div>
+    ${weeklyEntryAiInsightsEditorHtml(id,aiInsights)}
     <div class="weekly-counselor-save-row">
       <button type="button" class="btn-sm" id="weekly-save-${id}" onclick="saveWeeklyCounselorSummary('${wkKey}','${escAttr(id)}')">שמירה</button>
       <button type="button" class="btn-sm" onclick="${cancelHandler}" style="background:var(--surface,#f1f1f1)">ביטול</button>
@@ -3607,7 +3705,7 @@ function weeklyCounselorEntryEditorHtml(wkKey,wkMs,entry,positionNum,isNew){
 }
 function weeklyCounselorAddEditorHtml(wkKey,wkMs,nextNum){
   /* Synthesizes a SummaryEntry-shaped placeholder for the editor. */
-  const placeholderEntry={id:'new-'+wkKey,title:defaultWeeklyEntryTitle(nextNum),text:'',created_at:''};
+  const placeholderEntry={id:'new-'+wkKey,title:defaultWeeklyEntryTitle(nextNum),text:'',created_at:'',ai_insights:[]};
   return weeklyCounselorEntryEditorHtml(wkKey,wkMs,placeholderEntry,nextNum,true);
 }
 function toggleWeeklyCounselorSummaryCard(entryId){
@@ -3646,55 +3744,74 @@ function cancelAddWeeklyCounselorSummary(wkKey){
   _weeklyCounselorAddingForWeek.delete(String(wkKey));
   void renderCounselorDetailHistory();
 }
-function getWeeklyCounselorSummaryDraftTa(wkKey){
+function getWeeklyCounselorEditorEntryId(wkKey){
   const k=String(normalizeWeekKey(wkKey)||wkKey);
-  if(_weeklyCounselorAddingForWeek.has(k)){
-    const taNew=document.getElementById('weekly-sum-ta-new-'+k);
-    if(taNew) return taNew;
-  }
+  if(_weeklyCounselorAddingForWeek.has(k)) return 'new-'+k;
   const stu=allStudents.find(x=>x.id===currentSid);
   const entries=(parseWeeklyEntriesFromStudent(stu)[k]||[]);
   for(const e of entries){
     const eid=String(e.id||'');
-    if(!eid||!_weeklyCounselorEditingKeys.has(eid)) continue;
-    const ta=document.getElementById('weekly-sum-ta-'+eid);
-    if(ta) return ta;
+    if(eid&&_weeklyCounselorEditingKeys.has(eid)) return eid;
   }
   return null;
 }
-function appendTextToWeeklyCounselorDraft(ta,block){
-  if(!ta||!block) return;
-  const cur=(ta.value||'').trim();
-  ta.value=cur?`${cur}\n\n${block}`:block;
-  try{ta.focus();}catch(_){}
-}
-function appendInsightToWeeklyCounselorDraft(wkKey,text,sectionLabel){
+function ensureWeeklySummaryEditorOpen(wkKey,onReady){
   const k=String(normalizeWeekKey(wkKey)||wkKey);
-  const block=sectionLabel?`${sectionLabel}\n${text}`:text;
-  let ta=getWeeklyCounselorSummaryDraftTa(k);
-  if(ta){
-    appendTextToWeeklyCounselorDraft(ta,block);
-    showToast('נוסף לטיוטת הסיכום — ערכי ושמרי');
-    return;
-  }
+  const existing=getWeeklyCounselorEditorEntryId(k);
+  if(existing){onReady(existing);return;}
   startAddWeeklyCounselorSummary(k);
-  setTimeout(()=>{
-    ta=document.getElementById('weekly-sum-ta-new-'+k);
-    if(ta){
-      appendTextToWeeklyCounselorDraft(ta,block);
-      showToast('נוסף לטיוטת הסיכום — ערכי ושמרי');
-    }
-  },80);
+  setTimeout(()=>onReady('new-'+k),80);
+}
+function collectAiInsightsFromEditor(entryId){
+  const list=document.getElementById('weekly-sum-ai-list-'+entryId);
+  if(!list) return [];
+  const out=[];
+  list.querySelectorAll('.weekly-entry-ai-item-editor').forEach(el=>{
+    const ta=el.querySelector('textarea.weekly-entry-ai-ta');
+    const text=(ta&&ta.value!=null)?String(ta.value).trim():'';
+    if(!text) return;
+    const id=String(el.dataset.aiId||ta.dataset.aiId||'')||generateWeeklyAiInsightId();
+    out.push({id,text,from_ai:true});
+  });
+  return out;
+}
+function appendWeeklyAiInsightToEditor(entryId,text){
+  const list=document.getElementById('weekly-sum-ai-list-'+entryId);
+  if(!list){console.warn('[ai-insight] list not found',entryId);return;}
+  const aiId=generateWeeklyAiInsightId();
+  const block=document.createElement('div');
+  block.className='weekly-entry-ai-item-editor';
+  block.dataset.aiId=aiId;
+  block.innerHTML=`<div class="weekly-entry-ai-item-head"><span class="weekly-entry-ai-badge">הצעת AI</span>
+      <button type="button" class="btn-icon" title="מחק תובנה" onclick="removeWeeklyAiInsightItem('${escAttr(entryId)}','${escAttr(aiId)}')">🗑</button>
+    </div>
+    <textarea class="weekly-entry-ai-ta" data-ai-id="${escAttr(aiId)}" placeholder="תוכן התובנה..."></textarea>`;
+  list.appendChild(block);
+  const ta=block.querySelector('textarea');
+  if(ta){
+    ta.value=String(text||'').trim();
+    try{ta.focus();}catch(_){}
+  }
+}
+function removeWeeklyAiInsightItem(entryId,aiId){
+  const list=document.getElementById('weekly-sum-ai-list-'+entryId);
+  if(!list) return;
+  const target=String(aiId);
+  list.querySelectorAll('.weekly-entry-ai-item-editor').forEach(el=>{
+    if(String(el.dataset.aiId)===target) el.remove();
+  });
 }
 function addWeeklyInsightToSummaryDraft(wkKeyStr,field){
   const k=String(normalizeWeekKey(wkKeyStr)||wkKeyStr);
   const pack=_weeklyAiInsightsByWeek[k];
   if(!pack){showToast('אין תובנות — הריצי תובנות AI קודם');return;}
   const isTrend=field==='trend';
-  const text=(isTrend?pack.trend:pack.recommended_focus)||'';
-  if(!String(text).trim()){showToast('אין תוכן להוספה');return;}
-  const label=isTrend?'מגמה (AI):':'מיקוד מומלץ לפגישה הבאה (AI):';
-  appendInsightToWeeklyCounselorDraft(k,text,label);
+  const text=String(isTrend?pack.trend:pack.recommended_focus||'').trim();
+  if(!text){showToast('אין תוכן להוספה');return;}
+  ensureWeeklySummaryEditorOpen(k,(entryId)=>{
+    appendWeeklyAiInsightToEditor(entryId,text);
+    showToast('נוסף ל-AI Insights — ניתן לערוך לפני השמירה');
+  });
 }
 function buildCounselorWeeklyMeetingAccordionHtml(stu){
   const tasks=currentTasks||[];
@@ -4023,6 +4140,7 @@ async function saveWeeklyCounselorSummary(wkKeyStr,entryId,opts={}){
      we only need the entryId; there's no form. */
   let titleVal='';
   let textVal='';
+  let aiInsightsVal=[];
   if(!deleting){
     const titleEl=document.getElementById('weekly-sum-title-'+eid);
     const textEl=document.getElementById('weekly-sum-ta-'+eid);
@@ -4039,6 +4157,11 @@ async function saveWeeklyCounselorSummary(wkKeyStr,entryId,opts={}){
     }
     titleVal=String(titleEl?titleEl.value:'').trim();
     textVal=String(textEl.value||'');
+    aiInsightsVal=collectAiInsightsFromEditor(eid);
+    if(!textVal.trim()&&!aiInsightsVal.length){
+      showToast('נא למלא סיכום ידני או להוסיף תובנות AI');
+      return;
+    }
   }
   const btn=document.getElementById('weekly-save-'+eid);
   if(btn) setBusy(btn.id,true,'שומר...');
@@ -4088,6 +4211,7 @@ async function saveWeeklyCounselorSummary(wkKeyStr,entryId,opts={}){
         id:newId,
         title:finalTitle,
         text:textVal,
+        ai_insights:aiInsightsVal,
         created_at:new Date().toISOString(),
       });
       /* When verifying, look up by the newly generated id. */
@@ -4102,6 +4226,7 @@ async function saveWeeklyCounselorSummary(wkKeyStr,entryId,opts={}){
         ...entries[idx],
         title:titleVal||entries[idx].title||defaultWeeklyEntryTitle(idx+1),
         text:textVal,
+        ai_insights:aiInsightsVal,
         updated_at:new Date().toISOString(),
       };
     }
@@ -4259,7 +4384,7 @@ async function runWeeklyInsightsAI(wkKeyStr){
         `<div class="weekly-ai-insight-item"><div class="weekly-ai-block"><strong>מגמה:</strong><br>${tr||'<span class="sec-empty">—</span>'}</div>${trendBtn}</div>`+
         `<div class="weekly-ai-insight-item"><div class="weekly-ai-block"><strong>מיקוד מומלץ לפגישה הבאה:</strong><br>${rf||'<span class="sec-empty">—</span>'}</div>${focusBtn}</div>`;
     }
-    showToast('תובנות AI הוכנו — לחצי + הוסף לסיכום כדי להכניס לטיוטה');
+    showToast('תובנות AI הוכנו — לחצי + הוסף לסיכום כדי להוסיף ל-AI Insights');
   }catch(e){
     showToast(`שגיאה: ${e.message}`);
   }finally{
