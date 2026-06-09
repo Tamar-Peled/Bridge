@@ -182,50 +182,9 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   padding:22px 20px 20px;margin-bottom:14px;
   text-align:center;box-shadow:var(--shadow);
 }
-.week-hero-greet .welcome-name{font-size:20px;font-weight:800;margin-bottom:4px;color:#fff}
+.week-hero-greet .welcome-name{font-size:20px;font-weight:800;margin-bottom:6px;color:#fff}
+.week-hero-greet .welcome-prog{font-size:14px;font-weight:700;color:rgba(255,255,255,.92);line-height:1.45;margin-bottom:6px}
 .week-hero-greet .welcome-grade{color:rgba(255,255,255,.72);font-size:13px}
-
-/* ══════════ SUCCESS CARDS (הצלחות השבוע) ══════════ */
-.success-strip{
-  margin-bottom:14px;
-  padding:16px 14px 14px;
-  background:linear-gradient(180deg,rgba(255,255,255,.95) 0%,var(--primary-soft) 100%);
-  border:1px solid var(--primary-border);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-}
-.success-strip-head{
-  font-weight:800;font-size:15px;color:var(--primary-dk);text-align:center;margin-bottom:12px;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-}
-.success-strip-head::before,.success-strip-head::after{
-  content:'';flex:1;max-width:48px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--primary));
-  opacity:.45;
-}
-.success-strip-head::after{background:linear-gradient(270deg,transparent,var(--primary))}
-.success-cards{display:flex;flex-direction:column;gap:10px}
-.success-card{
-  display:flex;align-items:flex-start;gap:12px;
-  background:var(--card);border:1px solid var(--primary-border);
-  border-radius:var(--radius-sm);padding:14px 16px;cursor:pointer;
-  box-shadow:var(--shadow);transition:transform .1s,border-color .15s,background .15s;
-}
-.success-card:active{transform:scale(.985)}
-.success-card:hover{border-color:var(--primary);background:var(--primary-soft)}
-.success-card-icon{
-  width:24px;height:24px;border-radius:50%;
-  background:var(--primary-dk);border:2px solid var(--primary-dk);
-  color:#fff;display:flex;align-items:center;justify-content:center;
-  font-weight:700;flex-shrink:0;font-size:13px;
-}
-.success-card-body{flex:1;min-width:0;text-align:right}
-.success-card-title{font-size:15px;font-weight:700;color:var(--dark);line-height:1.35}
-.success-card-meta{font-size:12px;color:var(--mid);margin-top:4px;font-weight:600}
-.success-empty{
-  text-align:center;color:var(--mid);font-size:14px;line-height:1.55;
-  padding:20px 14px;background:var(--card);border:1px dashed var(--primary-border);
-  border-radius:var(--radius-sm);
-}
 .week-open-sec .sec-head{display:flex;align-items:center;justify-content:center;gap:8px}
 
 /* ══════════ PERSONAL NOTES (server-synced) ══════════ */
@@ -568,6 +527,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     <div class="week-hero">
       <div class="week-hero-greet">
         <div class="welcome-name" id="w-name">היי!</div>
+        <div class="welcome-prog" id="prog-lbl">טוען...</div>
         <div class="welcome-grade">כיתה <span id="w-grade"></span></div>
       </div>
     </div>
@@ -580,11 +540,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     </nav>
 
     <div id="student-tab-tasks" class="student-tab-panel">
-      <div class="success-strip" id="success-strip">
-        <div class="success-strip-head">הצלחות השבוע</div>
-        <div id="success-cards" class="success-cards"><div class="loading-box" style="min-height:100px"><span class="spinner"></span></div></div>
-      </div>
-
       <div class="sec week-open-sec" id="week-open-sec" style="display:none">
         <div class="sec-head">משימות שבועיות</div>
         <div id="weekly-open-list"></div>
@@ -1454,7 +1409,6 @@ async function loadHome(){
     renderHome();
     renderCheckinWeekList();
   }catch(e){
-    document.getElementById('success-cards').innerHTML=`<div class="sec-empty">שגיאה: ${esc(e.message)}</div>`;
     document.getElementById('weekly-open-list').innerHTML='';
     document.getElementById('week-open-sec').style.display='none';
   }
@@ -1463,6 +1417,8 @@ async function loadHome(){
 function renderHome(){
   const weeklyTasks=myTasks.filter(t=>t.selected);
   const bankTasks  =myTasks.filter(t=>!t.selected);
+  const doneCount  =weeklyTasks.filter(isTaskDone).length;
+  const total      =weeklyTasks.length;
 
   /* Welcome banner: mood majority among completed weekly tasks (report.mood).
      0 done → soft default; majority 😊 טוב (or tie) → celebration;
@@ -1473,14 +1429,11 @@ function renderHome(){
     wName.textContent=welcomeMessageForWeek(firstName,weeklyTasks);
   }
 
-  const doneWeekly=weeklyTasks.filter(isTaskDone);
-  const sc=document.getElementById('success-cards');
-  if(!weeklyTasks.length){
-    sc.innerHTML='<div class="success-empty">בחר/י משימות מבנק המשימות למטה כדי לבנות את השבוע שלך</div>';
-  }else if(!doneWeekly.length){
-    sc.innerHTML='<div class="success-empty">כאן יופיעו ההצלחות שלך — אחרי שתסמנ/י משימה כהושלמה, נחגוג יחד</div>';
-  }else{
-    sc.innerHTML=doneWeekly.map(t=>successCardRow(t)).join('');
+  const progLbl=document.getElementById('prog-lbl');
+  if(progLbl){
+    progLbl.textContent=total
+      ?`הושלמו ${doneCount} מתוך ${total} משימות`
+      :'עדיין אין משימות לשבוע — בחר/י מבנק המשימות למטה';
   }
 
   const openSec=document.getElementById('week-open-sec');
@@ -1519,18 +1472,6 @@ function sortWeeklyTasks(tasks){
     (isTaskDone(t)?done:open).push(t);
   }
   return done.concat(open);
-}
-
-function successCardRow(t){
-  const rep=getReport(t);
-  const sub=rep?fmtTime(rep.created_at):'';
-  return `<div class="success-card" onclick="openTaskSheet('${t.id}')">
-    <div class="success-card-icon">✓</div>
-    <div class="success-card-body">
-      <div class="success-card-title">${esc(t.text)}</div>
-      ${sub?`<div class="success-card-meta">${esc(sub)}</div>`:''}
-    </div>
-  </div>`;
 }
 
 function weeklyTaskRow(t){
