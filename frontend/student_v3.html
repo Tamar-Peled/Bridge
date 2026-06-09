@@ -183,8 +183,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   text-align:center;box-shadow:var(--shadow);
 }
 .week-hero-greet .welcome-name{font-size:20px;font-weight:800;margin-bottom:6px;color:#fff}
-.week-hero-greet .welcome-prog{font-size:14px;font-weight:700;color:rgba(255,255,255,.92);line-height:1.45;margin-bottom:6px}
-.week-hero-greet .welcome-grade{color:rgba(255,255,255,.72);font-size:13px}
+.week-hero-greet .welcome-prog{font-size:14px;font-weight:700;color:rgba(255,255,255,.92);line-height:1.45}
 .week-open-sec .sec-head{display:flex;align-items:center;justify-content:center;gap:8px}
 
 /* ══════════ PERSONAL NOTES (server-synced) ══════════ */
@@ -528,7 +527,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
       <div class="week-hero-greet">
         <div class="welcome-name" id="w-name">היי!</div>
         <div class="welcome-prog" id="prog-lbl">טוען...</div>
-        <div class="welcome-grade">כיתה <span id="w-grade"></span></div>
       </div>
     </div>
 
@@ -1111,7 +1109,6 @@ async function doLogin(){
        Set the friendly default here so there's no flash of the celebration
        text before the data loads. */
     document.getElementById('w-name').textContent=`היי, ${firstName}! כיף שחזרת!`;
-    document.getElementById('w-grade').textContent=me.grade;
     showScreen('sc-home');
     setStudentTab('tasks');
     loadHome();
