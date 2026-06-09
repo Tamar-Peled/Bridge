@@ -926,18 +926,31 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   pointer-events:none;user-select:none;
 }
 .task-view-icon-c svg{display:block;width:100%;height:100%}
+/* task detail — mobile: full-page card; desktop: single centered column (see breakpoints) */
+#screen-task-detail{background:var(--card);min-height:100vh;min-height:100dvh}
+#screen-task-detail .content{
+  flex:1;display:flex;flex-direction:column;
+  width:100%;max-width:none;margin:0;padding:0;min-height:0;
+}
 .task-detail-layout{
-  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
-  padding:18px 20px;margin-bottom:16px;text-align:right;
-  display:flex;flex-direction:column;gap:0;
+  flex:1;display:flex;flex-direction:column;
+  width:100%;min-height:100%;margin:0;
+  background:var(--card);border:none;border-radius:0;
+  padding:20px 18px calc(24px + env(safe-area-inset-bottom,0px));
+  text-align:right;box-sizing:border-box;
 }
 .task-detail-main,.task-detail-reflections{background:transparent;border:none;padding:0;margin:0}
-.task-detail-reflections{margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)}
-.task-detail-reflections-h{display:none;font-size:15px;font-weight:800;color:var(--dark);margin:0 0 12px;line-height:1.35}
+.task-detail-reflections{
+  margin-top:18px;padding-top:18px;border-top:1px solid var(--border);
+  flex:1;min-height:0;
+}
+.task-detail-reflections-h{font-size:15px;font-weight:800;color:var(--dark);margin:0 0 12px;line-height:1.35}
 .task-detail-status-ref{margin-bottom:12px}
 .task-detail-title{font-size:18px;font-weight:800;color:var(--dark);margin:0 0 8px;line-height:1.35}
-.task-detail-status{font-size:13px;color:var(--mid);font-weight:600;margin-bottom:14px}
-.task-detail-actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+.task-detail-status{font-size:13px;color:var(--mid);font-weight:600;margin-bottom:0}
+.task-detail-actions{
+  display:flex;gap:10px;margin-top:auto;padding-top:24px;flex-wrap:wrap;flex-shrink:0;
+}
 .task-text{
   flex:1;min-width:0;
   font-size:14px;line-height:1.45;color:var(--dark);
@@ -1099,38 +1112,18 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   /* detail screen — slightly wider content */
   #screen-detail .content{max-width:780px}
 
-  /* task detail — wider centered layout, two columns (info left, reflections right in RTL) */
-  #screen-task-detail .content{max-width:900px}
+  /* task detail — desktop: single centered column, max 800px */
+  #screen-task-detail{background:var(--bg)}
+  #screen-task-detail .content{
+    max-width:800px;margin:0 auto;padding:24px 28px 32px;width:100%;
+  }
   #screen-task-detail .task-detail-layout{
-    display:grid;
-    grid-template-columns:1.15fr 1fr;
-    grid-template-areas:
-      "refl main"
-      "refl actions";
-    gap:0 24px;
-    background:transparent;border:none;padding:0;
+    flex:none;min-height:auto;
+    border:1px solid var(--border);border-radius:var(--radius);
+    padding:28px 28px 24px;
   }
-  #screen-task-detail .task-detail-main{
-    grid-area:main;
-    background:var(--card);border:1px solid var(--border);
-    border-radius:var(--radius) var(--radius) 0 0;
-    padding:22px 24px 18px;margin:0;
-  }
-  #screen-task-detail .task-detail-reflections{
-    grid-area:refl;
-    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
-    padding:22px 24px;margin:0;
-  }
-  #screen-task-detail .task-detail-actions{
-    grid-area:actions;
-    margin-top:-1px;
-    background:var(--card);border:1px solid var(--border);
-    border-top:1px dashed var(--border);
-    border-radius:0 0 var(--radius) var(--radius);
-    padding:16px 24px 20px;
-  }
-  #screen-task-detail .task-detail-reflections-h{display:block}
-  #screen-task-detail .task-detail-status-ref{display:none}
+  #screen-task-detail .task-detail-reflections{margin-top:22px;padding-top:22px;flex:none}
+  #screen-task-detail .task-detail-actions{margin-top:24px;padding-top:0}
 
   /* weekly counselor add row — back to inline row on tablet+ */
   .weekly-counselor-add-row{flex-direction:row;justify-content:flex-end;align-items:center;flex-wrap:wrap}
@@ -1155,9 +1148,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 
   /* detail screen: wider, but keep inner copy readable */
   #screen-detail .content{max-width:980px}
-
-  #screen-task-detail .content{max-width:1040px}
-  #screen-task-detail .task-detail-layout{gap:0 28px}
 
   /* center & constrain in-card meta widgets so they don't span ~900px */
   #screen-detail .detail-unified-text .detail-status-inline,
@@ -1186,7 +1176,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   .content{max-width:1240px}
   #students-list{grid-template-columns:repeat(4,minmax(0,1fr))}
   #screen-detail .content{max-width:1040px}
-  #screen-task-detail .content{max-width:1120px}
 }
 </style>
 </head>
