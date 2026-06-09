@@ -439,6 +439,32 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 }
 .checkin-sec .checkin-inner{padding:4px 2px 0}
 .checkin-sec .sec-head{margin-bottom:14px}
+.btn-checkin-share{
+  display:block;width:100%;padding:14px 18px;border:none;border-radius:var(--radius-sm);
+  background:var(--primary);color:#fff;font-size:16px;font-weight:800;cursor:pointer;
+  font-family:'Heebo',sans-serif;box-shadow:var(--shadow);transition:transform .1s,background .12s;
+}
+.btn-checkin-share:active{transform:scale(.985)}
+.checkin-week-list{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.checkin-week-empty{color:var(--mid);font-size:14px;text-align:center;line-height:1.5;padding:8px 0}
+.checkin-history-item{
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:12px 14px;text-align:right;
+}
+.checkin-history-day{font-size:13px;font-weight:800;color:var(--primary-dk);margin-bottom:4px}
+.checkin-history-mood{font-size:14px;font-weight:700;color:var(--dark);margin-bottom:4px}
+.checkin-history-text{font-size:13px;line-height:1.5;color:var(--mid);white-space:pre-wrap;word-break:break-word}
+.checkin-modal-overlay{align-items:center;padding:24px 20px}
+.checkin-modal{
+  background:var(--card);border-radius:var(--radius);padding:22px 20px 20px;
+  max-width:420px;width:100%;max-height:min(90vh,720px);overflow-y:auto;
+  box-shadow:var(--shadow-lg);text-align:right;position:relative;
+}
+.checkin-modal-title{font-size:20px;font-weight:900;color:var(--dark);margin:0 0 16px;text-align:center}
+.checkin-modal-close{
+  position:absolute;top:12px;left:12px;width:36px;height:36px;border:none;border-radius:50%;
+  background:var(--bg);color:var(--mid);font-size:22px;line-height:1;cursor:pointer;
+}
 .rep-q{font-size:15px;font-weight:700;margin-bottom:12px;color:var(--dark)}
 .emoji-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
 .emoji-btn{
@@ -570,28 +596,10 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
       </div>
 
       <div class="sec checkin-sec" id="daily-checkin-sec">
-        <div class="sec-head">איך עבר לך היום?</div>
+        <div class="sec-head">שיתוף יומי</div>
         <div class="checkin-inner">
-          <div class="emoji-grid" id="checkin-emoji-grid">
-            <button type="button" class="emoji-btn checkin-emoji-btn" onclick="pickCheckinMood(this,'😊 טוב')"><span class="emo">😊</span> טוב</button>
-            <button type="button" class="emoji-btn checkin-emoji-btn" onclick="pickCheckinMood(this,'😣 לחוץ')"><span class="emo">😣</span> לחוץ</button>
-            <button type="button" class="emoji-btn checkin-emoji-btn" onclick="pickCheckinMood(this,'😟 לא בנוח')"><span class="emo">😟</span> לא בנוח</button>
-            <button type="button" class="emoji-btn checkin-emoji-btn" onclick="pickCheckinMood(this,'😔 עצוב')"><span class="emo">😔</span> עצוב</button>
-          </div>
-          <div class="rep-q">רוצה לשתף משהו?</div>
-          <textarea class="rep-textarea" id="checkin-text" placeholder="כתוב/י כאן בחופשיות... (לא חובה)" rows="4" oninput="checkCheckinSaveReady()"></textarea>
-          <div class="audio-box">
-            <div class="audio-box-title">🎙️ הקלטת קול (לא חובה)</div>
-            <div class="rec-controls">
-              <button type="button" class="btn-rec" id="checkin-btn-rec" onclick="toggleCheckinRecord()">🎙️ התחל הקלטה</button>
-              <span class="rec-timer" id="checkin-rec-timer"></span>
-            </div>
-            <div id="checkin-audio-preview-wrap" style="display:none">
-              <audio class="audio-player" id="checkin-audio-player" controls></audio>
-              <div class="audio-ok">✓ הקלטה שמורה</div>
-            </div>
-          </div>
-          <button type="button" class="btn-save" id="btn-checkin-save" onclick="submitDailyCheckin()">שמירה</button>
+          <button type="button" class="btn-checkin-share" onclick="openCheckinModal()">שיתוף יומי</button>
+          <div id="checkin-week-list" class="checkin-week-list" aria-live="polite"></div>
         </div>
       </div>
 
@@ -651,6 +659,34 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     <button class="btn-primary" id="btn-conf-go" onclick="confirmConf()" disabled>
       בוא נתחיל
     </button>
+  </div>
+</div>
+
+<!-- ════ DAILY CHECK-IN MODAL ════ -->
+<div class="overlay checkin-modal-overlay" id="checkin-modal-overlay" onclick="closeCheckinModal()">
+  <div class="checkin-modal" onclick="event.stopPropagation()">
+    <button type="button" class="checkin-modal-close" onclick="closeCheckinModal()" aria-label="סגירה">×</button>
+    <h3 class="checkin-modal-title">איך עבר לך היום?</h3>
+    <div class="emoji-grid" id="checkin-emoji-grid">
+      <button type="button" class="emoji-btn checkin-emoji-btn" onclick="pickCheckinMood(this,'😊 טוב')"><span class="emo">😊</span> טוב</button>
+      <button type="button" class="emoji-btn checkin-emoji-btn" onclick="pickCheckinMood(this,'😣 לחוץ')"><span class="emo">😣</span> לחוץ</button>
+      <button type="button" class="emoji-btn checkin-emoji-btn" onclick="pickCheckinMood(this,'😟 לא בנוח')"><span class="emo">😟</span> לא בנוח</button>
+      <button type="button" class="emoji-btn checkin-emoji-btn" onclick="pickCheckinMood(this,'😔 עצוב')"><span class="emo">😔</span> עצוב</button>
+    </div>
+    <div class="rep-q">רוצה לשתף משהו?</div>
+    <textarea class="rep-textarea" id="checkin-text" placeholder="כתוב/י כאן בחופשיות... (לא חובה)" rows="4" oninput="checkCheckinSaveReady()"></textarea>
+    <div class="audio-box">
+      <div class="audio-box-title">🎙️ הקלטת קול (לא חובה)</div>
+      <div class="rec-controls">
+        <button type="button" class="btn-rec" id="checkin-btn-rec" onclick="toggleCheckinRecord()">🎙️ התחל הקלטה</button>
+        <span class="rec-timer" id="checkin-rec-timer"></span>
+      </div>
+      <div id="checkin-audio-preview-wrap" style="display:none">
+        <audio class="audio-player" id="checkin-audio-player" controls></audio>
+        <div class="audio-ok">✓ הקלטה שמורה</div>
+      </div>
+    </div>
+    <button type="button" class="btn-save" id="btn-checkin-save" onclick="submitDailyCheckin()">שמירה</button>
   </div>
 </div>
 
@@ -1083,7 +1119,7 @@ function isNegativeTaskMood(mood){
   return /לחוץ|עצוב|לא בנוח/.test(m)||/[😣😔😟😤]/.test(m);
 }
 function welcomeMessageForWeek(firstName,weeklyTasks){
-  const doneWeekly=(weeklyTasks||[]).filter(t=>t&&t.done);
+  const doneWeekly=(weeklyTasks||[]).filter(t=>t&&isTaskDone(t));
   if(!doneWeekly.length){
     return `היי, ${firstName}! כיף שחזרת!`;
   }
@@ -1169,6 +1205,76 @@ function parseLocalDateMs(ymd){
   const parts=String(ymd||'').slice(0,10).split('-').map(Number);
   if(parts.length<3||!parts[0]) return null;
   return new Date(parts[0],parts[1]-1,parts[2]).getTime();
+}
+function localSundayWeekStartMs(ms){
+  const d=new Date(ms);
+  const c=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  const dow=c.getDay();
+  c.setDate(c.getDate()-dow);
+  c.setHours(0,0,0,0);
+  return c.getTime();
+}
+function currentWeekStartYmd(){
+  const ms=localSundayWeekStartMs(Date.now());
+  const d=new Date(ms);
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function checkinDayLabel(c){
+  const dow=String(c&&c.day_of_week||'').trim();
+  const ms=parseLocalDateMs(c&&c.checkin_date);
+  if(ms==null) return String(c&&c.checkin_date||'');
+  const d=new Date(ms);
+  const heb=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  const dayName=dow||heb[d.getDay()];
+  const datePart=d.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'});
+  const wk=c&&c.week_number!=null?` · שבוע ${c.week_number}`:'';
+  return `${dayName} · ${datePart}${wk}`;
+}
+function checkinsInCurrentWeek(){
+  const wkStart=localSundayWeekStartMs(Date.now());
+  const wkEnd=wkStart+7*86400000;
+  const weekKey=currentWeekStartYmd();
+  return (myDailyCheckins||[]).filter(c=>{
+    if(String(c.week_start||'').slice(0,10)===weekKey) return true;
+    const ms=parseLocalDateMs(c.checkin_date);
+    return ms!=null&&ms>=wkStart&&ms<wkEnd;
+  }).sort((a,b)=>String(a.checkin_date||'').localeCompare(String(b.checkin_date||'')));
+}
+function renderCheckinWeekList(){
+  const el=document.getElementById('checkin-week-list');
+  if(!el) return;
+  const list=checkinsInCurrentWeek();
+  if(!list.length){
+    el.innerHTML='<p class="checkin-week-empty">עדיין אין שיתופים השבוע — לחץ/י על «שיתוף יומי»</p>';
+    return;
+  }
+  el.innerHTML=list.map(c=>{
+    const mood=esc(String(c.mood||'').trim());
+    const txt=(c.text&&String(c.text).trim())
+      ?`<div class="checkin-history-text">${esc(c.text)}</div>`
+      :'';
+    const audio=c.audio_url
+      ?`<div class="rep-audio" style="margin-top:8px"><audio controls src="${esc(c.audio_url)}"></audio></div>`
+      :'';
+    return `<div class="checkin-history-item">
+      <div class="checkin-history-day">${esc(checkinDayLabel(c))}</div>
+      ${mood?`<div class="checkin-history-mood">${mood}</div>`:''}
+      ${txt}${audio}
+    </div>`;
+  }).join('');
+}
+function openCheckinModal(){
+  populateTodayCheckinForm();
+  document.getElementById('checkin-modal-overlay').classList.add('show');
+}
+function closeCheckinModal(){
+  document.getElementById('checkin-modal-overlay').classList.remove('show');
+  if(checkinMediaRec&&checkinMediaRec.state==='recording'){
+    try{checkinMediaRec.stop();}catch(_){}
+  }
 }
 function todayCheckinRow(){
   const today=localDateStr();
@@ -1317,7 +1423,8 @@ async function submitDailyCheckin(){
     if(idx>=0) myDailyCheckins[idx]=saved;
     else myDailyCheckins.unshift(saved);
     toast('נשמר ✓');
-    populateTodayCheckinForm();
+    closeCheckinModal();
+    renderCheckinWeekList();
   }catch(e){
     toast(`שגיאה: ${e.message}`);
   }finally{
@@ -1335,7 +1442,7 @@ async function loadHome(){
     ]);
     if(!Array.isArray(myDailyCheckins)) myDailyCheckins=[];
     renderHome();
-    populateTodayCheckinForm();
+    renderCheckinWeekList();
   }catch(e){
     document.getElementById('success-cards').innerHTML=`<div class="sec-empty">שגיאה: ${esc(e.message)}</div>`;
     document.getElementById('weekly-open-list').innerHTML='';
@@ -1346,7 +1453,7 @@ async function loadHome(){
 function renderHome(){
   const weeklyTasks=myTasks.filter(t=>t.selected);
   const bankTasks  =myTasks.filter(t=>!t.selected);
-  const doneCount  =weeklyTasks.filter(t=>t.done).length;
+  const doneCount  =weeklyTasks.filter(isTaskDone).length;
   const total      =weeklyTasks.length;
 
   /* Welcome banner: mood majority among completed weekly tasks (report.mood).
@@ -1365,7 +1472,7 @@ function renderHome(){
       :'עדיין אין משימות לשבוע — בחר/י מבנק המשימות למטה';
   }
 
-  const doneWeekly=weeklyTasks.filter(t=>t.done);
+  const doneWeekly=weeklyTasks.filter(isTaskDone);
   const sc=document.getElementById('success-cards');
   if(!weeklyTasks.length){
     sc.innerHTML='<div class="success-empty">בחר/י משימות מבנק המשימות למטה כדי לבנות את השבוע שלך</div>';
@@ -1388,19 +1495,34 @@ function renderHome(){
   document.getElementById('bank-list').innerHTML=bankTasks.length
     ?bankTasks.map(t=>bankTaskRow(t)).join('')
     :'<div class="sec-empty">כל המשימות נבחרו לשבוע ✓</div>';
+
+  renderCheckinWeekList();
 }
 
+function isTaskDone(t){
+  if(!t) return false;
+  const d=t.done;
+  if(d===true||d===1) return true;
+  if(d===false||d===0||d==null) return false;
+  if(typeof d==='string'){
+    const s=d.trim().toLowerCase();
+    if(s==='true'||s==='1') return true;
+    if(s==='false'||s==='0'||s==='') return false;
+  }
+  return !!d;
+}
 function sortWeeklyTasks(tasks){
-  return tasks.map((t,i)=>({t,i})).sort((a,b)=>{
-    const da=Number(!!a.t.done), db=Number(!!b.t.done);
-    if(db!==da) return db-da;
-    return a.i-b.i;
-  }).map(x=>x.t);
+  const done=[];
+  const open=[];
+  for(const t of (tasks||[])){
+    (isTaskDone(t)?done:open).push(t);
+  }
+  return done.concat(open);
 }
 
 function weeklyTaskRow(t){
   const rep=getReport(t);
-  const done=!!t.done;
+  const done=isTaskDone(t);
   let hint='',hintCls='';
   if(done && rep)      {hint=`✓ הושלם · ${fmtTime(rep.created_at)}`;hintCls='ok';}
   else if(done && !rep){hint='⚠️ שיתוף נדרש';hintCls='warn';}

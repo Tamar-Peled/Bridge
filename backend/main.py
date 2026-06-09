@@ -877,6 +877,50 @@ def _week_span_label(ms_start: int) -> str:
     return f"{dt.day}.{dt.month}.{dt.year} – {de.day}.{de.month}.{de.year}"
 
 
+_CHECKIN_HEBREW_DAYS = ("ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת")
+
+
+def _checkin_week_meta(date_str: str) -> dict:
+    """Sunday–Saturday week metadata for a calendar date (YYYY-MM-DD)."""
+    from datetime import date as date_cls, timedelta
+
+    ds = str(date_str or "").strip()[:10]
+    if len(ds) < 10:
+        raise ValueError("invalid date")
+    y, m, d = (int(ds[0:4]), int(ds[5:7]), int(ds[8:10]))
+    dt = date_cls(y, m, d)
+    days_since_sunday = (dt.weekday() + 1) % 7  # Python Mon=0 … Sun=6 → Sun=0
+    week_start = dt - timedelta(days=days_since_sunday)
+    jan1 = date_cls(y, 1, 1)
+    year_first_sunday = jan1 - timedelta(days=(jan1.weekday() + 1) % 7)
+    week_number = ((week_start - year_first_sunday).days // 7) + 1
+    return {
+        "day_of_week": _CHECKIN_HEBREW_DAYS[days_since_sunday],
+        "week_start": week_start.isoformat(),
+        "week_number": week_number,
+    }
+
+
+def _enrich_checkin_row(row: Optional[dict]) -> Optional[dict]:
+    if not row:
+        return row
+    out = dict(row)
+    ds = str(out.get("checkin_date") or "")[:10]
+    if len(ds) < 10:
+        return out
+    try:
+        meta = _checkin_week_meta(ds)
+    except (ValueError, TypeError):
+        return out
+    if not out.get("day_of_week"):
+        out["day_of_week"] = meta["day_of_week"]
+    if not out.get("week_start"):
+        out["week_start"] = meta["week_start"]
+    if out.get("week_number") is None:
+        out["week_number"] = meta["week_number"]
+    return out
+
+
 def _checkin_date_in_window(checkin: dict, window_start: int, window_end: int) -> bool:
     ds = str((checkin or {}).get("checkin_date") or "")[:10]
     if len(ds) < 10:
@@ -906,7 +950,14 @@ def _format_daily_checkins_blob(checkins: list, window_start: int, window_end: i
             txt = txt[:400] + "…"
         audio_note = " [הקלטה]" if c.get("audio_url") else ""
         day = str(c.get("checkin_date") or "")[:10]
-        lines.append(f"- {day} {mood}{audio_note}: {txt or '(ללא טקסט)'}")
+        dow = str(c.get("day_of_week") or "").strip()
+        wk = c.get("week_number")
+        prefix = f"{day}"
+        if dow:
+            prefix += f" ({dow})"
+        if wk is not None:
+            prefix += f" · שבוע {wk}"
+        lines.append(f"- {prefix} {mood}{audio_note}: {txt or '(ללא טקסט)'}")
     return "\n".join(lines) if lines else "(אין צ'ק-אין יומי בשבוע זה)"
 
 
@@ -1802,7 +1853,7 @@ def delete_task(task_id: str):
 # ═══════════════════ DAILY CHECK-INS ═════════════════════════
 
 @app.get("/daily-checkins/{student_id}")
-def list_daily_checkins(student_id: str):
+def list_daily_checkins(student_id: str, week_start: Optional[str] = Query(None)):
     res = (
         db.table("daily_checkins")
         .select("*")
@@ -1810,7 +1861,11 @@ def list_daily_checkins(student_id: str):
         .order("checkin_date", desc=True)
         .execute()
     )
-    return res.data or []
+    rows = [_enrich_checkin_row(r) for r in (res.data or [])]
+    if week_start:
+        ws = str(week_start).strip()[:10]
+        rows = [r for r in rows if str(r.get("week_start") or "")[:10] == ws]
+    return rows
 
 
 @app.post("/daily-checkins")
@@ -1823,9 +1878,16 @@ def upsert_daily_checkin(body: DailyCheckInCreate):
     date_str = str(body.checkin_date or "").strip()[:10]
     if len(date_str) < 10:
         raise HTTPException(status_code=400, detail="תאריך לא תקין")
+    try:
+        week_meta = _checkin_week_meta(date_str)
+    except (ValueError, TypeError) as e:
+        raise HTTPException(status_code=400, detail="תאריך לא תקין") from e
     payload = {
         "student_id": body.student_id,
         "checkin_date": date_str,
+        "day_of_week": week_meta["day_of_week"],
+        "week_start": week_meta["week_start"],
+        "week_number": week_meta["week_number"],
         "mood": mood,
         "text": text,
         "audio_url": audio_url,
@@ -1844,10 +1906,10 @@ def upsert_daily_checkin(body: DailyCheckInCreate):
             cid = existing.data[0]["id"]
             res = db.table("daily_checkins").update(payload).eq("id", cid).execute()
             rows = _require_db_rows("daily_checkins", "PATCH", cid, res, payload)
-            return rows[0]
+            return _enrich_checkin_row(rows[0])
         res = db.table("daily_checkins").insert(payload).execute()
         rows = _require_db_rows("daily_checkins", "POST", body.student_id, res, payload)
-        return rows[0]
+        return _enrich_checkin_row(rows[0])
     except HTTPException:
         raise
     except Exception as e:

@@ -47,7 +47,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .screen.active{display:flex}
 
 /* landing / login — gateway */
-#screen-landing,#screen-login{
+#screen-login{
   align-items:center;justify-content:center;padding:48px 24px;
   text-align:center;
   background:linear-gradient(180deg,#ffffff 0%,#E6F4F4 55%,var(--bg) 100%);
@@ -926,10 +926,15 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   pointer-events:none;user-select:none;
 }
 .task-view-icon-c svg{display:block;width:100%;height:100%}
-.task-detail-card{
+.task-detail-layout{
   background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
   padding:18px 20px;margin-bottom:16px;text-align:right;
+  display:flex;flex-direction:column;gap:0;
 }
+.task-detail-main,.task-detail-reflections{background:transparent;border:none;padding:0;margin:0}
+.task-detail-reflections{margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)}
+.task-detail-reflections-h{display:none;font-size:15px;font-weight:800;color:var(--dark);margin:0 0 12px;line-height:1.35}
+.task-detail-status-ref{margin-bottom:12px}
 .task-detail-title{font-size:18px;font-weight:800;color:var(--dark);margin:0 0 8px;line-height:1.35}
 .task-detail-status{font-size:13px;color:var(--mid);font-weight:600;margin-bottom:14px}
 .task-detail-actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
@@ -1058,7 +1063,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   .content{max-width:720px;padding:28px 28px}
 
   /* landing — larger hero */
-  #screen-landing{padding:64px 32px}
+  #screen-login{padding:64px 32px}
   .logo-box{width:96px;height:96px;font-size:42px;margin-bottom:28px}
   .landing-title{font-size:48px}
   .landing-welcome{font-size:32px}
@@ -1094,6 +1099,39 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   /* detail screen — slightly wider content */
   #screen-detail .content{max-width:780px}
 
+  /* task detail — wider centered layout, two columns (info left, reflections right in RTL) */
+  #screen-task-detail .content{max-width:900px}
+  #screen-task-detail .task-detail-layout{
+    display:grid;
+    grid-template-columns:1.15fr 1fr;
+    grid-template-areas:
+      "refl main"
+      "refl actions";
+    gap:0 24px;
+    background:transparent;border:none;padding:0;
+  }
+  #screen-task-detail .task-detail-main{
+    grid-area:main;
+    background:var(--card);border:1px solid var(--border);
+    border-radius:var(--radius) var(--radius) 0 0;
+    padding:22px 24px 18px;margin:0;
+  }
+  #screen-task-detail .task-detail-reflections{
+    grid-area:refl;
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:22px 24px;margin:0;
+  }
+  #screen-task-detail .task-detail-actions{
+    grid-area:actions;
+    margin-top:-1px;
+    background:var(--card);border:1px solid var(--border);
+    border-top:1px dashed var(--border);
+    border-radius:0 0 var(--radius) var(--radius);
+    padding:16px 24px 20px;
+  }
+  #screen-task-detail .task-detail-reflections-h{display:block}
+  #screen-task-detail .task-detail-status-ref{display:none}
+
   /* weekly counselor add row — back to inline row on tablet+ */
   .weekly-counselor-add-row{flex-direction:row;justify-content:flex-end;align-items:center;flex-wrap:wrap}
   .weekly-counselor-add-row>.btn-sm{width:auto}
@@ -1117,6 +1155,9 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 
   /* detail screen: wider, but keep inner copy readable */
   #screen-detail .content{max-width:980px}
+
+  #screen-task-detail .content{max-width:1040px}
+  #screen-task-detail .task-detail-layout{gap:0 28px}
 
   /* center & constrain in-card meta widgets so they don't span ~900px */
   #screen-detail .detail-unified-text .detail-status-inline,
@@ -1145,31 +1186,19 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   .content{max-width:1240px}
   #students-list{grid-template-columns:repeat(4,minmax(0,1fr))}
   #screen-detail .content{max-width:1040px}
+  #screen-task-detail .content{max-width:1120px}
 }
 </style>
 </head>
 <body>
 
 <!-- ════ LOGIN ════ -->
-<div id="screen-login" class="screen">
-  <div class="logo-box">B</div>
-  <div class="landing-title">BRIDGE</div>
-  <div class="landing-desc">כניסת יועצת — הזיני סיסמה</div>
+<div id="screen-login" class="screen active">
   <div class="login-form-wrap">
     <input type="password" id="login-password" class="login-input" placeholder="סיסמה" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitCounselorLogin()">
     <p id="login-error" class="login-error" style="display:none">סיסמה שגויה — נסי שוב</p>
     <button type="button" class="btn-primary" onclick="submitCounselorLogin()">כניסה</button>
   </div>
-  <div class="footer-txt">BRIDGE © 2026 — כל הזכויות שמורות</div>
-</div>
-
-<!-- ════ LANDING ════ -->
-<div id="screen-landing" class="screen active">
-  <div class="logo-box">B</div>
-  <div class="landing-title">BRIDGE</div>
-  <div class="landing-desc">כניסת יועצת — ניהול תלמידים ותיעוד מקצועי</div>
-  <button class="btn-primary" onclick="enterCounselor()">כניסה למערכת</button>
-  <div class="footer-txt">BRIDGE © 2026 — כל הזכויות שמורות</div>
 </div>
 
 <!-- ════ LIST ════ -->
@@ -2815,7 +2844,7 @@ const COUNSELOR_PASSWORD='00000';
 function isCounselorAuthed(){
   try{return localStorage.getItem(COUNSELOR_AUTH_KEY)==='1';}catch(_){return false;}
 }
-function submitCounselorLogin(){
+async function submitCounselorLogin(){
   const inp=document.getElementById('login-password');
   const err=document.getElementById('login-error');
   const val=inp?String(inp.value).trim():'';
@@ -2823,10 +2852,10 @@ function submitCounselorLogin(){
     try{localStorage.setItem(COUNSELOR_AUTH_KEY,'1');}catch(_){}
     if(err) err.style.display='none';
     if(inp) inp.value='';
-    showScreen('screen-landing');
+    showScreen('screen-main');
+    await loadList();
   }else{
     if(err) err.style.display='block';
-    showToast('סיסמה שגויה');
   }
 }
 function logoutCounselor(){
@@ -2836,17 +2865,20 @@ function logoutCounselor(){
   if(inp) inp.value='';
   if(err) err.style.display='none';
   showScreen('screen-login');
+  requestAnimationFrame(()=>{if(inp) inp.focus();});
 }
-function initCounselorAuthGate(){
-  if(isCounselorAuthed()) return;
+async function initCounselorAuthGate(){
+  if(isCounselorAuthed()){
+    showScreen('screen-main');
+    await loadList();
+    return;
+  }
   showScreen('screen-login');
+  const inp=document.getElementById('login-password');
+  requestAnimationFrame(()=>{if(inp) inp.focus();});
 }
 
 /* ════════════════ SCREENS ════════════════ */
-async function enterCounselor(){
-  if(!isCounselorAuthed()){showScreen('screen-login');return;}
-  showScreen('screen-main');await loadList();
-}
 function goBack(){showScreen('screen-main');loadList();}
 
 /* ════════════════ LIST ════════════════ */
@@ -3499,32 +3531,44 @@ function checkinsInWeekSorted(checkins,wkStart,wkEnd){
     return ms>=wkStart&&ms<wkEnd;
   }).sort((a,b)=>String(a.checkin_date||'').localeCompare(String(b.checkin_date||'')));
 }
-function fmtCheckinDayLabel(ymd){
+function fmtCheckinDayLabel(c){
+  const row=(c&&typeof c==='object')?c:{checkin_date:c};
+  const ymd=String(row.checkin_date||'').slice(0,10);
   const ms=parseLocalDateMsFromYmd(ymd);
-  if(ms==null) return String(ymd||'');
-  return new Date(ms).toLocaleDateString('he-IL',{weekday:'short',day:'numeric',month:'numeric'});
+  const dow=String(row.day_of_week||'').trim();
+  const heb=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+  let dayName=dow;
+  if(!dayName&&ms!=null) dayName=heb[new Date(ms).getDay()];
+  const datePart=ms!=null
+    ?new Date(ms).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})
+    :ymd;
+  const wk=row.week_number!=null&&row.week_number!==''?` · שבוע ${row.week_number}`:'';
+  if(dayName) return `${dayName} · ${datePart}${wk}`;
+  if(ms==null) return ymd;
+  return new Date(ms).toLocaleDateString('he-IL',{weekday:'short',day:'numeric',month:'numeric'})+wk;
 }
 function buildDailyCheckinsWeekHtml(checkins,wkStart,wkEnd){
   const list=checkinsInWeekSorted(checkins,wkStart,wkEnd);
   if(!list.length){
-    return '<div class="weekly-subsec"><h4 class="weekly-subsec-h">איך עבר היום?</h4><p class="sec-empty" style="margin:0;text-align:right">אין צ\'ק-אין יומי בשבוע זה</p></div>';
+    return '<div class="weekly-subsec"><h4 class="weekly-subsec-h">שיתוף יומי</h4><p class="sec-empty" style="margin:0;text-align:right">אין שיתופים יומיים בשבוע זה</p></div>';
   }
   const items=list.map(c=>{
     const mood=String(c.mood||'').trim();
-    const day=fmtCheckinDayLabel(c.checkin_date);
+    const day=fmtCheckinDayLabel(c);
     const txt=(c.text&&String(c.text).trim())
       ?`<div class="weekly-feedback-text">${escHBr(c.text)}</div>`
       :'';
     const audio=c.audio_url
       ?`<div class="rep-audio" style="margin-top:8px"><audio controls src="${escH(c.audio_url)}"></audio></div>`
       :'';
-    const moodPart=mood?` · ${escH(mood)}`:'';
+    const moodLine=mood?`<div class="weekly-feedback-meta">${escH(mood)}</div>`:'';
     return `<div class="weekly-feedback-item task-activity-item task-activity-share">
-      <div class="weekly-feedback-task">${escH(day)}${moodPart}</div>
+      <div class="weekly-feedback-task">${escH(day)}</div>
+      ${moodLine}
       ${txt}${audio}
     </div>`;
   }).join('');
-  return `<div class="weekly-subsec"><h4 class="weekly-subsec-h">איך עבר היום?</h4>${items}</div>`;
+  return `<div class="weekly-subsec"><h4 class="weekly-subsec-h">שיתוף יומי — לפי יום</h4>${items}</div>`;
 }
 function collectCounselorWeekStartMsSet(stu,tasks,reports,notes,checkins){
   /* Every value added to this set MUST be a canonical week-start ms (Sunday
@@ -5027,11 +5071,16 @@ function renderTaskDetailPage(task){
   const stu=allStudents.find(x=>x.id===currentSid);
   const stLabel=task.done?'✓ הושלמה':'לא הושלמה';
   document.getElementById('task-detail-content').innerHTML=`
-    <div class="task-detail-card">
-      <h2 class="task-detail-title">${escH(task.text||'משימה')}</h2>
-      ${stu?`<div class="task-detail-status">${escH(stu.name)} · ${escH(stLabel)}</div>`:`<div class="task-detail-status">${escH(stLabel)}</div>`}
-      ${statusLine?`<div class="task-detail-status" style="margin-bottom:12px">${escH(statusLine)}</div>`:''}
-      ${body}
+    <div class="task-detail-layout">
+      <div class="task-detail-main">
+        <h2 class="task-detail-title">${escH(task.text||'משימה')}</h2>
+        ${stu?`<div class="task-detail-status">${escH(stu.name)} · ${escH(stLabel)}</div>`:`<div class="task-detail-status">${escH(stLabel)}</div>`}
+      </div>
+      <div class="task-detail-reflections">
+        <h3 class="task-detail-reflections-h">ציפייה ושיתוף מהתלמיד</h3>
+        ${statusLine?`<div class="task-detail-status task-detail-status-ref">${escH(statusLine)}</div>`:''}
+        ${body}
+      </div>
       <div class="task-detail-actions">
         <button type="button" class="btn-cancel" onclick="deleteTaskFromDetailPage()" style="border-color:#f5c6c2;color:var(--red-dk)">מחק משימה</button>
       </div>
