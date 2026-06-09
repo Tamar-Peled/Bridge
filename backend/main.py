@@ -958,7 +958,7 @@ def _format_daily_checkins_blob(checkins: list, window_start: int, window_end: i
         if wk is not None:
             prefix += f" · שבוע {wk}"
         lines.append(f"- {prefix} {mood}{audio_note}: {txt or '(ללא טקסט)'}")
-    return "\n".join(lines) if lines else "(אין צ'ק-אין יומי בשבוע זה)"
+    return "\n".join(lines) if lines else "(אין שיתופים בשבוע זה)"
 
 
 def _collect_week_metrics(

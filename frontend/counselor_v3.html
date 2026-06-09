@@ -2853,10 +2853,6 @@ async function submitCounselorLogin(){
     if(err) err.style.display='block';
   }
 }
-function goToRoleSelection(){
-  window.location.href='index.html';
-}
-
 function logoutCounselor(){
   try{localStorage.removeItem(COUNSELOR_AUTH_KEY);}catch(_){}
   const inp=document.getElementById('login-password');
@@ -3570,7 +3566,7 @@ function fmtCheckinDayLabel(c){
 function buildDailyCheckinsWeekHtml(checkins,wkStart,wkEnd){
   const list=checkinsInWeekSorted(checkins,wkStart,wkEnd);
   if(!list.length){
-    return '<div class="weekly-subsec"><h4 class="weekly-subsec-h"שיתופי השבוע</h4><p class="sec-empty" style="margin:0;text-align:right">אין שיתופים בשבוע זה</p></div>';
+    return '<div class="weekly-subsec"><h4 class="weekly-subsec-h">שיתופי השבוע</h4><p class="sec-empty" style="margin:0;text-align:right">אין שיתופים בשבוע זה</p></div>';
   }
   const items=list.map(c=>{
     const mood=String(c.mood||'').trim();
@@ -3588,7 +3584,7 @@ function buildDailyCheckinsWeekHtml(checkins,wkStart,wkEnd){
       ${txt}${audio}
     </div>`;
   }).join('');
-  return `<div class="weekly-subsec"><h4 class="weekly-subsec-h"שיתופי השבוע — לפי יום</h4>${items}</div>`;
+  return `<div class="weekly-subsec"><h4 class="weekly-subsec-h">שיתופי השבוע — לפי יום</h4>${items}</div>`;
 }
 function collectCounselorWeekStartMsSet(stu,tasks,reports,notes,checkins){
   /* Every value added to this set MUST be a canonical week-start ms (Sunday

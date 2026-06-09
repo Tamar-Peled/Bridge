@@ -551,7 +551,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
       </div>
 
       <div class="sec checkin-sec" id="daily-checkin-sec">
-        <div class="sec-head">שיתופים במהלך השבוע</div>
+        <div class="sec-head">שיתופי השבוע</div>
         <div class="checkin-inner">
           <button type="button" class="btn-checkin-share" onclick="openCheckinModal()">הוסף שיתוף בכל נושא שתרצה</button>
           <div id="checkin-week-list" class="checkin-week-list" aria-live="polite"></div>
@@ -1207,7 +1207,7 @@ function renderCheckinWeekList(){
   const list=checkinsInCurrentWeek();
   if(!list.length){
     _checkinHistoryExpanded=false;
-    el.innerHTML='<p class="checkin-week-empty">עדיין אין שיתופים השבוע — לחץ/י על «הוסף שיתוף בכל נושא שתרצה»</p>';
+    el.innerHTML='<p class="checkin-week-empty">אין שיתופים השבוע — לחץ/י על «הוסף שיתוף בכל נושא שתרצה»</p>';
     return;
   }
   const itemsHtml=list.map(c=>{
