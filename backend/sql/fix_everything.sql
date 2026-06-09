@@ -78,12 +78,54 @@ CREATE INDEX IF NOT EXISTS idx_meeting_notes_created
 ALTER TABLE public.students
   ADD COLUMN IF NOT EXISTS description                text   DEFAULT '',
   ADD COLUMN IF NOT EXISTS photo                      text   DEFAULT '',
+  ADD COLUMN IF NOT EXISTS gender                     text   DEFAULT 'זכר',
   ADD COLUMN IF NOT EXISTS general_files              jsonb  DEFAULT '[]'::jsonb,
   ADD COLUMN IF NOT EXISTS key_points                 jsonb  DEFAULT '[]'::jsonb,
   ADD COLUMN IF NOT EXISTS weekly_counselor_summaries jsonb  DEFAULT '{}'::jsonb,
   ADD COLUMN IF NOT EXISTS counselor_weekly_extras    jsonb  DEFAULT '{}'::jsonb;
 
 ALTER TABLE public.students DISABLE ROW LEVEL SECURITY;
+
+-- 3a) Deduplicate student login codes, then enforce uniqueness ─────────────
+DO $$
+DECLARE
+  rec RECORD;
+  candidate text;
+  i int;
+BEGIN
+  FOR rec IN
+    SELECT s.id, s.code AS old_code
+    FROM public.students s
+    INNER JOIN (
+      SELECT id,
+             ROW_NUMBER() OVER (
+               PARTITION BY code
+               ORDER BY created_at ASC NULLS LAST, id ASC
+             ) AS rn
+      FROM public.students
+      WHERE code IS NOT NULL AND btrim(code) <> ''
+    ) ranked ON ranked.id = s.id AND ranked.rn > 1
+    ORDER BY s.id
+  LOOP
+    candidate := NULL;
+    FOR i IN 0..9999 LOOP
+      candidate := lpad(i::text, 4, '0');
+      IF NOT EXISTS (
+        SELECT 1 FROM public.students WHERE code = candidate
+      ) THEN
+        EXIT;
+      END IF;
+    END LOOP;
+    IF candidate IS NULL THEN
+      RAISE EXCEPTION 'No free 4-digit student code available';
+    END IF;
+    UPDATE public.students SET code = candidate WHERE id = rec.id;
+  END LOOP;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_students_code_unique
+  ON public.students (code)
+  WHERE code IS NOT NULL AND code <> '';
 
 
 -- 3b) Storage bucket for student profile photos (public URLs in students.photo) ─
@@ -111,6 +153,25 @@ CREATE INDEX IF NOT EXISTS idx_reports_task_id
 
 CREATE INDEX IF NOT EXISTS idx_reports_student_id
   ON public.reports (student_id);
+
+
+-- 4b) Daily student check-ins ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.daily_checkins (
+  id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id    uuid        NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+  checkin_date  date        NOT NULL,
+  mood          text,
+  text          text,
+  audio_url     text,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (student_id, checkin_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_daily_checkins_student_date
+  ON public.daily_checkins (student_id, checkin_date DESC);
+
+ALTER TABLE public.daily_checkins DISABLE ROW LEVEL SECURITY;
 
 
 -- 5) Verify — list of columns the backend touches; eyeball that nothing is

@@ -138,6 +138,7 @@ app.add_middleware(
 class StudentCreate(BaseModel):
     name:             str
     grade:            str
+    gender:           str  = "זכר"
     reason:           str = ""
     status:           str  = "בתהליך"
     code:             Optional[str] = None   
@@ -148,8 +149,10 @@ class StudentCreate(BaseModel):
 class StudentPatch(BaseModel):
     name:             Optional[str] = None
     grade:            Optional[str] = None
+    gender:           Optional[str] = None
     reason:           Optional[str] = None
     status:           Optional[str] = None
+    code:             Optional[str] = None
     description:      Optional[str] = None
     photo:            Optional[str] = None
     engagement_level: Optional[str] = None
@@ -197,6 +200,14 @@ class StudentNoteCreate(BaseModel):
 class StudentNotePatch(BaseModel):
     student_code: str = Field(..., min_length=4, max_length=4)
     content: str = Field(..., min_length=1, max_length=20000)
+
+
+class DailyCheckInCreate(BaseModel):
+    student_id: str
+    checkin_date: str  # YYYY-MM-DD (student local calendar day)
+    mood: Optional[str] = None
+    text: Optional[str] = None
+    audio_url: Optional[str] = None
 
 
 class MeetingNoteCreate(BaseModel):
@@ -404,6 +415,9 @@ Approx. share engagement vs assigned slots: {this_share_pct}%
 Student self-reflections in THIS week (mood + text excerpts):
 {this_week_feedback}
 
+Daily check-ins THIS week (optional emoji + text + voice per day):
+{this_daily_checkins}
+
 --- PREVIOUS WEEK ---
 Week label: {prev_week_label}
 Weekly-assigned (selected_at in window): {prev_assigned}
@@ -413,6 +427,9 @@ Share vs assigned: {prev_share_pct}%
 
 Reflections in PREVIOUS week:
 {prev_week_feedback}
+
+Daily check-ins PREVIOUS week:
+{prev_daily_checkins}
 
 Respond with JSON only: trend (1-2 sentences), recommended_focus (1-2 sentences). Hebrew only.""",
         ),
@@ -460,8 +477,8 @@ def get_chain_weekly_insights():
 
 # ═══════════════════ HELPERS ══════════════════════════════════
 
-STUDENT_LIST_COLUMNS = "id,name,grade,status,code,photo,created_at"
-DASHBOARD_STUDENT_COLUMNS = "id,name,grade,status,code,photo,created_at"
+STUDENT_LIST_COLUMNS = "id,name,grade,gender,status,code,photo,created_at"
+DASHBOARD_STUDENT_COLUMNS = "id,name,grade,gender,status,code,photo,created_at"
 DASHBOARD_TASK_COLUMNS = "id,student_id,selected,done,selected_at,created_at"
 DASHBOARD_REPORT_COLUMNS = "id,student_id,mood,text,created_at"
 _DASHBOARD_DROP_FIELDS = frozenset({"audio_url", "file_data", "file_content", "content_base64"})
@@ -704,28 +721,20 @@ def compute_proactive_alert(student: dict, tasks: list, reports: list) -> dict:
     reps = sorted(reports or [], key=lambda r: _parse_iso_ms(r.get("created_at")) or 0)
     last3 = reps[-3:]
     three_neg_emoji = len(last3) == 3 and all(_is_negative_emoji_mood(r.get("mood")) for r in last3)
-    weekly_uncompleted = len([t for t in (tasks or []) if t and t.get("selected") and not t.get("done")])
-    too_many_weekly_incomplete = weekly_uncompleted >= 3
-
-    if three_neg_emoji or too_many_weekly_incomplete:
+    if three_neg_emoji:
         is_distressed = True
-        if too_many_weekly_incomplete:
-            tags.append("3+ weekly incomplete")
 
     reason_parts = []
     if inactive7:
         reason_parts.append("ללא בחירת משימה שבועית מעל 7 ימים")
     if three_neg_emoji:
         reason_parts.append("3 אימוג'ים עצובים ברצף")
-    if too_many_weekly_incomplete:
-        reason_parts.append(f"{weekly_uncompleted} משימות שבועיות שלא הושלמו")
     reason_hebrew = " · ".join(reason_parts)
 
     last3_key = ",".join(str(r.get("id") or r.get("created_at") or "") for r in last3)
     silence_fingerprint = "|".join([
         "1" if inactive7 else "0",
         "1" if three_neg_emoji else "0",
-        str(weekly_uncompleted) if too_many_weekly_incomplete else "0",
         last3_key,
     ])
 
@@ -868,7 +877,46 @@ def _week_span_label(ms_start: int) -> str:
     return f"{dt.day}.{dt.month}.{dt.year} – {de.day}.{de.month}.{de.year}"
 
 
-def _collect_week_metrics(tasks: list, reports: list, window_start: int, window_end: int) -> dict:
+def _checkin_date_in_window(checkin: dict, window_start: int, window_end: int) -> bool:
+    ds = str((checkin or {}).get("checkin_date") or "")[:10]
+    if len(ds) < 10:
+        rm = _parse_iso_to_ms((checkin or {}).get("created_at"))
+        if rm is None:
+            return False
+        return window_start <= rm < window_end
+    start_d = _ms_to_local_date_str(window_start)
+    end_d = _ms_to_local_date_str(window_end - 86400000)
+    return start_d <= ds <= end_d
+
+
+def _ms_to_local_date_str(ms: int) -> str:
+    from datetime import datetime, timezone, timedelta
+    tz = timezone(timedelta(hours=2))
+    return datetime.fromtimestamp(ms / 1000, tz=tz).strftime("%Y-%m-%d")
+
+
+def _format_daily_checkins_blob(checkins: list, window_start: int, window_end: int) -> str:
+    lines = []
+    for c in sorted(checkins or [], key=lambda x: str(x.get("checkin_date") or "")):
+        if not _checkin_date_in_window(c, window_start, window_end):
+            continue
+        mood = c.get("mood") or ""
+        txt = (c.get("text") or "").strip()
+        if len(txt) > 400:
+            txt = txt[:400] + "…"
+        audio_note = " [הקלטה]" if c.get("audio_url") else ""
+        day = str(c.get("checkin_date") or "")[:10]
+        lines.append(f"- {day} {mood}{audio_note}: {txt or '(ללא טקסט)'}")
+    return "\n".join(lines) if lines else "(אין צ'ק-אין יומי בשבוע זה)"
+
+
+def _collect_week_metrics(
+    tasks: list,
+    reports: list,
+    window_start: int,
+    window_end: int,
+    checkins: Optional[list] = None,
+) -> dict:
     """Tasks 'assigned' in window = selected_at in window OR received a report in window."""
     assigned: set = set()
     for t in tasks or []:
@@ -903,12 +951,14 @@ def _collect_week_metrics(tasks: list, reports: list, window_start: int, window_
         audio_note = " [דיווח קולי]" if r.get("audio_url") else ""
         lines.append(f"- {mood}{audio_note}: {txt or '(ללא טקסט)'}")
     feedback_blob = "\n".join(lines) if lines else "(אין דיווחים בשבוע זה)"
+    daily_checkins_blob = _format_daily_checkins_blob(checkins or [], window_start, window_end)
     return {
         "assigned": len(assigned),
         "completed": completed,
         "reports": n_reports,
         "share_pct": share_pct,
         "feedback": feedback_blob,
+        "daily_checkins": daily_checkins_blob,
     }
 
 
@@ -1287,12 +1337,43 @@ def get_student(student_id: str):
         raise HTTPException(status_code=404, detail="תלמיד לא נמצא")
     return res.data[0]
 
+CODE_TAKEN_MSG = "הקוד תפוס, אנא בחרי קוד אחר"
+
+
+def _normalize_student_code(raw: Optional[str]) -> str:
+    return str(raw or "").strip()
+
+
+def _validate_student_code_format(code: str) -> None:
+    if not re.fullmatch(r"\d{4}", code):
+        raise HTTPException(status_code=400, detail="קוד כניסה חייב להיות 4 ספרות")
+
+
+def _assert_student_code_available(code: str, exclude_student_id: Optional[str] = None) -> None:
+    res = db.table("students").select("id").eq("code", code).execute()
+    for row in res.data or []:
+        sid = str(row.get("id") or "")
+        if exclude_student_id and sid == str(exclude_student_id):
+            continue
+        raise HTTPException(status_code=409, detail=CODE_TAKEN_MSG)
+
+
 @app.post("/students")
 def create_student(student: StudentCreate):
     data = student.model_dump()
     photo_raw = (data.pop("photo", None) or "").strip()
     data["photo"] = ""
-    res = db.table("students").insert(data).execute()
+    code = _normalize_student_code(data.get("code"))
+    _validate_student_code_format(code)
+    _assert_student_code_available(code)
+    data["code"] = code
+    try:
+        res = db.table("students").insert(data).execute()
+    except Exception as e:
+        err = str(e).lower()
+        if "duplicate" in err or "unique" in err or "idx_students_code_unique" in err:
+            raise HTTPException(status_code=409, detail=CODE_TAKEN_MSG) from e
+        raise
     if not res.data:
         raise HTTPException(status_code=500, detail="שגיאה ביצירת תלמיד")
     row = res.data[0]
@@ -1313,6 +1394,16 @@ def patch_student(student_id: str, data: StudentPatch):
     payload = strip_none(data.model_dump())
     if not payload:
         raise HTTPException(status_code=400, detail="אין שדות לעדכון")
+    old_code = ""
+    if "code" in payload:
+        new_code = _normalize_student_code(payload.get("code"))
+        _validate_student_code_format(new_code)
+        _assert_student_code_available(new_code, exclude_student_id=student_id)
+        cur = db.table("students").select("code").eq("id", student_id).execute()
+        if not cur.data:
+            raise HTTPException(status_code=404, detail="תלמיד לא נמצא")
+        old_code = _normalize_student_code(cur.data[0].get("code"))
+        payload["code"] = new_code
     if "photo" in payload:
         raw = payload.get("photo")
         if raw is None or not str(raw).strip():
@@ -1322,9 +1413,17 @@ def patch_student(student_id: str, data: StudentPatch):
     try:
         res = db.table("students").update(payload).eq("id", student_id).execute()
     except Exception as e:
+        err = str(e).lower()
+        if "duplicate" in err or "unique" in err or "idx_students_code_unique" in err:
+            raise HTTPException(status_code=409, detail=CODE_TAKEN_MSG) from e
         print(f"[DB] EXC table='students' op=PATCH id={student_id!r} err={e!s}")
         raise HTTPException(status_code=500, detail=f"שגיאה בעדכון תלמיד: {e!s}") from e
     rows = _require_db_rows("students", "PATCH", student_id, res, payload)
+    if "code" in payload and old_code and old_code != payload["code"]:
+        try:
+            db.table("student_notes").update({"student_code": payload["code"]}).eq("student_code", old_code).execute()
+        except Exception as e:
+            print(f"[DB] EXC table='student_notes' op=UPDATE student_code old={old_code!r} new={payload['code']!r} err={e!s}")
     return _student_with_photo_url(rows[0])
 
 
@@ -1590,6 +1689,7 @@ def delete_student(student_id: str):
     delete_children("meeting_notes", "student_id", student_id)
     delete_children("student_documents", "student_id", student_id)
     delete_children("student_notes", "student_code", student_code)
+    delete_children("daily_checkins", "student_id", student_id)
 
     res = db.table("students").delete().eq("id", student_id).execute()
     _require_db_rows("students", "DELETE", student_id, res)
@@ -1698,6 +1798,62 @@ def delete_task(task_id: str):
 
     _require_db_rows("tasks", "DELETE", task_id, res)
     return {"deleted": True, "id": task_id}
+
+# ═══════════════════ DAILY CHECK-INS ═════════════════════════
+
+@app.get("/daily-checkins/{student_id}")
+def list_daily_checkins(student_id: str):
+    res = (
+        db.table("daily_checkins")
+        .select("*")
+        .eq("student_id", student_id)
+        .order("checkin_date", desc=True)
+        .execute()
+    )
+    return res.data or []
+
+
+@app.post("/daily-checkins")
+def upsert_daily_checkin(body: DailyCheckInCreate):
+    mood = (body.mood or "").strip() or None
+    text = (body.text or "").strip() or None
+    audio_url = (body.audio_url or "").strip() or None
+    if not mood and not text and not audio_url:
+        raise HTTPException(status_code=400, detail="נא למלא לפחות אימוג'י, טקסט או הקלטה")
+    date_str = str(body.checkin_date or "").strip()[:10]
+    if len(date_str) < 10:
+        raise HTTPException(status_code=400, detail="תאריך לא תקין")
+    payload = {
+        "student_id": body.student_id,
+        "checkin_date": date_str,
+        "mood": mood,
+        "text": text,
+        "audio_url": audio_url,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    existing = (
+        db.table("daily_checkins")
+        .select("id")
+        .eq("student_id", body.student_id)
+        .eq("checkin_date", date_str)
+        .limit(1)
+        .execute()
+    )
+    try:
+        if existing.data:
+            cid = existing.data[0]["id"]
+            res = db.table("daily_checkins").update(payload).eq("id", cid).execute()
+            rows = _require_db_rows("daily_checkins", "PATCH", cid, res, payload)
+            return rows[0]
+        res = db.table("daily_checkins").insert(payload).execute()
+        rows = _require_db_rows("daily_checkins", "POST", body.student_id, res, payload)
+        return rows[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[DB] EXC table='daily_checkins' student_id={body.student_id!r} err={e!s}")
+        raise HTTPException(status_code=500, detail=f"שגיאה בשמירת צ'ק-אין: {e!s}") from e
+
 
 # ═══════════════════ REPORTS ══════════════════════════════════
 
@@ -2108,16 +2264,18 @@ def weekly_insights_ai(student_id: str, body: WeeklyInsightsAIRequest):
 
         tasks_res = db.table("tasks").select("*").eq("student_id", student_id).execute()
         reports_res = db.table("reports").select("*").eq("student_id", student_id).execute()
+        checkins_res = db.table("daily_checkins").select("*").eq("student_id", student_id).execute()
         tasks = tasks_res.data or []
         reports = reports_res.data or []
+        checkins = checkins_res.data or []
 
         wk = int(body.week_start_ms)
         span = 7 * 86400 * 1000
         cur_s, cur_e = wk, wk + span
         prev_s, prev_e = wk - span, wk
 
-        m_this = _collect_week_metrics(tasks, reports, cur_s, cur_e)
-        m_prev = _collect_week_metrics(tasks, reports, prev_s, prev_e)
+        m_this = _collect_week_metrics(tasks, reports, cur_s, cur_e, checkins)
+        m_prev = _collect_week_metrics(tasks, reports, prev_s, prev_e, checkins)
 
         counselor_description = (student.get("description") or "").strip().replace("\n", " ")[:800] or "לא צוין"
 
@@ -2130,12 +2288,14 @@ def weekly_insights_ai(student_id: str, body: WeeklyInsightsAIRequest):
                 "this_reports": m_this["reports"],
                 "this_share_pct": m_this["share_pct"],
                 "this_week_feedback": m_this["feedback"],
+                "this_daily_checkins": m_this["daily_checkins"],
                 "prev_week_label": _week_span_label(prev_s),
                 "prev_assigned": m_prev["assigned"],
                 "prev_completed": m_prev["completed"],
                 "prev_reports": m_prev["reports"],
                 "prev_share_pct": m_prev["share_pct"],
                 "prev_week_feedback": m_prev["feedback"],
+                "prev_daily_checkins": m_prev["daily_checkins"],
             }
         )
         out = result.model_dump()

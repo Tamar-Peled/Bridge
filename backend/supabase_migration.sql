@@ -17,7 +17,49 @@ ALTER TABLE IF EXISTS public.student_notes DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.students
   ADD COLUMN IF NOT EXISTS description  text          DEFAULT '',
   ADD COLUMN IF NOT EXISTS photo        text          DEFAULT '',   -- public Storage URL (legacy rows may still hold base64 until migrated)
+  ADD COLUMN IF NOT EXISTS gender       text          DEFAULT 'זכר',  -- זכר | נקבה — for gender-aware UI copy
   ADD COLUMN IF NOT EXISTS general_files jsonb       DEFAULT '[]'::jsonb;  -- counselor file cabinet (not shown to student app)
+
+-- Deduplicate login codes before unique index (keeps earliest student per code).
+DO $$
+DECLARE
+  rec RECORD;
+  candidate text;
+  i int;
+BEGIN
+  FOR rec IN
+    SELECT s.id, s.code AS old_code
+    FROM public.students s
+    INNER JOIN (
+      SELECT id,
+             ROW_NUMBER() OVER (
+               PARTITION BY code
+               ORDER BY created_at ASC NULLS LAST, id ASC
+             ) AS rn
+      FROM public.students
+      WHERE code IS NOT NULL AND btrim(code) <> ''
+    ) ranked ON ranked.id = s.id AND ranked.rn > 1
+    ORDER BY s.id
+  LOOP
+    candidate := NULL;
+    FOR i IN 0..9999 LOOP
+      candidate := lpad(i::text, 4, '0');
+      IF NOT EXISTS (
+        SELECT 1 FROM public.students WHERE code = candidate
+      ) THEN
+        EXIT;
+      END IF;
+    END LOOP;
+    IF candidate IS NULL THEN
+      RAISE EXCEPTION 'No free 4-digit student code available';
+    END IF;
+    UPDATE public.students SET code = candidate WHERE id = rec.id;
+  END LOOP;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_students_code_unique
+  ON public.students (code)
+  WHERE code IS NOT NULL AND code <> '';
 
 -- ── 2. reports: add task_id FK + audio + confidence ─────────
 ALTER TABLE public.reports
@@ -94,9 +136,27 @@ ALTER TABLE public.students
 ALTER TABLE public.meeting_notes
   ADD COLUMN IF NOT EXISTS week_start_ms bigint;
 
--- ── 9. Verify columns exist ─────────────────────────────────
+-- ── 9. daily_checkins: student mood/text/voice per day ───────
+CREATE TABLE IF NOT EXISTS public.daily_checkins (
+  id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id    uuid        NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+  checkin_date  date        NOT NULL,
+  mood          text,
+  text          text,
+  audio_url     text,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (student_id, checkin_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_daily_checkins_student_date
+  ON public.daily_checkins (student_id, checkin_date DESC);
+
+ALTER TABLE public.daily_checkins DISABLE ROW LEVEL SECURITY;
+
+-- ── 10. Verify columns exist ────────────────────────────────
 SELECT column_name, data_type
 FROM information_schema.columns
-WHERE table_name IN ('students','tasks','reports','logs','meeting_notes')
+WHERE table_name IN ('students','tasks','reports','logs','meeting_notes','daily_checkins')
   AND table_schema = 'public'
 ORDER BY table_name, column_name;

@@ -46,12 +46,19 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .screen{display:none;min-height:100vh;flex-direction:column}
 .screen.active{display:flex}
 
-/* landing — gateway */
-#screen-landing{
+/* landing / login — gateway */
+#screen-landing,#screen-login{
   align-items:center;justify-content:center;padding:48px 24px;
   text-align:center;
   background:linear-gradient(180deg,#ffffff 0%,#E6F4F4 55%,var(--bg) 100%);
 }
+.login-form-wrap{width:100%;max-width:420px;margin:0 auto}
+.login-input{
+  width:100%;padding:14px 16px;border:1.5px solid var(--border);border-radius:var(--radius);
+  font-size:16px;text-align:center;margin-bottom:12px;font-family:'Heebo',sans-serif;
+  box-sizing:border-box;
+}
+.login-error{color:var(--red-dk);font-size:14px;margin:0 0 12px;font-weight:600}
 .logo-box{
   width:84px;height:84px;background:linear-gradient(145deg,var(--primary) 0%,var(--primary-dk) 100%);border-radius:24px;
   display:flex;align-items:center;justify-content:center;
@@ -914,11 +921,18 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   color:transparent;
 }
 .task-chk-icon.done{background:var(--primary-dk);border-color:var(--primary-dk);color:#fff}
-.task-pencil-c{
+.task-view-icon-c{
   flex-shrink:0;width:18px;height:18px;opacity:.55;margin-top:2px;color:var(--mid);
   pointer-events:none;user-select:none;
 }
-.task-pencil-c svg{display:block;width:100%;height:100%}
+.task-view-icon-c svg{display:block;width:100%;height:100%}
+.task-detail-card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px 20px;margin-bottom:16px;text-align:right;
+}
+.task-detail-title{font-size:18px;font-weight:800;color:var(--dark);margin:0 0 8px;line-height:1.35}
+.task-detail-status{font-size:13px;color:var(--mid);font-weight:600;margin-bottom:14px}
+.task-detail-actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
 .task-text{
   flex:1;min-width:0;
   font-size:14px;line-height:1.45;color:var(--dark);
@@ -971,6 +985,9 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .modal{background:var(--card);border-radius:var(--radius);padding:24px;width:100%;max-width:460px;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto}
 .modal h3{font-size:20px;font-weight:800;margin-bottom:4px}
 .modal-note{font-size:13px;color:var(--light);margin-bottom:16px}
+.modal-err{color:var(--red-dk);font-size:13px;margin-top:8px;font-weight:600;text-align:center}
+.code-editable{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+.code-editable:hover{color:var(--primary-dk)}
 .modal-lbl{font-size:13px;font-weight:600;color:var(--mid);margin-top:8px;margin-bottom:5px;display:block}
 .modal input,.modal select,.modal textarea{
   width:100%;border:1.5px solid var(--border);border-radius:var(--radius-sm);
@@ -1133,6 +1150,19 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 </head>
 <body>
 
+<!-- ════ LOGIN ════ -->
+<div id="screen-login" class="screen">
+  <div class="logo-box">B</div>
+  <div class="landing-title">BRIDGE</div>
+  <div class="landing-desc">כניסת יועצת — הזיני סיסמה</div>
+  <div class="login-form-wrap">
+    <input type="password" id="login-password" class="login-input" placeholder="סיסמה" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitCounselorLogin()">
+    <p id="login-error" class="login-error" style="display:none">סיסמה שגויה — נסי שוב</p>
+    <button type="button" class="btn-primary" onclick="submitCounselorLogin()">כניסה</button>
+  </div>
+  <div class="footer-txt">BRIDGE © 2026 — כל הזכויות שמורות</div>
+</div>
+
 <!-- ════ LANDING ════ -->
 <div id="screen-landing" class="screen active">
   <div class="logo-box">B</div>
@@ -1145,7 +1175,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 <!-- ════ LIST ════ -->
 <div id="screen-main" class="screen">
   <div class="topbar">
-    <button class="topbar-back" onclick="showScreen('screen-landing')">יציאה →</button>
+    <button class="topbar-back" onclick="logoutCounselor()">יציאה →</button>
     <div class="topbar-brand">
       <div class="topbar-name">BRIDGE</div>
       <div class="topbar-logo">B</div>
@@ -1165,6 +1195,18 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     <div id="students-list"></div>
     <button class="btn-add" id="btn-add-student" onclick="openAddModal()">+ הוסף תלמיד</button>
   </div>
+</div>
+
+<!-- ════ TASK DETAIL (full page) ════ -->
+<div id="screen-task-detail" class="screen">
+  <div class="topbar">
+    <button class="topbar-back" onclick="goBackFromTaskDetail()">→ חזרה לתלמיד</button>
+    <div class="topbar-brand">
+      <div class="topbar-name">BRIDGE</div>
+      <div class="topbar-logo">B</div>
+    </div>
+  </div>
+  <div class="content" id="task-detail-content"></div>
 </div>
 
 <!-- ════ DETAIL ════ -->
@@ -1188,6 +1230,11 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     <input type="text" id="new-name" placeholder="שם מלא">
     <label class="modal-lbl">כיתה *</label>
     <input type="text" id="new-grade" placeholder="לדוגמה: ה׳5">
+    <label class="modal-lbl">מגדר</label>
+    <select id="new-gender">
+      <option value="זכר">זכר</option>
+      <option value="נקבה">נקבה</option>
+    </select>
     <label class="modal-lbl">תיאור רקע פנימי  *</label>
     <textarea id="new-description" placeholder="תיאור קצר על הרקע של התלמיד."></textarea>
     <label class="modal-lbl">תמונה</label>
@@ -1200,8 +1247,9 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     <label class="modal-lbl">קוד כניסה לתלמיד — 4 ספרות *</label>
     <input type="text" id="new-code" placeholder="0000"
       maxlength="4" inputmode="numeric" pattern="[0-9]{4}"
-      oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+      oninput="this.value=this.value.replace(/[^0-9]/g,'');hideCodeErr('new-code-err')"
       style="letter-spacing:8px;font-size:20px;font-weight:700;text-align:center">
+    <div class="modal-err" id="new-code-err" style="display:none"></div>
     <label class="modal-lbl">סטטוס טיפול</label>
     <select id="new-status">
       <option value="בתהליך">בתהליך</option>
@@ -1209,6 +1257,23 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal('modal-add')">ביטול</button>
       <button class="btn-primary" style="flex:1;margin:0" id="btn-add-submit" onclick="doAddStudent()">הוסף</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL: EDIT ACCESS CODE ════ -->
+<div class="overlay" id="modal-code">
+  <div class="modal">
+    <h3>קוד כניסה לתלמיד</h3>
+    <div class="modal-note">4 ספרות — הקוד משמש את התלמיד להתחברות לאפליקציה</div>
+    <input type="text" id="code-inp" placeholder="0000"
+      maxlength="4" inputmode="numeric" pattern="[0-9]{4}"
+      oninput="this.value=this.value.replace(/[^0-9]/g,'');hideCodeErr('code-edit-err')"
+      style="letter-spacing:8px;font-size:20px;font-weight:700;text-align:center;width:100%;box-sizing:border-box">
+    <div class="modal-err" id="code-edit-err" style="display:none"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-code')">ביטול</button>
+      <button class="btn-primary" style="flex:1;margin:0" id="btn-code-save" onclick="saveCode()">שמור</button>
     </div>
   </div>
 </div>
@@ -1395,9 +1460,12 @@ let currentSid     = null;
 let currentTasks   = [];
 let currentReports = [];
 let currentNotes   = [];
+let currentDailyCheckins = [];
 let _weeklyMeetingModalWk=null;
 let _photoSid      = null;
 let _descSid       = null;
+let _codeSid       = null;
+const CODE_TAKEN_MSG='הקוד תפוס, אנא בחרי קוד אחר';
 let _aiSummaryLast = '';
 let _noteIsAi      = false;
 let _editingNoteId = null;
@@ -1963,6 +2031,15 @@ function isDocExtractFile(f){
     t==='application/pdf'||t.includes('wordprocessingml');
 }
 
+async function reloadDailyCheckins(){
+  if(!currentSid) return;
+  try{
+    const rows=await apiFetch(`/daily-checkins/${currentSid}`);
+    currentDailyCheckins=Array.isArray(rows)?rows:[];
+  }catch(_){
+    /* keep currentDailyCheckins */
+  }
+}
 async function reloadMeetingNotes(){
   if(!currentSid) return;
   try{
@@ -2234,6 +2311,17 @@ function daysSinceMs(ms){
   if(!ms) return Infinity;
   return (Date.now()-ms)/(1000*60*60*24);
 }
+function isStudentFemale(student){
+  const g=String(student&&student.gender||'').trim().toLowerCase();
+  if(g==='נקבה'||g==='female'||g==='f') return true;
+  if(g==='זכר'||g==='male'||g==='m') return false;
+  return false;
+}
+function studentSharesAlertLabel(student){
+  return isStudentFemale(student)
+    ?'שימי לב לשיתופים של התלמידה'
+    :'שימי לב לשיתופים של התלמיד';
+}
 function isNegativeEmojiMood(moodRaw){
   const mood=String(moodRaw||'');
   // Strict rule: only emoji-based negativity in the mood label (not keywords / free text)
@@ -2297,27 +2385,18 @@ function computeProactiveAlert(student, tasks, reports){
   const last3=reps.slice(-3);
   const threeNegEmoji=(last3.length===3)&&last3.every(r=>isNegativeEmojiMood(r.mood));
 
-  const weeklyUncompleted=(tasks||[]).filter(t=>t&&t.selected&&!t.done).length;
-  const tooManyWeeklyIncomplete=weeklyUncompleted>=3;
-
-  if(threeNegEmoji||tooManyWeeklyIncomplete){
-    isDistressed=true;
-    if(tooManyWeeklyIncomplete){
-      tags.push('3+ weekly incomplete');
-    }
-  }
+  /* Shares alert: last 3 reports all negative emoji only — not incomplete tasks. */
+  if(threeNegEmoji) isDistressed=true;
 
   const reasonParts=[];
   if(inactive7) reasonParts.push('ללא בחירת משימה שבועית מעל 7 ימים');
   if(threeNegEmoji) reasonParts.push('3 אימוג\'ים עצובים ברצף');
-  if(tooManyWeeklyIncomplete) reasonParts.push(`${weeklyUncompleted} משימות שבועיות שלא הושלמו`);
   const reasonHebrew=reasonParts.join(' · ');
 
   const last3Key=last3.map(r=>String(r.id||r.created_at||'')).join(',');
   const silenceFingerprint=[
     inactive7?'1':'0',
     threeNegEmoji?'1':'0',
-    tooManyWeeklyIncomplete?String(weeklyUncompleted):'0',
     last3Key
   ].join('|');
 
@@ -2443,18 +2522,23 @@ function matchesListTab(s){
   if(listTab==='completed') return isCompletedStudent(s);
   return !isCompletedStudent(s);
 }
+function studentHasActiveAlert(s){
+  const pa=proactiveById[s.id]||{};
+  if(!pa.aiStillDetected) return false;
+  if(isSystemFlagSilenced(s.id, pa.silenceFingerprint||'')) return false;
+  return !!(pa.inactive7||pa.isDistressed);
+}
 function sortStudentsPinned(list){
-  return list.slice().sort((a,b)=>{
-    const sa=canonicalStatus(a.status), sb=canonicalStatus(b.status);
-    const pa=proactiveById[a.id]||{};
-    const pb=proactiveById[b.id]||{};
-    const silA=isSystemFlagSilenced(a.id, pa.silenceFingerprint||'');
-    const silB=isSystemFlagSilenced(b.id, pb.silenceFingerprint||'');
-    const pinA=(sa==='נדרש מעקב צמוד')||(!!pa.aiStillDetected&&!silA);
-    const pinB=(sb==='נדרש מעקב צמוד')||(!!pb.aiStillDetected&&!silB);
-    if(pinA!==pinB) return pinA?-1:1;
-    return String(a.name||'').localeCompare(String(b.name||''),'he',{sensitivity:'base'});
+  const indexed=list.map((s,i)=>({s,i}));
+  indexed.sort((a,b)=>{
+    const alertA=studentHasActiveAlert(a.s);
+    const alertB=studentHasActiveAlert(b.s);
+    if(alertA!==alertB) return alertA?-1:1;
+    const nameCmp=String(a.s.name||'').localeCompare(String(b.s.name||''),'he',{sensitivity:'base'});
+    if(nameCmp) return nameCmp;
+    return a.i-b.i;
   });
+  return indexed.map(x=>x.s);
 }
 function setListTab(tab){
   listTab=(tab==='completed')?'completed':'active';
@@ -2725,8 +2809,44 @@ function handlePhoto(input,dropId,hiddenId){
   img.src=URL.createObjectURL(file);
 }
 
+/* ════════════════ AUTH ════════════════ */
+const COUNSELOR_AUTH_KEY='bridge_counselor_auth_v1';
+const COUNSELOR_PASSWORD='00000';
+function isCounselorAuthed(){
+  try{return localStorage.getItem(COUNSELOR_AUTH_KEY)==='1';}catch(_){return false;}
+}
+function submitCounselorLogin(){
+  const inp=document.getElementById('login-password');
+  const err=document.getElementById('login-error');
+  const val=inp?String(inp.value).trim():'';
+  if(val===COUNSELOR_PASSWORD){
+    try{localStorage.setItem(COUNSELOR_AUTH_KEY,'1');}catch(_){}
+    if(err) err.style.display='none';
+    if(inp) inp.value='';
+    showScreen('screen-landing');
+  }else{
+    if(err) err.style.display='block';
+    showToast('סיסמה שגויה');
+  }
+}
+function logoutCounselor(){
+  try{localStorage.removeItem(COUNSELOR_AUTH_KEY);}catch(_){}
+  const inp=document.getElementById('login-password');
+  const err=document.getElementById('login-error');
+  if(inp) inp.value='';
+  if(err) err.style.display='none';
+  showScreen('screen-login');
+}
+function initCounselorAuthGate(){
+  if(isCounselorAuthed()) return;
+  showScreen('screen-login');
+}
+
 /* ════════════════ SCREENS ════════════════ */
-async function enterCounselor(){showScreen('screen-main');await loadList();}
+async function enterCounselor(){
+  if(!isCounselorAuthed()){showScreen('screen-login');return;}
+  showScreen('screen-main');await loadList();
+}
 function goBack(){showScreen('screen-main');loadList();}
 
 /* ════════════════ LIST ════════════════ */
@@ -2782,6 +2902,9 @@ function renderList(list){
     const cardCls=`student-card`;
     const av=studentAvatarHtml(s,{lazy:true});
     const tip=escH(pa.reasonHebrew||'');
+    /* Dashboard alert badges (see computeProactiveAlert):
+     * 1) "שימי לב לחוסר פעילות" — inactive7 only.
+     * 2) "שימי לב לשיתופים" — isDistressed: last 3 reports all negative emoji. */
     const alertParts=[];
     if(showAlerts&&pa.inactive7){
       alertParts.push(`<div class="dashboard-alert-row">
@@ -2790,14 +2913,10 @@ function renderList(list){
     }
     if(showAlerts&&pa.isDistressed){
       alertParts.push(`<div class="dashboard-alert-row">
-          <button type="button" class="system-flag-label" title="${tip}" onclick="openAiAlertModal('${s.id}',event)">שימי לב לשיתופים של התלמיד</button>
+          <button type="button" class="system-flag-label" title="${tip}" onclick="openAiAlertModal('${s.id}',event)">${escH(studentSharesAlertLabel(s))}</button>
         </div>`);
     }
     const sysLbl=alertParts.join('');
-    const extraTags=(pa.tags||[]).filter(t=>t!=='7 days inactive');
-    const reasonTags=(showAlerts&&extraTags.length)
-      ?`<div class="s-badges" style="margin-top:6px">${extraTags.map(t=>`<span class="reason-tag">${escH(t)}</span>`).join('')}</div>`
-      :'';
     /* Inline trash button on the dashboard card for completed students,
        so the counselor doesn't have to drill into the detail screen just to
        remove a student whose process is already finished. Stop propagation
@@ -2813,7 +2932,6 @@ function renderList(list){
         <div class="s-name">${escH(s.name)}</div>
         <div class="s-meta">כיתה ${escH(s.grade)}</div>
         ${sysLbl}
-        ${reasonTags}
       </div>
       ${delBtn}
       <span class="arrow">‹</span>
@@ -2857,14 +2975,15 @@ async function openStudent(id){
     const reportsPromise=cached&&Array.isArray(cached.reports)
       ?Promise.resolve(cached.reports)
       :apiFetch(`/reports/${id}`);
-    const [profile,tasks,reports,notes,docs]=await Promise.all([
+    const [profile,tasks,reports,notes,checkins,docs]=await Promise.all([
       profilePromise,
       tasksPromise,
       reportsPromise,
       apiFetch(`/meeting-notes/${id}`).catch(e=>{
-        showToast(`סיכומי פגישות: ${e.message}`);
+        showToast(`סיכום שבועי: ${e.message}`);
         return [];
       }),
+      apiFetch(`/daily-checkins/${id}`).catch(()=>[]),
       apiFetch(`/students/${id}/documents`).catch(()=>[]),
     ]);
     studentDataCache[id]={
@@ -2876,6 +2995,7 @@ async function openStudent(id){
     currentTasks=studentDataCache[id].tasks;
     currentReports=studentDataCache[id].reports;
     currentNotes=notes||[];
+    currentDailyCheckins=Array.isArray(checkins)?checkins:[];
     currentGeneralDocuments=Array.isArray(docs)?docs:[];
     await renderDetail(allStudents.find(x=>x.id===id)||profile);
   }catch(e){
@@ -2907,10 +3027,10 @@ async function renderDetail(s){
   const statusOpts=STATUSES.map(v=>`<option value="${v}"${v===status?' selected':''}>${v}</option>`).join('');
 
   function taskRowWeekly(t){
-    return `<div class="task-row" onclick="openTaskModal('${t.id}')" role="button" tabindex="0">
+    return `<div class="task-row" onclick="openTaskPage('${t.id}')" role="button" tabindex="0">
       <div class="task-chk-icon${t.done?' done':''}" aria-label="${t.done?'הושלמה':'לא הושלמה'}">${t.done?'✓':''}</div>
       <span class="task-text">${escH(t.text)}</span>
-      <span class="task-pencil-c" title="צפייה/עריכת דוח" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
+      <span class="task-view-icon-c" title="פתיחת משימה" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
     </div>`;
   }
   function taskRowBank(t){
@@ -2940,7 +3060,7 @@ async function renderDetail(s){
           <div class="d-meta-line d-meta-highlight">
             <span class="meta-strong">כיתה ${escH(s.grade)}</span>
             <span class="meta-dot" aria-hidden="true">·</span>
-            <span class="meta-strong" title="קוד כניסה לתלמיד">קוד ${escH(s.code||'—')}</span>
+            <span class="meta-strong code-editable" id="code-span" onclick="openCodeModal()" title="לחצי לעריכת קוד כניסה">קוד ${escH(s.code||'—')} ✏️</span>
           </div>
           <h2 class="student-bg-heading">רקע התלמיד</h2>
           <div class="detail-status-inline">
@@ -2965,7 +3085,7 @@ async function renderDetail(s){
 
     <nav class="detail-subtabs" role="tablist" aria-label="תיק תלמיד">
       <button type="button" class="detail-subtab" data-dtab="tasks" role="tab" onclick="setCounselorDetailTab('tasks')">משימות</button>
-      <button type="button" class="detail-subtab" data-dtab="history" role="tab" onclick="setCounselorDetailTab('history')">היסטוריה וסיכומי פגישות</button>
+      <button type="button" class="detail-subtab" data-dtab="history" role="tab" onclick="setCounselorDetailTab('history')">היסטוריה וסיכום שבועי</button>
     </nav>
 
     <div id="counselor-panel-tasks">
@@ -2983,10 +3103,8 @@ async function renderDetail(s){
         <div class="add-row" style="justify-content:center">
           <input class="add-input" id="task-inp" placeholder="הוסף משימה לבנק..."
             onkeydown="if(event.key==='Enter')addTask()">
-          <button class="btn-sm" id="btn-task-ai" title="הצעת משימה חכמה מהבנק לפי הקשר המלא" onclick="getAiTaskRecommendation()">הצעת AI</button>
           <button class="btn-sm" onclick="addTask()">+</button>
         </div>
-        <div class="ai-reason-tip" id="task-ai-reason" title="AI Reasoning"></div>
       </div>
     </div>
 
@@ -3040,6 +3158,7 @@ function weekHasCounselorActivity(wkStart){
   if(reportsInWeekSorted(currentReports||[],wkStart,wkEnd).length) return true;
   if(notesInWeekSorted(currentNotes||[],wkStart,wkEnd).length) return true;
   if(tasksInWeekScopeTasks(wkStart,wkEnd,currentTasks||[],currentReports||[]).length) return true;
+  if(checkinsInWeekSorted(currentDailyCheckins||[],wkStart,wkEnd).length) return true;
   return false;
 }
 function removeWeeklySummaryKeysForWeek(summaryMap,wkStart,wkEnd){
@@ -3368,7 +3487,46 @@ function addWeekFromIso(iso, intoSet){
   if(ms==null) return;
   intoSet.add(localSundayWeekStartMs(ms));
 }
-function collectCounselorWeekStartMsSet(stu,tasks,reports,notes){
+function parseLocalDateMsFromYmd(ymd){
+  const parts=String(ymd||'').slice(0,10).split('-').map(Number);
+  if(parts.length<3||!parts[0]) return null;
+  return new Date(parts[0],parts[1]-1,parts[2]).getTime();
+}
+function checkinsInWeekSorted(checkins,wkStart,wkEnd){
+  return (checkins||[]).filter(c=>{
+    const ms=parseLocalDateMsFromYmd(c&&c.checkin_date);
+    if(ms==null) return false;
+    return ms>=wkStart&&ms<wkEnd;
+  }).sort((a,b)=>String(a.checkin_date||'').localeCompare(String(b.checkin_date||'')));
+}
+function fmtCheckinDayLabel(ymd){
+  const ms=parseLocalDateMsFromYmd(ymd);
+  if(ms==null) return String(ymd||'');
+  return new Date(ms).toLocaleDateString('he-IL',{weekday:'short',day:'numeric',month:'numeric'});
+}
+function buildDailyCheckinsWeekHtml(checkins,wkStart,wkEnd){
+  const list=checkinsInWeekSorted(checkins,wkStart,wkEnd);
+  if(!list.length){
+    return '<div class="weekly-subsec"><h4 class="weekly-subsec-h">איך עבר היום?</h4><p class="sec-empty" style="margin:0;text-align:right">אין צ\'ק-אין יומי בשבוע זה</p></div>';
+  }
+  const items=list.map(c=>{
+    const mood=String(c.mood||'').trim();
+    const day=fmtCheckinDayLabel(c.checkin_date);
+    const txt=(c.text&&String(c.text).trim())
+      ?`<div class="weekly-feedback-text">${escHBr(c.text)}</div>`
+      :'';
+    const audio=c.audio_url
+      ?`<div class="rep-audio" style="margin-top:8px"><audio controls src="${escH(c.audio_url)}"></audio></div>`
+      :'';
+    const moodPart=mood?` · ${escH(mood)}`:'';
+    return `<div class="weekly-feedback-item task-activity-item task-activity-share">
+      <div class="weekly-feedback-task">${escH(day)}${moodPart}</div>
+      ${txt}${audio}
+    </div>`;
+  }).join('');
+  return `<div class="weekly-subsec"><h4 class="weekly-subsec-h">איך עבר היום?</h4>${items}</div>`;
+}
+function collectCounselorWeekStartMsSet(stu,tasks,reports,notes,checkins){
   /* Every value added to this set MUST be a canonical week-start ms (Sunday
      00:00 local) so that the same conceptual week renders one card with one
      id, and saves into one key. note.week_start_ms and the keys already in
@@ -3385,6 +3543,10 @@ function collectCounselorWeekStartMsSet(stu,tasks,reports,notes){
     }
   });
   (tasks||[]).forEach(t=>{if(t&&t.selected_at) addWeekFromIso(t.selected_at,set);});
+  (checkins||[]).forEach(c=>{
+    const ms=parseLocalDateMsFromYmd(c&&c.checkin_date);
+    if(ms!=null) set.add(localSundayWeekStartMs(ms));
+  });
   const sums=parseWeeklySummariesFromStudent(stu);
   Object.keys(sums).forEach(k=>{
     const n=Number(k);
@@ -3487,7 +3649,7 @@ function safeWeeklyDomId(s){
   return String(s||'').replace(/[^a-zA-Z0-9_-]/g,'_');
 }
 function weekOrdinalForStudent(wkMs,stu,tasks,reports,notes){
-  const set=collectCounselorWeekStartMsSet(stu||{},tasks||[],reports||[],notes||[]);
+  const set=collectCounselorWeekStartMsSet(stu||{},tasks||[],reports||[],notes||[],currentDailyCheckins||[]);
   const asc=[...set].sort((a,b)=>a-b);
   const i=asc.indexOf(Number(wkMs));
   return i>=0?i+1:asc.length;
@@ -3716,7 +3878,7 @@ function buildSessionNotesCardsHtmlForList(notesSorted, opts){
   const mode=(opts&&opts.mode)||'standalone';
   if(!notesSorted.length){
     if(mode==='nested') return '';
-    return '<div class="sec-empty">אין עדיין סיכומי פגישות מתועדים</div>';
+    return '<div class="sec-empty">אין עדיין סיכום שבועי מתועד</div>';
   }
   const nested=mode==='nested';
   return notesSorted.map((n,idx)=>meetingSessionNoteCardHtml(n,idx+1,nested)).join('');
@@ -3744,10 +3906,10 @@ function weeklyCounselorSummarySectionHtml(wkKey,wkMs,entries,ord){
   /* Show the section heading once, then the entries (or empty hint) and
      the +/AI row. */
   const emptyHint=(!list.length&&!adding)
-    ?'<div class="sec-empty" style="margin:4px 0 8px 0">אין עדיין סיכומי פגישה לשבוע זה</div>'
+    ?'<div class="sec-empty" style="margin:4px 0 8px 0">אין עדיין סיכום שבועי לשבוע זה</div>'
     :'';
   return `<div class="weekly-subsec">
-    <h4 class="weekly-subsec-h">סיכומי פגישות לשבוע</h4>
+    <h4 class="weekly-subsec-h">סיכום שבועי</h4>
     ${entriesHtml}
     ${emptyHint}
     ${addBlock}
@@ -3949,7 +4111,8 @@ function buildCounselorWeeklyMeetingAccordionHtml(stu){
   const tasks=currentTasks||[];
   const reports=currentReports||[];
   const notes=currentNotes||[];
-  const wkSet=collectCounselorWeekStartMsSet(stu,tasks,reports,notes);
+  const checkins=currentDailyCheckins||[];
+  const wkSet=collectCounselorWeekStartMsSet(stu,tasks,reports,notes,checkins);
   const weeksAsc=[...wkSet].sort((a,b)=>a-b);
   const weeks=weeksAsc.slice().reverse();
   if(!weeks.length){
@@ -3964,7 +4127,7 @@ function buildCounselorWeeklyMeetingAccordionHtml(stu){
     const taskSections=buildWeeklyTaskSectionsHtml(wkKey,wkMs,wkEnd,tasks,reports,stu);
     const notesWeek=notesInWeekSorted(notes,wkMs,wkEnd);
     const nestedNotes=notesWeek.length
-      ?`<div class="weekly-subsec weekly-notes-nested"><h4 class="weekly-subsec-h">סיכומי פגישות מתועדים בשבוע</h4>${buildSessionNotesCardsHtmlForList(notesWeek,{mode:'nested'})}</div>`
+      ?`<div class="weekly-subsec weekly-notes-nested"><h4 class="weekly-subsec-h">סיכום שבועי מתועד בשבוע</h4>${buildSessionNotesCardsHtmlForList(notesWeek,{mode:'nested'})}</div>`
       :'';
     const entriesForWeek=entriesMap[wkKey]||[];
     const open=wi===0?' is-open':'';
@@ -3974,12 +4137,13 @@ function buildCounselorWeeklyMeetingAccordionHtml(stu){
       return (tasks||[]).some(t=>t&&t.id===r.task_id);
     }).length;
     const summarySection=weeklyCounselorSummarySectionHtml(wkKey,wkMs,entriesForWeek,ord);
+    const checkinSection=buildDailyCheckinsWeekHtml(checkins,wkMs,wkEnd);
     return `<div class="weekly-meeting-week${open}" id="weekly-week-${wkKey}">
       <div class="weekly-meeting-week-head-wrap">
         <button type="button" class="weekly-meeting-week-head" aria-expanded="${aria}" onclick="toggleWeeklyMeetingWeek('${wkKey}')">
           <div>
             <div>${escH(titleLine)}</div>
-            <div class="weekly-week-meta">משימות ושיתופים בשבוע · משובים: ${repCount} · סיכומי פגישה: ${countMeetingSummariesForWeek(wkMs,wkEnd,notes,entriesForWeek)}</div>
+            <div class="weekly-week-meta">משימות ושיתופים בשבוע · משובים: ${repCount} · סיכום שבועי: ${countMeetingSummariesForWeek(wkMs,wkEnd,notes,entriesForWeek)}</div>
           </div>
           <span class="weekly-acc-chevron" aria-hidden="true">▼</span>
         </button>
@@ -3989,8 +4153,9 @@ function buildCounselorWeeklyMeetingAccordionHtml(stu){
         </div>
       </div>
       <div class="weekly-meeting-week-body">
-        ${taskSections}
         ${summarySection}
+        ${checkinSection}
+        ${taskSections}
         ${nestedNotes}
       </div>
     </div>`;
@@ -4130,7 +4295,7 @@ function deleteWeekBundle(wkKeyStr){
       }
     }
     if(failedNotes.length){
-      showToast(`לא הצלחתי למחוק ${failedNotes.length} סיכומי פגישה: ${failedNotes[0].err}`);
+      showToast(`לא הצלחתי למחוק ${failedNotes.length} סיכום שבועי: ${failedNotes[0].err}`);
       return;
     }
 
@@ -4556,6 +4721,7 @@ async function renderCounselorDetailHistory(preSnap){
   const snap=preSnap===undefined?snapshotMeetingHistoryDraft():preSnap;
   await Promise.all([
     reloadMeetingNotes(),
+    reloadDailyCheckins(),
     reloadCurrentStudentFromServer().catch(()=>null),
   ]);
   const stu=allStudents.find(x=>x.id===currentSid);
@@ -4589,7 +4755,7 @@ async function renderCounselorDetailHistory(preSnap){
 
     <div class="sec">
       <div class="meeting-summaries-head-row" style="align-items:center">
-        <div class="sec-title sec-case-title" style="text-align:center;flex:1;min-width:0;margin-bottom:0">סיכומי פגישות — תצוגה שבועית</div>
+        <div class="sec-title sec-case-title" style="text-align:center;flex:1;min-width:0;margin-bottom:0">סיכום שבועי — תצוגה שבועית</div>
         <div class="meeting-summaries-head-toolbar">
           <button type="button" class="btn-add-meeting-minimal" onclick="openWeeklyMeetingNoteModal(null)" title="הוסף סיכום פגישה (שבוע נוכחי)" aria-label="הוסף סיכום פגישה">+</button>
         </div>
@@ -4759,6 +4925,48 @@ function deleteStudentFromList(sid, ev){
   deleteStudentById(sid, name);
 }
 
+/* ════════════════ ACCESS CODE ════════════════ */
+function hideCodeErr(id){
+  const el=document.getElementById(id);
+  if(el){el.style.display='none';el.textContent='';}
+}
+function showCodeErr(id,msg){
+  const el=document.getElementById(id);
+  if(el){el.textContent=msg;el.style.display='';}
+}
+function isCodeTakenError(msg){
+  return String(msg||'').includes('הקוד תפוס');
+}
+function openCodeModal(){
+  const s=allStudents.find(x=>x.id===currentSid);
+  const inp=document.getElementById('code-inp');
+  if(inp) inp.value=(s&&s.code)||'';
+  hideCodeErr('code-edit-err');
+  _codeSid=currentSid;
+  document.getElementById('modal-code').classList.add('show');
+  requestAnimationFrame(()=>{if(inp) inp.focus();});
+}
+async function saveCode(){
+  const inp=document.getElementById('code-inp');
+  const code=(inp&&inp.value||'').trim();
+  hideCodeErr('code-edit-err');
+  if(!/^\d{4}$/.test(code)){showToast('קוד כניסה חייב להיות 4 ספרות');return;}
+  const s=allStudents.find(x=>x.id===_codeSid);
+  if(s && String(s.code||'')===code){closeModal('modal-code');return;}
+  setBusy('btn-code-save',true,'שמור');
+  try{
+    const updated=await apiFetch(`/students/${_codeSid}`,{method:'PATCH',body:JSON.stringify({code})});
+    if(s) s.code=(updated&&updated.code)||code;
+    const el=document.getElementById('code-span');
+    if(el) el.innerHTML=`קוד ${escH(code)} ✏️`;
+    closeModal('modal-code');showToast('קוד כניסה עודכן ✓');
+  }catch(e){
+    if(isCodeTakenError(e.message)) showCodeErr('code-edit-err',CODE_TAKEN_MSG);
+    else showToast(`שגיאה: ${e.message}`);
+  }
+  finally{setBusy('btn-code-save',false,'שמור');}
+}
+
 /* ════════════════ DESCRIPTION ════════════════ */
 function openDescModal(){
   const s=allStudents.find(x=>x.id===currentSid);
@@ -4803,18 +5011,58 @@ async function savePhoto(){
   finally{setBusy('btn-photo-save',false,'שמור תמונה');}
 }
 
-/* ════════════════ TASK REPORT MODAL ════════════════ */
+/* ════════════════ TASK DETAIL PAGE ════════════════ */
+let _taskDetailTaskId=null;
+function taskDetailStatusLine(task,reps){
+  const hasExpectation=task.selected&&task.confidence_score!=null&&task.confidence_score!=='';
+  if(hasExpectation&&reps.length) return 'ציפייה ושיתוף מהתלמיד';
+  if(hasExpectation) return 'ציפיית הצלחה לפני המשימה';
+  if(reps.length) return 'שיתוף מהתלמיד';
+  return '';
+}
+function renderTaskDetailPage(task){
+  const reps=reportsForTaskSorted(currentReports,task.id,task.text);
+  const statusLine=taskDetailStatusLine(task,reps);
+  const body=buildTaskStudentActivityTimelineHtml(task,reps);
+  const stu=allStudents.find(x=>x.id===currentSid);
+  const stLabel=task.done?'✓ הושלמה':'לא הושלמה';
+  document.getElementById('task-detail-content').innerHTML=`
+    <div class="task-detail-card">
+      <h2 class="task-detail-title">${escH(task.text||'משימה')}</h2>
+      ${stu?`<div class="task-detail-status">${escH(stu.name)} · ${escH(stLabel)}</div>`:`<div class="task-detail-status">${escH(stLabel)}</div>`}
+      ${statusLine?`<div class="task-detail-status" style="margin-bottom:12px">${escH(statusLine)}</div>`:''}
+      ${body}
+      <div class="task-detail-actions">
+        <button type="button" class="btn-cancel" onclick="deleteTaskFromDetailPage()" style="border-color:#f5c6c2;color:var(--red-dk)">מחק משימה</button>
+      </div>
+    </div>`;
+}
+function openTaskPage(taskId){
+  const task=currentTasks.find(t=>t.id===taskId);
+  if(!task){showToast('משימה לא נמצאה');return;}
+  _taskDetailTaskId=taskId;
+  renderTaskDetailPage(task);
+  showScreen('screen-task-detail');
+}
+function goBackFromTaskDetail(){
+  _taskDetailTaskId=null;
+  showScreen('screen-detail');
+}
+function deleteTaskFromDetailPage(){
+  const id=_taskDetailTaskId;
+  _taskDetailTaskId=null;
+  showScreen('screen-detail');
+  if(id) delTask(id);
+}
+
+/* ════════════════ TASK REPORT MODAL (bank tasks) ════════════════ */
 function openTaskModal(taskId){
   const task=currentTasks.find(t=>t.id===taskId);if(!task)return;
   _mtrTaskId=taskId;
   const reps=reportsForTaskSorted(currentReports,taskId,task.text);
-  const hasExpectation=task.selected&&task.confidence_score!=null&&task.confidence_score!=='';
   document.getElementById('mtr-title').textContent=task.text;
-  document.getElementById('mtr-status').textContent=hasExpectation&&reps.length
-    ?'ציפייה ושיתוף מהתלמיד'
-    :(hasExpectation?'ציפיית הצלחה לפני המשימה':(reps.length?'שיתוף מהתלמיד':''));
-  const body=buildTaskStudentActivityTimelineHtml(task,reps);
-  document.getElementById('mtr-body').innerHTML=body;
+  document.getElementById('mtr-status').textContent=taskDetailStatusLine(task,reps);
+  document.getElementById('mtr-body').innerHTML=buildTaskStudentActivityTimelineHtml(task,reps);
   document.getElementById('modal-task-rep').classList.add('show');
 }
 
@@ -4838,32 +5086,6 @@ async function addTask(){
   }catch(e){showToast(`שגיאה: ${e.message}`);}
 }
 
-async function getAiTaskRecommendation(){
-  const inp=document.getElementById('task-inp');
-  const tip=document.getElementById('task-ai-reason');
-  if(!currentSid){showToast('לא נבחר תלמיד');return;}
-  if(tip){tip.classList.remove('show');tip.textContent='';tip.removeAttribute('title');}
-  setBusy('btn-task-ai',true,'הצעת AI');
-  try{
-    const data=await apiFetch(`/get-ai-task-recommendation/${currentSid}`,{method:'POST'});
-    const title=(data && data.recommended_task_title)||'';
-    const why=(data && data.reasoning)||'';
-    if(title){
-      inp.value=title;
-      inp.focus();
-      if(tip && why){
-        tip.textContent=why;
-        tip.setAttribute('title',why);
-        tip.classList.add('show');
-      }
-      showToast('הצעת משימה מוכנה ✓');
-    }else{
-      showToast('לא נמצאה הצעה');
-    }
-  }catch(e){showToast(`שגיאה: ${e.message}`);}
-  finally{setBusy('btn-task-ai',false,'הצעת AI');}
-}
-
 function delTask(taskId){
   showAppConfirm('מחיקת משימה','למחוק משימה זו?',()=>{
     void (async()=>{
@@ -4881,6 +5103,7 @@ function delTask(taskId){
 
 /* ════════════════ ADD STUDENT ════════════════ */
 function openAddModal(){
+  hideCodeErr('new-code-err');
   ['new-name','new-grade','new-description','new-code'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.value='';
@@ -4900,6 +5123,7 @@ async function doAddStudent(){
   const descEl=document.getElementById('new-description');
   const photoEl=document.getElementById('new-photo-b64');
   const statusEl=document.getElementById('new-status');
+  const genderEl=document.getElementById('new-gender');
   const codeEl=document.getElementById('new-code');
   if(!nameEl||!gradeEl||!descEl||!statusEl||!codeEl){
     showToast('שגיאה בטופס הוספת תלמיד — חסר שדה במסך');
@@ -4910,14 +5134,19 @@ async function doAddStudent(){
   const description=descEl.value.trim();
   const photo      =(photoEl&&photoEl.value)||'';
   const status     =statusEl.value;
+  const gender     =genderEl?genderEl.value:'זכר';
   const code       =codeEl.value.trim();
+  hideCodeErr('new-code-err');
   if(!name||!grade){showToast('נא למלא שם וכיתה');return;}
-  if(code && !/^\d{4}$/.test(code)){showToast('קוד כניסה חייב להיות 4 ספרות');return;}
+  if(!/^\d{4}$/.test(code)){showToast('קוד כניסה חייב להיות 4 ספרות');return;}
   setBusy('btn-add-submit',true,'הוסף');
   try{
-    await apiFetch('/students',{method:'POST',body:JSON.stringify({name,grade,reason:'',description,photo,status,code:code||null})});
+    await apiFetch('/students',{method:'POST',body:JSON.stringify({name,grade,gender,reason:'',description,photo,status,code})});
     closeModal('modal-add');await loadList();showToast(`${name} נוסף/ה בהצלחה ✓`);
-  }catch(e){showToast(`שגיאה: ${e.message}`);}
+  }catch(e){
+    if(isCodeTakenError(e.message)) showCodeErr('new-code-err',CODE_TAKEN_MSG);
+    else showToast(`שגיאה: ${e.message}`);
+  }
   finally{setBusy('btn-add-submit',false,'הוסף');}
 }
 
@@ -5107,6 +5336,7 @@ document.addEventListener('visibilitychange',()=>{
   if(Date.now()-_lastListLoadMs<60000) return;
   loadList();
 });
+initCounselorAuthGate();
 </script>
 </body>
 </html>

@@ -185,7 +185,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .week-hero-greet .welcome-name{font-size:20px;font-weight:800;margin-bottom:4px;color:#fff}
 .week-hero-greet .welcome-grade{color:rgba(255,255,255,.72);font-size:13px;margin-bottom:18px}
 .week-progress-visual{max-width:300px;margin:0 auto}
-.week-pct{font-size:40px;font-weight:900;letter-spacing:-2px;line-height:1;margin-bottom:10px}
+.week-tasks-count{font-size:15px;font-weight:700;color:rgba(255,255,255,.92);line-height:1.45}
 .week-hero .prog-track{background:rgba(255,255,255,.22);border-radius:999px;height:10px;overflow:hidden}
 .week-hero .prog-fill{
   background:#fff;border-radius:999px;height:100%;
@@ -222,9 +222,10 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .success-card:active{transform:scale(.985)}
 .success-card:hover{border-color:var(--primary);background:var(--primary-soft)}
 .success-card-icon{
-  width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.95);
-  color:var(--primary-dk);display:flex;align-items:center;justify-content:center;
-  font-weight:900;flex-shrink:0;font-size:14px;border:1.5px solid var(--primary-border);
+  width:24px;height:24px;border-radius:50%;
+  background:var(--primary-dk);border:2px solid var(--primary-dk);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  font-weight:700;flex-shrink:0;font-size:13px;
 }
 .success-card-body{flex:1;min-width:0;text-align:right}
 .success-card-title{font-size:15px;font-weight:700;color:var(--dark);line-height:1.35}
@@ -337,17 +338,21 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .t-row:last-child{border-bottom:none}
 .t-row:active{background:var(--bg)}
 
+.task-chk-icon{
+  width:24px;height:24px;border-radius:50%;
+  border:2px solid var(--border);
+  background:var(--card);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;margin-top:1px;font-size:13px;font-weight:700;
+  color:transparent;
+}
+.task-chk-icon.done{background:var(--primary-dk);border-color:var(--primary-dk);color:#fff}
 .t-circle{
   width:28px;height:28px;border-radius:50%;
-  border:2.5px solid var(--border);
+  border:2.5px dashed var(--primary-border);
   display:flex;align-items:center;justify-content:center;
   flex-shrink:0;margin-top:1px;background:var(--card);
-  transition:border-color .15s,background .15s;
 }
-.t-circle.done{background:var(--primary-dk);border-color:var(--primary-dk)}
-.t-circle.inprog{border-color:var(--yellow);border-width:2.5px}
-.t-circle .t-chk{display:none;color:#fff;font-size:13px;font-weight:800;line-height:1}
-.t-circle.done .t-chk{display:flex;align-items:center;justify-content:center}
 .t-pencil{
   flex-shrink:0;width:18px;height:18px;opacity:.5;margin-top:3px;
   pointer-events:none;user-select:none;color:var(--mid);
@@ -428,7 +433,12 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 
 /* ══════════ REPORT FORM ══════════ */
 .rep-heading{font-size:22px;font-weight:900;margin-bottom:6px;color:var(--dark)}
-.rep-task-lbl{color:var(--mid);font-size:14px;margin-bottom:22px;background:var(--card);border-radius:var(--radius-sm);padding:10px 13px;border:1px solid var(--border);line-height:1.5}
+.rep-task-title{
+  color:var(--dark);font-size:16px;font-weight:800;margin:0 0 22px;
+  line-height:1.45;text-align:center;
+}
+.checkin-sec .checkin-inner{padding:4px 2px 0}
+.checkin-sec .sec-head{margin-bottom:14px}
 .rep-q{font-size:15px;font-weight:700;margin-bottom:12px;color:var(--dark)}
 .emoji-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
 .emoji-btn{
@@ -537,9 +547,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
         <div class="welcome-grade">כיתה <span id="w-grade"></span></div>
       </div>
       <div class="week-progress-visual">
-        <div class="week-pct" id="week-pct-num">0%</div>
-        <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
-        <div class="prog-lbl" id="prog-lbl">טוען...</div>
+        <div class="week-tasks-count" id="prog-lbl">טוען...</div>
       </div>
     </div>
 
@@ -557,8 +565,34 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
       </div>
 
       <div class="sec week-open-sec" id="week-open-sec" style="display:none">
-        <div class="sec-head">נותרו השבוע</div>
+        <div class="sec-head">משימות השבוע</div>
         <div id="weekly-open-list"></div>
+      </div>
+
+      <div class="sec checkin-sec" id="daily-checkin-sec">
+        <div class="sec-head">איך עבר לך היום?</div>
+        <div class="checkin-inner">
+          <div class="emoji-grid" id="checkin-emoji-grid">
+            <button type="button" class="emoji-btn checkin-emoji-btn" onclick="pickCheckinMood(this,'😊 טוב')"><span class="emo">😊</span> טוב</button>
+            <button type="button" class="emoji-btn checkin-emoji-btn" onclick="pickCheckinMood(this,'😣 לחוץ')"><span class="emo">😣</span> לחוץ</button>
+            <button type="button" class="emoji-btn checkin-emoji-btn" onclick="pickCheckinMood(this,'😟 לא בנוח')"><span class="emo">😟</span> לא בנוח</button>
+            <button type="button" class="emoji-btn checkin-emoji-btn" onclick="pickCheckinMood(this,'😔 עצוב')"><span class="emo">😔</span> עצוב</button>
+          </div>
+          <div class="rep-q">רוצה לשתף משהו?</div>
+          <textarea class="rep-textarea" id="checkin-text" placeholder="כתוב/י כאן בחופשיות... (לא חובה)" rows="4" oninput="checkCheckinSaveReady()"></textarea>
+          <div class="audio-box">
+            <div class="audio-box-title">🎙️ הקלטת קול (לא חובה)</div>
+            <div class="rec-controls">
+              <button type="button" class="btn-rec" id="checkin-btn-rec" onclick="toggleCheckinRecord()">🎙️ התחל הקלטה</button>
+              <span class="rec-timer" id="checkin-rec-timer"></span>
+            </div>
+            <div id="checkin-audio-preview-wrap" style="display:none">
+              <audio class="audio-player" id="checkin-audio-player" controls></audio>
+              <div class="audio-ok">✓ הקלטה שמורה</div>
+            </div>
+          </div>
+          <button type="button" class="btn-save" id="btn-checkin-save" onclick="submitDailyCheckin()">שמירה</button>
+        </div>
       </div>
 
       <div class="sec" id="bank-sec">
@@ -574,7 +608,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
           <p class="sticky-subhead">פתק חדש</p>
           <div class="sticky-toolbar">
             <textarea class="sticky-textarea" id="private-sticky-ta"
-              placeholder="רשמו כאן..."></textarea>
+              placeholder="הפתק נשאר שלי בלבד"></textarea>
             <button type="button" class="btn-sticky-mic" id="btn-sticky-mic" title="דיבור לטקסט"
               aria-label="הקלטת הערה קולית" onclick="event.stopPropagation();toggleStickyMic()">🎙️</button>
           </div>
@@ -646,7 +680,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   </div>
   <div class="content">
     <div class="rep-heading" id="rep-mode-lbl">שיתוף משימה</div>
-    <div class="rep-task-lbl" id="rep-task-lbl"></div>
+    <div class="rep-task-title" id="rep-task-title"></div>
     <div class="rep-q">איך הרגשת אחרי המשימה?</div>
     <div class="emoji-grid">
       <button class="emoji-btn" onclick="pickMood(this,'😊 טוב')"><span class="emo">😊</span> טוב</button>
@@ -714,6 +748,7 @@ let studentCode  = null;   // 4-digit login code (for /notes API only; not persi
 let myTasks      = [];     // all tasks from server
 let myReports    = [];
 let myNotes      = [];     // private notes from GET /notes/{code}
+let myDailyCheckins = [];
 let editingNoteId= null;   // when set, main save button updates this note (PATCH)
 
 // form state
@@ -735,6 +770,13 @@ let audioBlob    = null;
 let audioB64     = null;
 let recTimerId   = null;
 let recSecs      = 0;
+// daily check-in form
+let checkinMood      = null;
+let checkinAudioB64  = null;
+let checkinMediaRec  = null;
+let checkinAudioChunks = [];
+let checkinRecTimerId  = null;
+let checkinRecSecs     = 0;
 
 // view
 let viewTaskId   = null;
@@ -1032,6 +1074,38 @@ function setStudentTab(tab){
 function getReport(task){
   return myReports.find(r=>r.task_id===task.id||r.task_name===task.text)||null;
 }
+function isPositiveTaskMood(mood){
+  const m=String(mood||'');
+  return /טוב/.test(m)||/😊/.test(m);
+}
+function isNegativeTaskMood(mood){
+  const m=String(mood||'');
+  return /לחוץ|עצוב|לא בנוח/.test(m)||/[😣😔😟😤]/.test(m);
+}
+function welcomeMessageForWeek(firstName,weeklyTasks){
+  const doneWeekly=(weeklyTasks||[]).filter(t=>t&&t.done);
+  if(!doneWeekly.length){
+    return `היי, ${firstName}! כיף שחזרת!`;
+  }
+  let positive=0;
+  let negative=0;
+  for(const t of doneWeekly){
+    const rep=getReport(t);
+    const mood=rep&&rep.mood;
+    if(!mood) continue;
+    if(isPositiveTaskMood(mood)) positive++;
+    else if(isNegativeTaskMood(mood)) negative++;
+  }
+  /* Completed tasks with no share/mood yet — soft default greeting. */
+  if(!positive&&!negative){
+    return `היי, ${firstName}! כיף שחזרת!`;
+  }
+  /* Majority positive, or tie → celebration; majority negative → resilience. */
+  if(positive>=negative){
+    return `וואו ${firstName}, כמה הצלחת השבוע! 🌟`;
+  }
+  return `${firstName}, כל הכבוד על ההתקדמות למרות הקושי 💪`;
+}
 
 /* ══════════ LOGIN — by student UUID ══════════ */
 async function doLogin(){
@@ -1076,6 +1150,7 @@ function doLogout(){
   setSavedNotesSectionVisible(false);
   studentCode=null;
   myNotes=[];
+  myDailyCheckins=[];
   me=null;
   document.getElementById('student-id-input').value='';
   setStudentTab('tasks');
@@ -1083,11 +1158,184 @@ function doLogout(){
 }
 
 /* ══════════ HOME ══════════ */
+function localDateStr(d){
+  const x=d||new Date();
+  const y=x.getFullYear();
+  const m=String(x.getMonth()+1).padStart(2,'0');
+  const day=String(x.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function parseLocalDateMs(ymd){
+  const parts=String(ymd||'').slice(0,10).split('-').map(Number);
+  if(parts.length<3||!parts[0]) return null;
+  return new Date(parts[0],parts[1]-1,parts[2]).getTime();
+}
+function todayCheckinRow(){
+  const today=localDateStr();
+  return (myDailyCheckins||[]).find(c=>String(c.checkin_date||'').slice(0,10)===today)||null;
+}
+function resetCheckinAudioUI(){
+  const preview=document.getElementById('checkin-audio-preview-wrap');
+  const btn=document.getElementById('checkin-btn-rec');
+  const timer=document.getElementById('checkin-rec-timer');
+  if(preview) preview.style.display='none';
+  if(btn){
+    btn.innerHTML='🎙️ התחל הקלטה';
+    btn.classList.remove('recording');
+    btn.disabled=false;
+  }
+  if(timer) timer.textContent='';
+  clearInterval(checkinRecTimerId);
+  checkinRecSecs=0;
+  if(checkinMediaRec&&checkinMediaRec.state!=='inactive'){
+    try{checkinMediaRec.stop();}catch(_){}
+  }
+  checkinMediaRec=null;
+  checkinAudioChunks=[];
+  checkinAudioB64=null;
+}
+function populateTodayCheckinForm(){
+  const row=todayCheckinRow();
+  checkinMood=row&&row.mood?row.mood:null;
+  const ta=document.getElementById('checkin-text');
+  if(ta) ta.value=row&&row.text?row.text:'';
+  document.querySelectorAll('.checkin-emoji-btn').forEach(b=>{
+    const on=!!(checkinMood&&b.getAttribute('onclick').includes(checkinMood.replace(/'/g,"\\'")));
+    b.classList.toggle('picked',on);
+  });
+  resetCheckinAudioUI();
+  if(row&&row.audio_url){
+    checkinAudioB64=row.audio_url;
+    const player=document.getElementById('checkin-audio-player');
+    const wrap=document.getElementById('checkin-audio-preview-wrap');
+    if(player) player.src=row.audio_url;
+    if(wrap) wrap.style.display='block';
+  }
+  checkCheckinSaveReady();
+}
+function pickCheckinMood(btn,label){
+  document.querySelectorAll('.checkin-emoji-btn').forEach(b=>b.classList.remove('picked'));
+  btn.classList.add('picked');
+  checkinMood=label;
+  checkCheckinSaveReady();
+}
+function checkCheckinSaveReady(){
+  const text=(document.getElementById('checkin-text')&&document.getElementById('checkin-text').value||'').trim();
+  const btn=document.getElementById('btn-checkin-save');
+  if(btn) btn.classList.toggle('ready',!!(checkinMood||text||checkinAudioB64));
+}
+async function toggleCheckinRecord(){
+  if(checkinMediaRec&&checkinMediaRec.state==='recording'){
+    checkinMediaRec.stop();
+    clearInterval(checkinRecTimerId);
+    const btn=document.getElementById('checkin-btn-rec');
+    if(btn){
+      btn.classList.remove('recording');
+      btn.disabled=true;
+      btn.innerHTML='<span class="spinner"></span> מתמלל...';
+    }
+    const timer=document.getElementById('checkin-rec-timer');
+    if(timer) timer.textContent='';
+    return;
+  }
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    checkinAudioChunks=[];
+    const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';
+    checkinMediaRec=new MediaRecorder(stream,{mimeType:mime});
+    checkinMediaRec.ondataavailable=e=>{if(e.data.size)checkinAudioChunks.push(e.data);};
+    checkinMediaRec.onstop=async()=>{
+      const blob=new Blob(checkinAudioChunks,{type:mime});
+      const url=URL.createObjectURL(blob);
+      const player=document.getElementById('checkin-audio-player');
+      const wrap=document.getElementById('checkin-audio-preview-wrap');
+      if(player) player.src=url;
+      if(wrap) wrap.style.display='block';
+      const reader=new FileReader();
+      reader.onload=e=>{checkinAudioB64=e.target.result;checkCheckinSaveReady();};
+      reader.readAsDataURL(blob);
+      stream.getTracks().forEach(t=>t.stop());
+      try{
+        const out=await transcribeAudio(blob);
+        const txt=((out&&out.text)||'').trim();
+        if(txt){
+          const ta=document.getElementById('checkin-text');
+          const cur=(ta&&ta.value||'').trim();
+          if(ta) ta.value=cur?`${cur}\n${txt}`:txt;
+          checkCheckinSaveReady();
+        }
+      }catch(e){
+        toast(`תמלול נכשל: ${e.message}`);
+      }finally{
+        const btn=document.getElementById('checkin-btn-rec');
+        if(btn){
+          btn.disabled=false;
+          btn.classList.remove('recording');
+          btn.innerHTML='🎙️ התחל הקלטה';
+        }
+      }
+    };
+    checkinMediaRec.start(250);
+    const btn=document.getElementById('checkin-btn-rec');
+    if(btn){
+      btn.innerHTML='<div class="rec-dot"></div> Recording...';
+      btn.classList.add('recording');
+    }
+    checkinRecSecs=0;
+    checkinRecTimerId=setInterval(()=>{
+      checkinRecSecs++;
+      const m=String(Math.floor(checkinRecSecs/60)).padStart(2,'0');
+      const s=String(checkinRecSecs%60).padStart(2,'0');
+      const timer=document.getElementById('checkin-rec-timer');
+      if(timer) timer.textContent=`${m}:${s}`;
+      if(checkinRecSecs>=120){checkinMediaRec.stop();clearInterval(checkinRecTimerId);}
+    },1000);
+  }catch(e){toast('לא ניתן לגשת למיקרופון — בדוק/י הרשאות');}
+}
+async function submitDailyCheckin(){
+  if(!me) return;
+  const text=(document.getElementById('checkin-text')&&document.getElementById('checkin-text').value||'').trim();
+  if(!checkinMood&&!text&&!checkinAudioB64){
+    toast('נא לבחור אימוג׳י, לכתוב טקסט או להקליט');
+    return;
+  }
+  const btn=document.getElementById('btn-checkin-save');
+  if(btn){btn.disabled=true;btn.textContent='שומר...';}
+  try{
+    const saved=await api('/daily-checkins',{
+      method:'POST',
+      body:JSON.stringify({
+        student_id:me.id,
+        checkin_date:localDateStr(),
+        mood:checkinMood||null,
+        text:text||null,
+        audio_url:checkinAudioB64||null,
+      }),
+    });
+    const today=localDateStr();
+    const idx=(myDailyCheckins||[]).findIndex(c=>String(c.checkin_date||'').slice(0,10)===today);
+    if(idx>=0) myDailyCheckins[idx]=saved;
+    else myDailyCheckins.unshift(saved);
+    toast('נשמר ✓');
+    populateTodayCheckinForm();
+  }catch(e){
+    toast(`שגיאה: ${e.message}`);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='שמירה';checkCheckinSaveReady();}
+  }
+}
+
 async function loadHome(){
   if(!me) return;
   try{
-    [myTasks,myReports]=await Promise.all([api(`/tasks/${me.id}`),api(`/reports/${me.id}`)]);
+    [myTasks,myReports,myDailyCheckins]=await Promise.all([
+      api(`/tasks/${me.id}`),
+      api(`/reports/${me.id}`),
+      api(`/daily-checkins/${me.id}`).catch(()=>[]),
+    ]);
+    if(!Array.isArray(myDailyCheckins)) myDailyCheckins=[];
     renderHome();
+    populateTodayCheckinForm();
   }catch(e){
     document.getElementById('success-cards').innerHTML=`<div class="sec-empty">שגיאה: ${esc(e.message)}</div>`;
     document.getElementById('weekly-open-list').innerHTML='';
@@ -1100,48 +1348,38 @@ function renderHome(){
   const bankTasks  =myTasks.filter(t=>!t.selected);
   const doneCount  =weeklyTasks.filter(t=>t.done).length;
   const total      =weeklyTasks.length;
-  const pct        =total?Math.round(doneCount/total*100):0;
 
-  /* Banner: celebrate only once the student has actually completed 2+ tasks
-     this week. Below that threshold, fall back to a soft "welcome back"
-     greeting and hide the progress bar entirely so it doesn't read as
-     pressure when the student has barely started. */
+  /* Welcome banner: mood majority among completed weekly tasks (report.mood).
+     0 done → soft default; majority 😊 טוב (or tie) → celebration;
+     majority לחוץ/עצוב/לא בנוח → resilience message. */
   const firstName=((me&&me.name)||'').trim().split(/\s+/)[0]||(me&&me.name)||'';
   const wName=document.getElementById('w-name');
-  const progressBlock=document.querySelector('.week-progress-visual');
-  const celebrate=doneCount>=2;
   if(wName){
-    wName.textContent=celebrate
-      ?`וואי ${firstName}, כמה הצלחת השבוע!`
-      :`היי, ${firstName}! כיף שחזרת!`;
-  }
-  if(progressBlock){
-    progressBlock.style.display=celebrate?'':'none';
+    wName.textContent=welcomeMessageForWeek(firstName,weeklyTasks);
   }
 
-  document.getElementById('prog-fill').style.width=`${pct}%`;
-  const pctNum=document.getElementById('week-pct-num');
-  if(pctNum) pctNum.textContent=`${pct}%`;
-  document.getElementById('prog-lbl').textContent=total
-    ?`${doneCount} מתוך ${total} משימות שבועיות הושלמו`
-    :'עדיין אין משימות לשבוע — בחר/י מבנק המשימות למטה';
+  const progLbl=document.getElementById('prog-lbl');
+  if(progLbl){
+    progLbl.textContent=total
+      ?`הושלמו ${doneCount} מתוך ${total} משימות`
+      :'עדיין אין משימות לשבוע — בחר/י מבנק המשימות למטה';
+  }
 
   const doneWeekly=weeklyTasks.filter(t=>t.done);
-  const openWeekly=weeklyTasks.filter(t=>!t.done);
   const sc=document.getElementById('success-cards');
   if(!weeklyTasks.length){
     sc.innerHTML='<div class="success-empty">בחר/י משימות מבנק המשימות למטה כדי לבנות את השבוע שלך</div>';
   }else if(!doneWeekly.length){
     sc.innerHTML='<div class="success-empty">כאן יופיעו ההצלחות שלך — אחרי שתסמנ/י משימה כהושלמה, נחגוג יחד</div>';
   }else{
-    sc.innerHTML=doneWeekly.map(t=>successCardRow(t)).join('');
+    sc.innerHTML=`<div class="success-empty">כל הכבוד! הושלמו ${doneWeekly.length} משימות השבוע 🎉</div>`;
   }
 
   const openSec=document.getElementById('week-open-sec');
   const openList=document.getElementById('weekly-open-list');
-  if(openWeekly.length){
+  if(weeklyTasks.length){
     openSec.style.display='';
-    openList.innerHTML=openWeekly.map(t=>weeklyTaskRow(t)).join('');
+    openList.innerHTML=sortWeeklyTasks(weeklyTasks).map(t=>weeklyTaskRow(t)).join('');
   }else{
     openSec.style.display='none';
     openList.innerHTML='';
@@ -1152,16 +1390,12 @@ function renderHome(){
     :'<div class="sec-empty">כל המשימות נבחרו לשבוע ✓</div>';
 }
 
-function successCardRow(t){
-  const rep=getReport(t);
-  const sub=rep?fmtTime(rep.created_at):'';
-  return `<div class="success-card" onclick="openTaskSheet('${t.id}')">
-    <div class="success-card-icon">✓</div>
-    <div class="success-card-body">
-      <div class="success-card-title">${esc(t.text)}</div>
-      ${sub?`<div class="success-card-meta">${esc(sub)}</div>`:''}
-    </div>
-  </div>`;
+function sortWeeklyTasks(tasks){
+  return tasks.map((t,i)=>({t,i})).sort((a,b)=>{
+    const da=Number(!!a.t.done), db=Number(!!b.t.done);
+    if(db!==da) return db-da;
+    return a.i-b.i;
+  }).map(x=>x.t);
 }
 
 function weeklyTaskRow(t){
@@ -1173,9 +1407,7 @@ function weeklyTaskRow(t){
   else                  {hint='בתהליך — לחץ/י להמשיך';hintCls='prog';}
 
   return `<div class="t-row t-row-weekly" role="button" tabindex="0" onclick="openTaskSheet('${t.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openTaskSheet('${t.id}');}">
-    <div class="t-circle${done?' done':' inprog'}" aria-hidden="true">
-      <span class="t-chk">✓</span>
-    </div>
+    <div class="task-chk-icon${done?' done':''}" aria-hidden="true">${done?'✓':''}</div>
     <div class="t-body">
       <div class="t-text">${esc(t.text)}</div>
       <div class="t-hint ${hintCls}">${hint}</div>
@@ -1187,7 +1419,7 @@ function weeklyTaskRow(t){
 
 function bankTaskRow(t){
   return `<div class="t-row bank-row" onclick="selectFromBank('${t.id}')">
-    <div class="t-circle" style="border-style:dashed;border-color:var(--primary-border);flex-shrink:0"></div>
+    <div class="t-circle" aria-hidden="true"></div>
     <div class="t-body">
       <div class="t-text">${esc(t.text)}</div>
       <div class="t-hint">לחץ/י לבחירה לשבוע שלך</div>
@@ -1399,9 +1631,9 @@ function beginReport(task){
   audioBlob = null;audioB64 = null;
 
   document.getElementById('rep-mode-lbl').textContent='שיתוף משימה';
-  document.getElementById('rep-task-lbl').textContent=task.text;
+  document.getElementById('rep-task-title').textContent=task.text;
   document.getElementById('rep-text').value='';
-  document.querySelectorAll('.emoji-btn').forEach(b=>b.classList.remove('picked'));
+  document.querySelectorAll('#sc-report .emoji-btn').forEach(b=>b.classList.remove('picked'));
   document.getElementById('btn-save').classList.remove('ready');
   resetAudioUI();
   showScreen('sc-report');
@@ -1420,11 +1652,11 @@ function openEditReport(){
   audioBlob = null;audioB64 = null;
 
   document.getElementById('rep-mode-lbl').textContent='עריכת שיתוף ✏️';
-  document.getElementById('rep-task-lbl').textContent=task.text;
+  document.getElementById('rep-task-title').textContent=task.text;
   document.getElementById('rep-text').value=rep.text||'';
   resetAudioUI();
 
-  document.querySelectorAll('.emoji-btn').forEach(b=>{
+  document.querySelectorAll('#sc-report .emoji-btn').forEach(b=>{
     b.classList.toggle('picked',b.getAttribute('onclick').includes(rep.mood.replace(/'/g,"\\'")));
   });
   document.getElementById('btn-save').classList.add('ready');
@@ -1443,7 +1675,7 @@ function showViewReport(task,rep){
 
 /* ══════════ MOOD ══════════ */
 function pickMood(btn,label){
-  document.querySelectorAll('.emoji-btn').forEach(b=>b.classList.remove('picked'));
+  document.querySelectorAll('#sc-report .emoji-btn').forEach(b=>b.classList.remove('picked'));
   btn.classList.add('picked');
   fMood=label;
   checkSaveReady();
@@ -1597,7 +1829,7 @@ async function submitReport(){
     btn.disabled=false;btn.textContent='שמור שיתוף';btn.classList.remove('ready');
     fMood=null;fReportId=null;fEditMode=false;
     document.getElementById('rep-text').value='';
-    document.querySelectorAll('.emoji-btn').forEach(b=>b.classList.remove('picked'));
+    document.querySelectorAll('#sc-report .emoji-btn').forEach(b=>b.classList.remove('picked'));
     resetAudioUI();
 
     document.getElementById('success-overlay').classList.add('show');
