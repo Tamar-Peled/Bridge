@@ -591,21 +591,21 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
       </div>
 
       <div class="sec week-open-sec" id="week-open-sec" style="display:none">
-        <div class="sec-head">משימות השבוע</div>
+        <div class="sec-head">משימות שבועיות</div>
         <div id="weekly-open-list"></div>
-      </div>
-
-      <div class="sec checkin-sec" id="daily-checkin-sec">
-        <div class="sec-head">שיתוף יומי</div>
-        <div class="checkin-inner">
-          <button type="button" class="btn-checkin-share" onclick="openCheckinModal()">שיתוף יומי</button>
-          <div id="checkin-week-list" class="checkin-week-list" aria-live="polite"></div>
-        </div>
       </div>
 
       <div class="sec" id="bank-sec">
         <div class="sec-head">בנק משימות</div>
         <div id="bank-list"></div>
+      </div>
+
+      <div class="sec checkin-sec" id="daily-checkin-sec">
+        <div class="sec-head">שיתופים במהלך השבוע</div>
+        <div class="checkin-inner">
+          <button type="button" class="btn-checkin-share" onclick="openCheckinModal()">שיתופים במהלך השבוע</button>
+          <div id="checkin-week-list" class="checkin-week-list" aria-live="polite"></div>
+        </div>
       </div>
     </div>
 
@@ -1248,7 +1248,7 @@ function renderCheckinWeekList(){
   if(!el) return;
   const list=checkinsInCurrentWeek();
   if(!list.length){
-    el.innerHTML='<p class="checkin-week-empty">עדיין אין שיתופים השבוע — לחץ/י על «שיתוף יומי»</p>';
+    el.innerHTML='<p class="checkin-week-empty">עדיין אין שיתופים השבוע — לחץ/י על «שיתופים במהלך השבוע»</p>';
     return;
   }
   el.innerHTML=list.map(c=>{
