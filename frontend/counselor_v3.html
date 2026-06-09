@@ -1199,7 +1199,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 <!-- ════ LIST ════ -->
 <div id="screen-main" class="screen">
   <div class="topbar">
-    <button class="topbar-back" onclick="logoutCounselor()">יציאה →</button>
+    <button type="button" class="topbar-back" onclick="goToRoleSelection()">→ חזרה לבחירה</button>
     <div class="topbar-brand">
       <div class="topbar-name">BRIDGE</div>
       <div class="topbar-logo">B</div>
@@ -2853,6 +2853,10 @@ async function submitCounselorLogin(){
     if(err) err.style.display='block';
   }
 }
+function goToRoleSelection(){
+  window.location.href='index.html';
+}
+
 function logoutCounselor(){
   try{localStorage.removeItem(COUNSELOR_AUTH_KEY);}catch(_){}
   const inp=document.getElementById('login-password');

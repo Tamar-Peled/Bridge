@@ -567,7 +567,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
 <!-- ════ HOME ════ -->
 <div id="sc-home" class="screen">
   <div class="topbar">
-    <button class="tb-btn" onclick="doLogout()">יציאה →</button>
+    <button type="button" class="tb-back" onclick="goToRoleSelection()">← חזרה לבחירה</button>
     <div class="topbar-brand">
       <div class="tb-name">BRIDGE</div>
       <div class="tb-logo">B</div>
@@ -1181,6 +1181,10 @@ async function doLogin(){
     myNotes=[];
     document.getElementById('login-err').classList.add('show');
   }
+}
+
+function goToRoleSelection(){
+  window.location.href='index.html';
 }
 
 function doLogout(){
