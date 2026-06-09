@@ -1112,15 +1112,17 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   /* detail screen — slightly wider content */
   #screen-detail .content{max-width:780px}
 
-  /* task detail — desktop: single centered column, max 800px */
+  /* task detail — desktop: centered card, max 700px */
   #screen-task-detail{background:var(--bg)}
   #screen-task-detail .content{
-    max-width:800px;margin:0 auto;padding:24px 28px 32px;width:100%;
+    width:100%;max-width:none;margin:0 auto;padding:32px 24px 40px;
+    align-items:center;
   }
   #screen-task-detail .task-detail-layout{
-    flex:none;min-height:auto;
+    flex:none;min-height:auto;width:100%;max-width:700px;margin:0 auto;
     border:1px solid var(--border);border-radius:var(--radius);
-    padding:28px 28px 24px;
+    padding:28px 32px 28px;
+    box-shadow:var(--shadow);
   }
   #screen-task-detail .task-detail-reflections{margin-top:22px;padding-top:22px;flex:none}
   #screen-task-detail .task-detail-actions{margin-top:24px;padding-top:0}
@@ -3035,15 +3037,36 @@ function noteSourceLabel(n){
   return 'נכתב על ידי AI ✨';
 }
 
+function isTaskDone(t){
+  if(!t) return false;
+  const d=t.done;
+  if(d===true||d===1) return true;
+  if(d===false||d===0||d==null) return false;
+  if(typeof d==='string'){
+    const s=d.trim().toLowerCase();
+    if(s==='true'||s==='1') return true;
+    if(s==='false'||s==='0'||s==='') return false;
+  }
+  return !!d;
+}
+function sortWeeklyTasks(tasks){
+  const done=[];
+  const open=[];
+  for(const t of (tasks||[])){
+    (isTaskDone(t)?done:open).push(t);
+  }
+  return done.concat(open);
+}
+
 async function renderDetail(s){
   if(!s) return;
   const status=canonicalStatus(s.status);
   const selCls=statusSelCls(status);
   const desc=(s.description||'').trim();
 
-  const weeklyTasks=currentTasks.filter(t=>t.selected);
+  const weeklyTasks=sortWeeklyTasks(currentTasks.filter(t=>t.selected));
   const bankTasks  =currentTasks.filter(t=>!t.selected);
-  const doneCount  =weeklyTasks.filter(t=>t.done).length;
+  const doneCount  =weeklyTasks.filter(isTaskDone).length;
 
   const avBg=status==='סיים תהליך'?'var(--green-soft)':
              status==='נדרש מעקב צמוד'?'var(--red-soft)':'var(--yellow-soft)';
@@ -3052,8 +3075,9 @@ async function renderDetail(s){
   const statusOpts=STATUSES.map(v=>`<option value="${v}"${v===status?' selected':''}>${v}</option>`).join('');
 
   function taskRowWeekly(t){
+    const done=isTaskDone(t);
     return `<div class="task-row" onclick="openTaskPage('${t.id}')" role="button" tabindex="0">
-      <div class="task-chk-icon${t.done?' done':''}" aria-label="${t.done?'הושלמה':'לא הושלמה'}">${t.done?'✓':''}</div>
+      <div class="task-chk-icon${done?' done':''}" aria-label="${done?'הושלמה':'לא הושלמה'}">${done?'✓':''}</div>
       <span class="task-text">${escH(t.text)}</span>
       <span class="task-view-icon-c" title="פתיחת משימה" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
     </div>`;
@@ -3535,10 +3559,9 @@ function fmtCheckinDayLabel(c){
   const datePart=ms!=null
     ?new Date(ms).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})
     :ymd;
-  const wk=row.week_number!=null&&row.week_number!==''?` · שבוע ${row.week_number}`:'';
-  if(dayName) return `${dayName} · ${datePart}${wk}`;
+  if(dayName) return `${dayName} · ${datePart}`;
   if(ms==null) return ymd;
-  return new Date(ms).toLocaleDateString('he-IL',{weekday:'short',day:'numeric',month:'numeric'})+wk;
+  return new Date(ms).toLocaleDateString('he-IL',{weekday:'short',day:'numeric',month:'numeric'});
 }
 function buildDailyCheckinsWeekHtml(checkins,wkStart,wkEnd){
   const list=checkinsInWeekSorted(checkins,wkStart,wkEnd);

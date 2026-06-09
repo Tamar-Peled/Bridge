@@ -445,7 +445,14 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   font-family:'Heebo',sans-serif;box-shadow:var(--shadow);transition:transform .1s,background .12s;
 }
 .btn-checkin-share:active{transform:scale(.985)}
-.checkin-week-list{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.btn-checkin-toggle{
+  display:block;width:100%;margin-top:14px;padding:12px 14px;
+  background:var(--card);border:1.5px dashed var(--primary-border);border-radius:var(--radius-sm);
+  color:var(--primary-dk);font-size:14px;font-weight:700;cursor:pointer;
+  font-family:'Heebo',sans-serif;transition:background .12s,border-color .12s;
+}
+.btn-checkin-toggle:hover{background:var(--primary-soft);border-color:var(--primary)}
+.checkin-week-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
 .checkin-week-empty{color:var(--mid);font-size:14px;text-align:center;line-height:1.5;padding:8px 0}
 .checkin-history-item{
   background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);
@@ -603,7 +610,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
       <div class="sec checkin-sec" id="daily-checkin-sec">
         <div class="sec-head">שיתופים במהלך השבוע</div>
         <div class="checkin-inner">
-          <button type="button" class="btn-checkin-share" onclick="openCheckinModal()">שיתופים במהלך השבוע</button>
+          <button type="button" class="btn-checkin-share" onclick="openCheckinModal()">הוסף שיתוף בכל נושא שתרצה</button>
           <div id="checkin-week-list" class="checkin-week-list" aria-live="polite"></div>
         </div>
       </div>
@@ -813,6 +820,7 @@ let checkinMediaRec  = null;
 let checkinAudioChunks = [];
 let checkinRecTimerId  = null;
 let checkinRecSecs     = 0;
+let _checkinHistoryExpanded=false;
 
 // view
 let viewTaskId   = null;
@@ -1230,8 +1238,11 @@ function checkinDayLabel(c){
   const heb=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
   const dayName=dow||heb[d.getDay()];
   const datePart=d.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'});
-  const wk=c&&c.week_number!=null?` · שבוע ${c.week_number}`:'';
-  return `${dayName} · ${datePart}${wk}`;
+  return `${dayName} · ${datePart}`;
+}
+function toggleCheckinHistory(show){
+  _checkinHistoryExpanded=show!==undefined?!!show:!_checkinHistoryExpanded;
+  renderCheckinWeekList();
 }
 function checkinsInCurrentWeek(){
   const wkStart=localSundayWeekStartMs(Date.now());
@@ -1248,10 +1259,11 @@ function renderCheckinWeekList(){
   if(!el) return;
   const list=checkinsInCurrentWeek();
   if(!list.length){
-    el.innerHTML='<p class="checkin-week-empty">עדיין אין שיתופים השבוע — לחץ/י על «שיתופים במהלך השבוע»</p>';
+    _checkinHistoryExpanded=false;
+    el.innerHTML='<p class="checkin-week-empty">עדיין אין שיתופים השבוע — לחץ/י על «הוסף שיתוף בכל נושא שתרצה»</p>';
     return;
   }
-  el.innerHTML=list.map(c=>{
+  const itemsHtml=list.map(c=>{
     const mood=esc(String(c.mood||'').trim());
     const txt=(c.text&&String(c.text).trim())
       ?`<div class="checkin-history-text">${esc(c.text)}</div>`
@@ -1265,6 +1277,12 @@ function renderCheckinWeekList(){
       ${txt}${audio}
     </div>`;
   }).join('');
+  if(!_checkinHistoryExpanded){
+    el.innerHTML=`<button type="button" class="btn-checkin-toggle" onclick="toggleCheckinHistory(true)">הצג שיתופים קודמים (${list.length})</button>`;
+    return;
+  }
+  el.innerHTML=`<button type="button" class="btn-checkin-toggle" onclick="toggleCheckinHistory(false)">הסתר שיתופים קודמים</button>
+    <div class="checkin-week-list">${itemsHtml}</div>`;
 }
 function openCheckinModal(){
   populateTodayCheckinForm();
