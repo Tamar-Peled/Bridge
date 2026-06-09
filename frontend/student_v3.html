@@ -1463,8 +1463,6 @@ async function loadHome(){
 function renderHome(){
   const weeklyTasks=myTasks.filter(t=>t.selected);
   const bankTasks  =myTasks.filter(t=>!t.selected);
-  const doneCount  =weeklyTasks.filter(isTaskDone).length;
-  const total      =weeklyTasks.length;
 
   /* Welcome banner: mood majority among completed weekly tasks (report.mood).
      0 done → soft default; majority 😊 טוב (or tie) → celebration;
@@ -1480,9 +1478,9 @@ function renderHome(){
   if(!weeklyTasks.length){
     sc.innerHTML='<div class="success-empty">בחר/י משימות מבנק המשימות למטה כדי לבנות את השבוע שלך</div>';
   }else if(!doneWeekly.length){
-    sc.innerHTML=`<div class="success-empty">הושלמו ${doneCount} מתוך ${total} משימות</div>`;
+    sc.innerHTML='<div class="success-empty">כאן יופיעו ההצלחות שלך — אחרי שתסמנ/י משימה כהושלמה, נחגוג יחד</div>';
   }else{
-    sc.innerHTML=`<div class="success-empty">כל הכבוד! הושלמו ${doneCount} מתוך ${total} משימות 🎉</div>`;
+    sc.innerHTML=doneWeekly.map(t=>successCardRow(t)).join('');
   }
 
   const openSec=document.getElementById('week-open-sec');
@@ -1521,6 +1519,18 @@ function sortWeeklyTasks(tasks){
     (isTaskDone(t)?done:open).push(t);
   }
   return done.concat(open);
+}
+
+function successCardRow(t){
+  const rep=getReport(t);
+  const sub=rep?fmtTime(rep.created_at):'';
+  return `<div class="success-card" onclick="openTaskSheet('${t.id}')">
+    <div class="success-card-icon">✓</div>
+    <div class="success-card-body">
+      <div class="success-card-title">${esc(t.text)}</div>
+      ${sub?`<div class="success-card-meta">${esc(sub)}</div>`:''}
+    </div>
+  </div>`;
 }
 
 function weeklyTaskRow(t){
