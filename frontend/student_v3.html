@@ -183,16 +183,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
   text-align:center;box-shadow:var(--shadow);
 }
 .week-hero-greet .welcome-name{font-size:20px;font-weight:800;margin-bottom:4px;color:#fff}
-.week-hero-greet .welcome-grade{color:rgba(255,255,255,.72);font-size:13px;margin-bottom:18px}
-.week-progress-visual{max-width:300px;margin:0 auto}
-.week-tasks-count{font-size:15px;font-weight:700;color:rgba(255,255,255,.92);line-height:1.45}
-.week-hero .prog-track{background:rgba(255,255,255,.22);border-radius:999px;height:10px;overflow:hidden}
-.week-hero .prog-fill{
-  background:#fff;border-radius:999px;height:100%;
-  transition:width .6s cubic-bezier(.4,0,.2,1);
-  box-shadow:0 0 12px rgba(255,255,255,.45);
-}
-.week-hero .prog-lbl{font-size:13px;color:rgba(255,255,255,.88);margin-top:10px;font-weight:600;line-height:1.45}
+.week-hero-greet .welcome-grade{color:rgba(255,255,255,.72);font-size:13px}
 
 /* ══════════ SUCCESS CARDS (הצלחות השבוע) ══════════ */
 .success-strip{
@@ -578,9 +569,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
       <div class="week-hero-greet">
         <div class="welcome-name" id="w-name">היי!</div>
         <div class="welcome-grade">כיתה <span id="w-grade"></span></div>
-      </div>
-      <div class="week-progress-visual">
-        <div class="week-tasks-count" id="prog-lbl">טוען...</div>
       </div>
     </div>
 
@@ -1487,21 +1475,14 @@ function renderHome(){
     wName.textContent=welcomeMessageForWeek(firstName,weeklyTasks);
   }
 
-  const progLbl=document.getElementById('prog-lbl');
-  if(progLbl){
-    progLbl.textContent=total
-      ?`הושלמו ${doneCount} מתוך ${total} משימות`
-      :'עדיין אין משימות לשבוע — בחר/י מבנק המשימות למטה';
-  }
-
   const doneWeekly=weeklyTasks.filter(isTaskDone);
   const sc=document.getElementById('success-cards');
   if(!weeklyTasks.length){
     sc.innerHTML='<div class="success-empty">בחר/י משימות מבנק המשימות למטה כדי לבנות את השבוע שלך</div>';
   }else if(!doneWeekly.length){
-    sc.innerHTML='<div class="success-empty">כאן יופיעו ההצלחות שלך — אחרי שתסמנ/י משימה כהושלמה, נחגוג יחד</div>';
+    sc.innerHTML=`<div class="success-empty">הושלמו ${doneCount} מתוך ${total} משימות</div>`;
   }else{
-    sc.innerHTML=`<div class="success-empty">כל הכבוד! הושלמו ${doneWeekly.length} משימות השבוע 🎉</div>`;
+    sc.innerHTML=`<div class="success-empty">כל הכבוד! הושלמו ${doneCount} מתוך ${total} משימות 🎉</div>`;
   }
 
   const openSec=document.getElementById('week-open-sec');
