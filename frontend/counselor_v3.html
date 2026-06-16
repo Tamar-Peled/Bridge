@@ -1397,7 +1397,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--dark);min-h
     <h3>סיכום פגישה לשבוע</h3>
     <div class="modal-note">השדות נשמרים כסיכום פגישה בתיק — משויך לשבוע הנבחר</div>
     <label class="modal-lbl" for="modal-week-note-title">כותרת</label>
-    <input type="text" id="modal-week-note-title" style="width:100%;box-sizing:border-box" placeholder="Week …" autocomplete="off">
+    <input type="text" id="modal-week-note-title" style="width:100%;box-sizing:border-box" placeholder="1.1.2026 – 7.1.2026" autocomplete="off">
     <label class="modal-lbl" for="modal-week-note-body">תוכן הסיכום</label>
     <textarea id="modal-week-note-body" style="width:100%;box-sizing:border-box;min-height:140px;resize:vertical" placeholder=""></textarea>
     <div class="new-meeting-upload-status" style="justify-content:center;display:flex;flex-wrap:wrap;gap:8px;margin:10px 0" aria-live="polite">
@@ -3715,8 +3715,7 @@ function weekOrdinalForStudent(wkMs,stu,tasks,reports,notes){
   return i>=0?i+1:asc.length;
 }
 function formatWeekAccordionTitleLine(wkMs,ordinal){
-  const range=weekRangeLabelFromStart(wkMs);
-  return `Week ${ordinal} – ${range}`;
+  return weekRangeLabelFromStart(wkMs);
 }
 function weekTaskNoteKey(wkKey,taskId){
   return String(wkKey)+'_'+String(taskId||'');
@@ -4691,13 +4690,8 @@ function openWeeklyMeetingNoteModal(wkKeyStr, opts){
     if(opts&&opts.prefillTitle===false){
       titleInp.value='';
     }else{
-      /* Default title number counts across all existing weekly counselor
-         summaries for this student (not the current week ordinal) so the
-         counter advances every time a new summary is added — e.g. if four
-         summaries already exist anywhere in the timeline, the new draft
-         starts at "Week 5 – ...". The counselor can still edit the title. */
-      const nextNum=nextWeeklyCounselorSummaryNumberForStudent(stu);
-      titleInp.value=formatWeekAccordionTitleLine(Number(wk),nextNum);
+      /* Default title is the week's date range; the counselor can still edit. */
+      titleInp.value=formatWeekAccordionTitleLine(Number(wk),0);
     }
   }
   document.getElementById('modal-weekly-meeting').classList.add('show');
